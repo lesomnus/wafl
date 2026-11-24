@@ -1,6 +1,6 @@
 use crate::{
     config::{self, Config},
-    proto::wafl::{Instance, Phase},
+    proto::wafl::{Instance, Phase, Tenant},
     runtime::Runtime,
 };
 use anyhow::{Context, Result, anyhow, bail, ensure};
@@ -105,6 +105,13 @@ impl Runner {
     pub fn app(&self, name: &str) -> Option<Arc<App>> {
         self.0.apps.get(name).cloned()
     }
+    pub fn instance(&self, id: &[u8]) -> Option<Arc<App>> {
+        self.0
+            .apps
+            .values()
+            .find(|app| app.spec.id.0 == id)
+            .cloned()
+    }
     pub fn domain(&self, domain: &str) -> Option<Arc<App>> {
         self.0.domains.get(domain).and_then(|name| self.app(name))
     }
@@ -145,7 +152,12 @@ impl App {
     pub fn snapshot(&self) -> Instance {
         let state = self.state.lock().unwrap();
         Instance {
-            id: self.spec.name.as_bytes().to_vec(),
+            id: self.spec.id.0.to_vec(),
+            tenant: Some(Tenant {
+                id: self.spec.tenant.0.to_vec(),
+                ..Default::default()
+            })
+            .into(),
             name: self.spec.name.clone(),
             phase: state.phase.into(),
             generation: state.generation,

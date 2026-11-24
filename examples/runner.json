@@ -10,7 +10,11 @@
       "domain": "hello.localhost",
       "port": 8080,
       "idle_ms": 5000,
-      "env": {"GREETING": "Hello"}
+      "env": {
+        "GREETING": "Hello"
+      },
+      "id": "00000000-0000-8000-8007-000000000001",
+      "tenant": "00000000-0000-8000-8001-000000000001"
     },
     {
       "name": "bye",
@@ -20,7 +24,11 @@
       "domain": "bye.localhost",
       "port": 8080,
       "idle_ms": 5000,
-      "env": {"GREETING": "Goodbye"}
+      "env": {
+        "GREETING": "Goodbye"
+      },
+      "id": "00000000-0000-8000-8007-000000000002",
+      "tenant": "00000000-0000-8000-8001-000000000001"
     }
   ]
 }

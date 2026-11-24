@@ -12,7 +12,6 @@ pub mod proto;
 #[allow(clippy::needless_lifetimes)]
 pub mod services;
 
-#[allow(clippy::let_and_return)]
-pub mod storage {
-    include!("../generated/storage/sinks.rs");
+pub mod server {
+    include!("../generated/server.rs");
 }
