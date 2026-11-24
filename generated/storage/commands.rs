@@ -265,6 +265,40 @@ async fn dispatch(
                 emit(serde_json::to_value(msg.to_owned_message())?)?;
             }
         }
+        ("wafl.Instance", "Add") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#InstanceAddRequest,
+                <proto::r#wafl::r#Instance as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.InstanceService",
+                    "Add",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Instance", "Erase") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#InstanceRef,
+                <proto::r#wafl::r#InstanceEraseResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.InstanceService",
+                    "Erase",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Instance", "Get") => {
             let res = call_unary::<
                 _,

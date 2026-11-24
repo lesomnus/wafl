@@ -20,6 +20,7 @@ buffa = { version = "=0.8.1", features = ["json"] }
 buffa-types = { version = "=0.8.1", features = ["json"] }
 bytes = "1"
 connectrpc = { version = "=0.8.2", default-features = false, features = ["server", "json"] }
+flate2 = "1"
 http = "1"
 http-body = "1"
 http-body-util = "0.1"
@@ -27,15 +28,17 @@ hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["tokio", "server-auto"] }
 paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "d235c260d2ec5334a94650ab07517c242af2cdff", features = ["watch-postgres"] }
 paydirt-server = { git = "https://github.com/lesomnus/paydirt", rev = "d235c260d2ec5334a94650ab07517c242af2cdff" }
+reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "net", "time", "sync", "io-util"] }
+tar = "0.4"
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "net", "time", "sync", "io-util", "fs"] }
 wasmtime = { version = "=51.0.0", default-features = false, features = ["anyhow", "async", "component-model", "cranelift", "runtime", "std"] }
 wasmtime-wasi = { version = "=51.0.0", default-features = false, features = ["p2"] }
 
 [dev-dependencies]
 h2 = "0.4"
-tempfile = "3"
 tower = { version = "0.5", features = ["util"] }
 
 [profile.dev]

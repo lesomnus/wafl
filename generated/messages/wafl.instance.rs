@@ -225,20 +225,12 @@ pub struct Instance {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub error: ::buffa::alloc::string::String,
-    /// Field 12: `domain`
+    /// Field 17: `manifest`
     #[serde(
-        rename = "domain",
-        with = "::buffa::json_helpers::proto_string",
-        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+        rename = "manifest",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
-    pub domain: ::buffa::alloc::string::String,
-    /// Field 16: `port`
-    #[serde(
-        rename = "port",
-        with = "::buffa::json_helpers::uint32",
-        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
-    )]
-    pub port: u32,
+    pub manifest: ::buffa::MessageField<Manifest>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -253,8 +245,7 @@ impl ::core::fmt::Debug for Instance {
             .field("generation", &self.generation)
             .field("active", &self.active)
             .field("error", &self.error)
-            .field("domain", &self.domain)
-            .field("port", &self.port)
+            .field("manifest", &self.manifest)
             .finish()
     }
 }
@@ -312,11 +303,13 @@ impl ::buffa::Message for Instance {
         if !self.error.is_empty() {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.error) as u32;
         }
-        if !self.domain.is_empty() {
-            size += 1u32 + ::buffa::types::string_encoded_len(&self.domain) as u32;
-        }
-        if self.port != 0u32 {
-            size += 2u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
+        if self.manifest.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.manifest.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
@@ -353,11 +346,9 @@ impl ::buffa::Message for Instance {
         if !self.error.is_empty() {
             ::buffa::types::put_string_field(11u32, &self.error, buf);
         }
-        if !self.domain.is_empty() {
-            ::buffa::types::put_string_field(12u32, &self.domain, buf);
-        }
-        if self.port != 0u32 {
-            ::buffa::types::put_uint32_field(16u32, self.port, buf);
+        if self.manifest.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.manifest.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -427,19 +418,16 @@ impl ::buffa::Message for Instance {
                 )?;
                 ::buffa::types::merge_string(&mut self.error, buf)?;
             }
-            12u32 => {
+            17u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                ::buffa::types::merge_string(&mut self.domain, buf)?;
-            }
-            16u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
+                ::buffa::Message::merge_length_delimited(
+                    self.manifest.get_or_insert_default(),
+                    buf,
+                    ctx,
                 )?;
-                self.port = ::buffa::types::decode_uint32(buf)?;
             }
             _ => {
                 self.__buffa_unknown_fields
@@ -456,8 +444,7 @@ impl ::buffa::Message for Instance {
         self.generation = 0u64;
         self.active = 0u32;
         self.error.clear();
-        self.domain.clear();
-        self.port = 0u32;
+        self.manifest = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }

@@ -1,34 +1,4 @@
 {
   "listen": "127.0.0.1:8080",
-  "control": "127.0.0.1:8081",
-  "apps": [
-    {
-      "name": "hello",
-      "artifact": "../target/wasm32-wasip2/debug/wafl-example-hello.wasm",
-      "runtime": "wasmtime",
-      "abi": "wasip2",
-      "domain": "hello.localhost",
-      "port": 8080,
-      "idle_ms": 5000,
-      "env": {
-        "GREETING": "Hello"
-      },
-      "id": "00000000-0000-8000-8007-000000000001",
-      "tenant": "00000000-0000-8000-8001-000000000001"
-    },
-    {
-      "name": "bye",
-      "artifact": "../target/wasm32-wasip2/debug/wafl-example-hello.wasm",
-      "runtime": "wasmtime",
-      "abi": "wasip2",
-      "domain": "bye.localhost",
-      "port": 8080,
-      "idle_ms": 5000,
-      "env": {
-        "GREETING": "Goodbye"
-      },
-      "id": "00000000-0000-8000-8007-000000000002",
-      "tenant": "00000000-0000-8000-8001-000000000001"
-    }
-  ]
+  "control": "127.0.0.1:8081"
 }

@@ -47,6 +47,13 @@ fn main() -> std::io::Result<()> {
             .unwrap_or("/")
             .to_owned();
         let body = match path.as_str() {
+            "/data" => std::fs::read_to_string("/data/index.html")?,
+            "/headers" => {
+                let headers = String::from_utf8_lossy(&request).to_ascii_lowercase();
+                assert!(headers.contains("host: same.example\r\n"));
+                assert!(!headers.contains("wafl-instance:"));
+                "preserved".into()
+            }
             "/db" => {
                 let mut db = TcpStream::connect(("127.0.0.1", 5432))?;
                 assert_eq!(db.peer_addr()?, "127.0.0.1:5432".parse().unwrap());
@@ -59,6 +66,9 @@ fn main() -> std::io::Result<()> {
                 assert!(TcpStream::connect(("127.0.0.1", 12345)).is_err());
                 assert!(TcpListener::bind(("0.0.0.0", 9090)).is_err());
                 assert!(std::fs::read("/etc/passwd").is_err());
+                assert!(std::fs::read("/data/../main.wasm").is_err());
+                assert!(std::fs::write("/data/index.html", "changed").is_err());
+                assert!(std::fs::write("/data/new.txt", "changed").is_err());
                 assert!(std::env::var("HOME").is_err());
                 "denied".into()
             }

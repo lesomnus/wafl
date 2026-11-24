@@ -8,9 +8,9 @@ async fn main() -> Result<()> {
     let mut args = std::env::args_os().skip(1);
     let path = PathBuf::from(
         args.next()
-            .ok_or_else(|| anyhow!("usage: wafl-runner <manifest.json>"))?,
+            .ok_or_else(|| anyhow!("usage: wafl-runner <runner.json>"))?,
     );
-    ensure!(args.next().is_none(), "usage: wafl-runner <manifest.json>");
+    ensure!(args.next().is_none(), "usage: wafl-runner <runner.json>");
     let config = Config::read(&path)?;
     let runner = Runner::new(&config).await?;
     let ingress = tokio::net::TcpListener::bind(config.listen).await?;
@@ -23,10 +23,9 @@ async fn main() -> Result<()> {
     .await
     .map_err(|e| anyhow!("{e}"))?;
     eprintln!(
-        "wafl-runner ingress={} control={} apps={}",
+        "wafl-runner ingress={} control={}",
         ingress.local_addr()?,
-        config.control,
-        config.apps.len()
+        config.control
     );
     let mut workers = Workers::default();
     let reaper = runner.clone();

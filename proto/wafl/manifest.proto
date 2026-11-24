@@ -1,0 +1,39 @@
+edition = "2023";
+package wafl;
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// Execution settings carried by Instance. The archive contains code and data;
+// it does not contain another manifest.
+message Manifest {
+  // Currently "wasmtime". Empty also selects wasmtime.
+  string runtime = 1;
+  // HTTP(S) tar.gz: main.wasm at the root, optional data/ mounted as /data.
+  Asset bundle = 2;
+  // The guest's TCP listening port. Required, 1..65535.
+  uint32 port = 3;
+  // "http" (default) or "h2c" for HTTP/2 prior knowledge, including gRPC.
+  string protocol = 4;
+  // Currently "wasip2"; main.wasm must be a WASI CLI component.
+  string abi = 5;
+  // Zero selects the defaults: 60000, 10000, 67108864, and 128 respectively.
+  uint64 idle_ms = 6;
+  uint64 startup_ms = 7;
+  uint64 memory_bytes = 8;
+  uint32 max_active = 9;
+  map<string, string> env = 10;
+  repeated Binding bindings = 11;
+}
+
+message Asset {
+  oneof kind {
+    string url = 1;
+  }
+}
+
+// Map a guest loopback TCP port to a runner-reachable IPv4 socket.
+message Binding {
+  uint32 port = 1;
+  string target = 2;
+}

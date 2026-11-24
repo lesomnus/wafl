@@ -23,6 +23,8 @@ use tokio::{
 
 type BoxError = Box<dyn Error + Send + Sync>;
 pub type ProxyBody = UnsyncBoxBody<Bytes, BoxError>;
+/// Set by the gateway; consumed by the runner before forwarding to the guest.
+pub const INSTANCE_HEADER: &str = "wafl-instance";
 
 struct ResponseBody {
     inner: Incoming,
@@ -103,13 +105,29 @@ pub async fn forward(
         .filter(|a| !a.contains('@'))
         .and_then(|a| a.parse::<http::uri::Authority>().ok())
         .map(|a| a.to_string());
-    let domain = authority
-        .as_deref()
-        .and_then(|a| a.parse::<http::uri::Authority>().ok())
-        .map(|a| a.host().trim_end_matches('.').to_ascii_lowercase());
-    let Some(app) = domain.as_deref().and_then(|name| runner.domain(name)) else {
-        return Ok(reply(StatusCode::NOT_FOUND, "unknown app\n"));
+    if authority.is_none() {
+        return Ok(reply(
+            StatusCode::BAD_REQUEST,
+            "invalid request authority\n",
+        ));
+    }
+    let mut values = request.headers().get_all(INSTANCE_HEADER).iter();
+    let id = values
+        .next()
+        .and_then(|value| value.to_str().ok())
+        .and_then(paydirt::parse_id)
+        .filter(|id| paydirt::has_domain(id, crate::config::INSTANCE_DOMAIN))
+        .filter(|_| values.next().is_none());
+    let Some(id) = id else {
+        return Ok(reply(
+            StatusCode::BAD_REQUEST,
+            "wafl-instance must name one Instance UUID\n",
+        ));
     };
+    let Some(app) = runner.instance(&id) else {
+        return Ok(reply(StatusCode::NOT_FOUND, "unknown instance\n"));
+    };
+    request.headers_mut().remove(INSTANCE_HEADER);
     if request.method() == http::Method::CONNECT || request.headers().contains_key(header::UPGRADE)
     {
         return Ok(reply(

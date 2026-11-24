@@ -66,8 +66,7 @@ CREATE TABLE "pd_wafl__Instance" (
   "f9" TEXT NOT NULL,
   "f10" BIGINT NOT NULL,
   "f11" TEXT NOT NULL,
-  "f12" TEXT NOT NULL,
-  "f16" BIGINT NOT NULL
+  "f17" TEXT
 );
 CREATE TABLE "pd_wafl__Outbox" (
   "f1" BYTEA NOT NULL PRIMARY KEY,

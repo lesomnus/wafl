@@ -3,19 +3,35 @@ package wafl;
 
 import "orm.proto";
 import "wafl/instance.proto";
+import "wafl/manifest.proto";
 import "wafl/payday/tenant_svc.g.proto";
 
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 
 service InstanceService {
+  // Add creates a new Instance
+  rpc Add(InstanceAddRequest) returns (Instance);
   // Get retrieves a Instance
   rpc Get(InstanceGetRequest) returns (Instance);
+  // Erase deletes a Instance
+  rpc Erase(InstanceRef) returns (InstanceEraseResponse);
   // List reads Instances a page at a time.
   rpc List(InstanceListRequest) returns (InstanceListResponse);
   // Reuse a running instance or wait for the shared startup attempt.
   rpc Start(InstanceStartRequest) returns (Instance);
   // Refuse active requests. A later request starts the instance again.
   rpc Stop(InstanceStopRequest) returns (Instance);
+}
+
+message InstanceAddRequest {
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID}];
+  TenantRef tenant = 2;
+  string name = 5 [features.field_presence = IMPLICIT];
+  Phase phase = 8 [features.field_presence = IMPLICIT];
+  uint64 generation = 9 [features.field_presence = IMPLICIT];
+  uint32 active = 10 [features.field_presence = IMPLICIT];
+  string error = 11 [features.field_presence = IMPLICIT];
+  Manifest manifest = 17 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message InstanceGetRequest {
@@ -37,8 +53,16 @@ message InstanceSelect {
   bool generation = 9;
   bool active = 10;
   bool error = 11;
-  bool domain = 12;
-  bool port = 16;
+  bool manifest = 17;
+}
+
+message InstanceEraseResponse {
+  // Erased is whether this call is the one that erased the row.
+  //
+  // False for a row that was already gone, was never there, or is out
+  // of this caller's reach -- which are one answer on purpose, and the
+  // reason the RPC does not fail instead.
+  bool erased = 1;
 }
 
 message InstanceListRequest {

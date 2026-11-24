@@ -3,6 +3,7 @@ package wafl;
 
 import "payday.proto";
 import "orm.proto";
+import "wafl/manifest.proto";
 import "wafl/payday/tenant.proto";
 
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
@@ -11,7 +12,7 @@ option features.field_presence = IMPLICIT;
 // A tenant's runner-local execution state. The runner layer implements this
 // entity's service from memory; choosing that layer does not change its contract.
 message Instance {
-  option (orm.message) = {rpc: {get: {}}};
+  option (orm.message) = {rpc: {add: {}, get: {}, erase: {}}};
   option (payday.entity) = {
     domain: 7
     list: {
@@ -22,19 +23,19 @@ message Instance {
       filters: 64
     }
     erase: {hard: {}}
-    trail: {off: {why: "Ephemeral execution state served by the runner layer; no persistent writes"}}
   };
 
-  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true}];
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
   Tenant tenant = 2 [(orm.edge) = {immutable: true}];
   string name = 5;
-  Phase phase = 8;
+  Phase phase = 8 [(payday.field) = {stamped: true}];
   // Monotonic start attempt within this runner process, including failed starts.
-  uint64 generation = 9;
-  uint32 active = 10;
-  string error = 11;
-  string domain = 12;
-  uint32 port = 16;
+  uint64 generation = 9 [(payday.field) = {stamped: true}];
+  uint32 active = 10 [(payday.field) = {stamped: true}];
+  string error = 11 [(payday.field) = {stamped: true}];
+  reserved 12, 16;
+  reserved domain, port;
+  Manifest manifest = 17 [(orm.field) = {type: TYPE_JSON, immutable: true}];
 }
 
 enum Phase {

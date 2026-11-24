@@ -1,10 +1,22 @@
-///Shorthand for `OwnedView<InstanceGetRequestView<'static>>`.
-pub type OwnedInstanceGetRequestView = ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::InstanceGetRequestView<'static>,
+///Shorthand for `OwnedView<InstanceAddRequestView<'static>>`.
+pub type OwnedInstanceAddRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceAddRequestView<'static>,
 >;
 ///Shorthand for `OwnedView<InstanceView<'static>>`.
 pub type OwnedInstanceView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceView<'static>,
+>;
+///Shorthand for `OwnedView<InstanceGetRequestView<'static>>`.
+pub type OwnedInstanceGetRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceGetRequestView<'static>,
+>;
+///Shorthand for `OwnedView<InstanceRefView<'static>>`.
+pub type OwnedInstanceRefView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceRefView<'static>,
+>;
+///Shorthand for `OwnedView<InstanceEraseResponseView<'static>>`.
+pub type OwnedInstanceEraseResponseView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceEraseResponseView<'static>,
 >;
 ///Shorthand for `OwnedView<InstanceListRequestView<'static>>`.
 pub type OwnedInstanceListRequestView = ::buffa::view::OwnedView<
@@ -40,6 +52,26 @@ for ::buffa::view::OwnedView<crate::proto::wafl::__buffa::view::InstanceView<'st
         ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
     }
 }
+impl ::connectrpc::Encodable<crate::proto::wafl::InstanceEraseResponse>
+for crate::proto::wafl::__buffa::view::InstanceEraseResponseView<'_> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self, codec)
+    }
+}
+impl ::connectrpc::Encodable<crate::proto::wafl::InstanceEraseResponse>
+for ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceEraseResponseView<'static>,
+> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
+    }
+}
 impl ::connectrpc::Encodable<crate::proto::wafl::InstanceListResponse>
 for crate::proto::wafl::__buffa::view::InstanceListResponseView<'_> {
     fn encode(
@@ -62,12 +94,30 @@ for ::buffa::view::OwnedView<
 }
 /// Full service name for this service.
 pub const INSTANCE_SERVICE_SERVICE_NAME: &str = "wafl.InstanceService";
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Add` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_ADD_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Add",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
 /// Static [`Spec`](::connectrpc::Spec) for the server-side `Get` RPC.
 ///
 /// The dispatcher surfaces this on
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
 pub const INSTANCE_SERVICE_GET_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/wafl.InstanceService/Get",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Erase` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_ERASE_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Erase",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -149,6 +199,26 @@ pub const INSTANCE_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::s
 /// example` doc.
 #[allow(clippy::type_complexity)]
 pub trait InstanceService: Send + Sync + 'static {
+    /// Add creates a new Instance
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn add<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::InstanceAddRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
     /// Get retrieves a Instance
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
@@ -166,6 +236,26 @@ pub trait InstanceService: Send + Sync + 'static {
         Output = ::connectrpc::ServiceResult<
             impl ::connectrpc::Encodable<
                 crate::proto::wafl::Instance,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Erase deletes a Instance
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn erase<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::InstanceRef>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::InstanceEraseResponse,
             > + Send + use<'a, Self>,
         >,
     > + Send;
@@ -272,6 +362,33 @@ impl<S: InstanceService> InstanceServiceExt for S {
         router
             .route_view(
                 INSTANCE_SERVICE_SERVICE_NAME,
+                "Add",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceAddRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceAddRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.add(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::Instance>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_ADD_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Get",
                 {
                     let svc = ::std::sync::Arc::clone(&self);
@@ -297,6 +414,31 @@ impl<S: InstanceService> InstanceServiceExt for S {
                 },
             )
             .with_spec(INSTANCE_SERVICE_GET_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Erase",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceRefView<'static>,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceRef,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.erase(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::InstanceEraseResponse>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_ERASE_SPEC)
             .route_view(
                 INSTANCE_SERVICE_SERVICE_NAME,
                 "List",
@@ -432,10 +574,22 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
     ) -> Option<::connectrpc::dispatcher::codegen::MethodDescriptor> {
         let method = path.strip_prefix("wafl.InstanceService/")?;
         match method {
+            "Add" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_ADD_SPEC),
+                )
+            }
             "Get" => {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
                         .with_spec(INSTANCE_SERVICE_GET_SPEC),
+                )
+            }
+            "Erase" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_ERASE_SPEC),
                 )
             }
             "List" => {
@@ -471,6 +625,25 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
         };
         let _ = (&ctx, &request, &format);
         match method {
+            "Add" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceAddRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceAddRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceAddRequest,
+                    >::from_parts(&req, &body);
+                    svc.add(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::Instance>(format)
+                })
+            }
             "Get" => {
                 let svc = ::std::sync::Arc::clone(&self.inner);
                 Box::pin(async move {
@@ -488,6 +661,23 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                     svc.get(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::Instance>(format)
+                })
+            }
+            "Erase" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceRef,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceRefView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceRef,
+                    >::from_parts(&req, &body);
+                    svc.erase(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::InstanceEraseResponse>(format)
                 })
             }
             "List" => {
@@ -614,7 +804,7 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
 /// let config = ClientConfig::new(uri).with_protocol(Protocol::Grpc);
 ///
 /// let client = InstanceServiceClient::new(conn, config);
-/// let response = client.get(request).await?;
+/// let response = client.add(request).await?;
 /// ```
 ///
 /// # Example (Connect / HTTP/1.1 or ALPN)
@@ -626,7 +816,7 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
 /// let config = ClientConfig::new("http://localhost:8080".parse()?);
 ///
 /// let client = InstanceServiceClient::new(http, config);
-/// let response = client.get(request).await?;
+/// let response = client.add(request).await?;
 /// ```
 ///
 /// # Working with the response
@@ -636,7 +826,7 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
 /// message, so field access is zero-copy:
 ///
 /// ```rust,ignore
-/// let resp = client.get(request).await?;
+/// let resp = client.add(request).await?;
 /// let name: &str = resp.view().name;  // borrow into the response buffer
 /// ```
 ///
@@ -644,7 +834,7 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
 /// [`into_owned()`](::connectrpc::client::UnaryResponse::into_owned):
 ///
 /// ```rust,ignore
-/// let owned = client.get(request).await?.into_owned();
+/// let owned = client.add(request).await?.into_owned();
 /// ```
 ///
 /// [`into_view()`](::connectrpc::client::UnaryResponse::into_view) keeps the
@@ -676,6 +866,44 @@ where
     /// Get a mutable reference to the client configuration.
     pub fn config_mut(&mut self) -> &mut ::connectrpc::client::ClientConfig {
         &mut self.config
+    }
+    /// Call the Add RPC. Sends a request to /wafl.InstanceService/Add.
+    pub async fn add(
+        &self,
+        request: crate::proto::wafl::InstanceAddRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.add_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Add RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn add_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceAddRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Add",
+                request,
+                options,
+            )
+            .await
     }
     /// Call the Get RPC. Sends a request to /wafl.InstanceService/Get.
     pub async fn get(
@@ -710,6 +938,44 @@ where
                 &self.config,
                 INSTANCE_SERVICE_SERVICE_NAME,
                 "Get",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Erase RPC. Sends a request to /wafl.InstanceService/Erase.
+    pub async fn erase(
+        &self,
+        request: crate::proto::wafl::InstanceRef,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceEraseResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.erase_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Erase RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn erase_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceRef,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceEraseResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Erase",
                 request,
                 options,
             )

@@ -5,7 +5,8 @@ import "wafl/instance.proto";
 
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 
-// Only application-specific actions extend the generated read service.
+// Add/Get/List/Erase come from the entity declaration. Only lifecycle actions
+// extend the generated service.
 service InstanceService {
   // Reuse a running instance or wait for the shared startup attempt.
   rpc Start(InstanceStartRequest) returns (Instance);

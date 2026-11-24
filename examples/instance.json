@@ -1,0 +1,14 @@
+{
+  "id": "AAAAAAAAgACABwAAAAAAAQ==",
+  "tenant": {"id": "AAAAAAAAgACAAQAAAAAAAQ=="},
+  "name": "hello",
+  "manifest": {
+    "runtime": "wasmtime",
+    "abi": "wasip2",
+    "bundle": {"url": "http://127.0.0.1:9000/hello.tar.gz"},
+    "port": 8080,
+    "protocol": "http",
+    "idleMs": "5000",
+    "env": {"GREETING": "Hello"}
+  }
+}

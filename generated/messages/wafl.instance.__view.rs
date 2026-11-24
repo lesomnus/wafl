@@ -21,10 +21,10 @@ pub struct InstanceView<'a> {
     pub active: u32,
     /// Field 11: `error`
     pub error: &'a str,
-    /// Field 12: `domain`
-    pub domain: &'a str,
-    /// Field 16: `port`
-    pub port: u32,
+    /// Field 17: `manifest`
+    pub manifest: ::buffa::MessageFieldView<
+        super::super::__buffa::view::ManifestView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
@@ -119,19 +119,26 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                 )?;
                 view.error = ::buffa::types::borrow_str(&mut cur)?;
             }
-            12u32 => {
+            17u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                view.domain = ::buffa::types::borrow_str(&mut cur)?;
-            }
-            16u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
-                )?;
-                view.port = ::buffa::types::decode_uint32(&mut cur)?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.manifest.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.manifest = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ManifestView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
             }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
@@ -169,8 +176,14 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
             generation: self.generation,
             active: self.active,
             error: self.error.to_string(),
-            domain: self.domain.to_string(),
-            port: self.port,
+            manifest: match self.manifest.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Manifest,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -211,11 +224,13 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
         if !self.error.is_empty() {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.error) as u32;
         }
-        if !self.domain.is_empty() {
-            size += 1u32 + ::buffa::types::string_encoded_len(&self.domain) as u32;
-        }
-        if self.port != 0u32 {
-            size += 2u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
+        if self.manifest.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.manifest.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
@@ -253,11 +268,9 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
         if !self.error.is_empty() {
             ::buffa::types::put_string_field(11u32, &self.error, buf);
         }
-        if !self.domain.is_empty() {
-            ::buffa::types::put_string_field(12u32, &self.domain, buf);
-        }
-        if self.port != 0u32 {
-            ::buffa::types::put_uint32_field(16u32, self.port, buf);
+        if self.manifest.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.manifest.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -311,12 +324,10 @@ impl<'__a> ::serde::Serialize for InstanceView<'__a> {
         if !::buffa::json_helpers::skip_if::is_empty_str(self.error) {
             __map.serialize_entry("error", self.error)?;
         }
-        if !::buffa::json_helpers::skip_if::is_empty_str(self.domain) {
-            __map.serialize_entry("domain", self.domain)?;
-        }
-        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.port) {
-            __map
-                .serialize_entry("port", &::buffa::json_helpers::ProtoJson(&self.port))?;
+        {
+            if let ::core::option::Option::Some(__v) = self.manifest.as_option() {
+                __map.serialize_entry("manifest", __v)?;
+            }
         }
         __map.end()
     }
@@ -444,15 +455,12 @@ impl InstanceOwnedView {
     pub fn error(&self) -> &'_ str {
         self.0.reborrow().error
     }
-    /// Field 12: `domain`
+    /// Field 17: `manifest`
     #[must_use]
-    pub fn domain(&self) -> &'_ str {
-        self.0.reborrow().domain
-    }
-    /// Field 16: `port`
-    #[must_use]
-    pub fn port(&self) -> u32 {
-        self.0.reborrow().port
+    pub fn manifest(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ManifestView<'_>> {
+        &self.0.reborrow().manifest
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<InstanceView<'static>>>
