@@ -1,4 +1,801 @@
 {
   "version": 1,
-  "entities": []
+  "entities": [
+    {
+      "name": "wafl.Access",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant_id",
+          "json": "tenantId",
+          "number": 2,
+          "kind": "UUID"
+        },
+        {
+          "name": "actor_id",
+          "json": "actorId",
+          "number": 8,
+          "kind": "UUID"
+        },
+        {
+          "name": "trace_id",
+          "json": "traceId",
+          "number": 9,
+          "kind": "BYTES"
+        },
+        {
+          "name": "action",
+          "json": "action",
+          "number": 10,
+          "kind": "STRING"
+        },
+        {
+          "name": "kind",
+          "json": "kind",
+          "number": 11,
+          "kind": "STRING"
+        },
+        {
+          "name": "result",
+          "json": "result",
+          "number": 12,
+          "kind": "STRING"
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        },
+        {
+          "name": "actor_tenant_id",
+          "json": "actorTenantId",
+          "number": 16,
+          "kind": "UUID"
+        },
+        {
+          "name": "value",
+          "json": "value",
+          "number": 17,
+          "kind": "BYTES"
+        },
+        {
+          "name": "domain",
+          "json": "domain",
+          "number": 19,
+          "kind": "UINT32",
+          "default": ""
+        },
+        {
+          "name": "subjects",
+          "json": "subjects",
+          "number": 20,
+          "kind": "BYTES",
+          "collection": "list"
+        },
+        {
+          "name": "subject_count",
+          "json": "subjectCount",
+          "number": 21,
+          "kind": "UINT32"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "access",
+          "fields": [
+            "tenant_id",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_actor",
+          "fields": [
+            "actor_id",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_actor_tenant",
+          "fields": [
+            "actor_tenant_id",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_time",
+          "fields": [
+            "date_created",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wafl.Archived",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "labels",
+          "json": "labels",
+          "number": 7,
+          "kind": "JSON",
+          "collection": "map"
+        },
+        {
+          "name": "namespace",
+          "json": "namespace",
+          "number": 8,
+          "kind": "STRING"
+        },
+        {
+          "name": "digest",
+          "json": "digest",
+          "number": 9,
+          "kind": "STRING"
+        },
+        {
+          "name": "intent",
+          "json": "intent",
+          "number": 10,
+          "kind": "STRING"
+        },
+        {
+          "name": "state",
+          "json": "state",
+          "number": 11,
+          "kind": "STRING"
+        },
+        {
+          "name": "since",
+          "json": "since",
+          "number": 12,
+          "kind": "UINT32"
+        },
+        {
+          "name": "date_updated",
+          "json": "dateUpdated",
+          "number": 13,
+          "kind": "TIME",
+          "version": true
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        },
+        {
+          "name": "gone",
+          "json": "gone",
+          "number": 16,
+          "kind": "UINT32"
+        },
+        {
+          "name": "signature",
+          "json": "signature",
+          "number": 17,
+          "kind": "BYTES",
+          "default": ""
+        },
+        {
+          "name": "signed_by",
+          "json": "signedBy",
+          "number": 18,
+          "kind": "BYTES",
+          "default": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "blob",
+          "fields": [
+            "namespace",
+            "digest"
+          ]
+        },
+        {
+          "name": "state",
+          "fields": [
+            "state"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wafl.Audit",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant_id",
+          "json": "tenantId",
+          "number": 2,
+          "kind": "UUID"
+        },
+        {
+          "name": "actor_id",
+          "json": "actorId",
+          "number": 8,
+          "kind": "UUID"
+        },
+        {
+          "name": "trace_id",
+          "json": "traceId",
+          "number": 9,
+          "kind": "BYTES"
+        },
+        {
+          "name": "action",
+          "json": "action",
+          "number": 10,
+          "kind": "STRING"
+        },
+        {
+          "name": "object_id",
+          "json": "objectId",
+          "number": 11,
+          "kind": "UUID"
+        },
+        {
+          "name": "patch",
+          "json": "patch",
+          "number": 12,
+          "kind": "BYTES"
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        },
+        {
+          "name": "actor_tenant_id",
+          "json": "actorTenantId",
+          "number": 16,
+          "kind": "UUID"
+        },
+        {
+          "name": "value",
+          "json": "value",
+          "number": 17,
+          "kind": "BYTES"
+        },
+        {
+          "name": "counterpart_tenant_id",
+          "json": "counterpartTenantId",
+          "number": 18,
+          "kind": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "domain",
+          "json": "domain",
+          "number": 19,
+          "kind": "UINT32",
+          "default": ""
+        },
+        {
+          "name": "fields",
+          "json": "fields",
+          "number": 20,
+          "kind": "UINT32",
+          "collection": "list"
+        },
+        {
+          "name": "digest",
+          "json": "digest",
+          "number": 21,
+          "kind": "BYTES",
+          "default": ""
+        },
+        {
+          "name": "digest_fields",
+          "json": "digestFields",
+          "number": 22,
+          "kind": "UINT32",
+          "collection": "list"
+        },
+        {
+          "name": "caller_id",
+          "json": "callerId",
+          "number": 23,
+          "kind": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "caller_tenant_id",
+          "json": "callerTenantId",
+          "number": 24,
+          "kind": "UUID",
+          "nullable": true
+        },
+        {
+          "name": "presence",
+          "json": "presence",
+          "number": 25,
+          "kind": "STRING",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "by_actor",
+          "fields": [
+            "actor_id",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_actor_tenant",
+          "fields": [
+            "actor_tenant_id",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_counterpart",
+          "fields": [
+            "counterpart_tenant_id",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_domain",
+          "fields": [
+            "domain",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_tenant_domain",
+          "fields": [
+            "tenant_id",
+            "domain",
+            "date_created"
+          ]
+        },
+        {
+          "name": "by_time",
+          "fields": [
+            "date_created",
+            "id"
+          ]
+        },
+        {
+          "name": "object",
+          "fields": [
+            "object_id"
+          ]
+        },
+        {
+          "name": "trail",
+          "fields": [
+            "tenant_id",
+            "date_created"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wafl.Holder",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant",
+          "json": "tenant",
+          "number": 2,
+          "kind": "MESSAGE",
+          "target": "wafl.Tenant",
+          "immutable": true
+        },
+        {
+          "name": "alias",
+          "json": "alias",
+          "number": 4,
+          "kind": "STRING"
+        },
+        {
+          "name": "name",
+          "json": "name",
+          "number": 5,
+          "kind": "STRING"
+        },
+        {
+          "name": "desc",
+          "json": "desc",
+          "number": 6,
+          "kind": "STRING"
+        },
+        {
+          "name": "labels",
+          "json": "labels",
+          "number": 7,
+          "kind": "JSON",
+          "collection": "map"
+        },
+        {
+          "name": "date_updated",
+          "json": "dateUpdated",
+          "number": 13,
+          "kind": "TIME",
+          "version": true
+        },
+        {
+          "name": "date_erased",
+          "json": "dateErased",
+          "number": 14,
+          "kind": "TIME",
+          "nullable": true,
+          "erased": true
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "page",
+          "fields": [
+            "tenant",
+            "date_created",
+            "id"
+          ]
+        },
+        {
+          "name": "slug",
+          "fields": [
+            "alias",
+            "tenant"
+          ],
+          "unique": true,
+          "active_only": true
+        }
+      ]
+    },
+    {
+      "name": "wafl.Instance",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true
+        },
+        {
+          "name": "tenant",
+          "json": "tenant",
+          "number": 2,
+          "kind": "MESSAGE",
+          "target": "wafl.Tenant",
+          "immutable": true
+        },
+        {
+          "name": "name",
+          "json": "name",
+          "number": 5,
+          "kind": "STRING"
+        },
+        {
+          "name": "phase",
+          "json": "phase",
+          "number": 8,
+          "kind": "ENUM"
+        },
+        {
+          "name": "generation",
+          "json": "generation",
+          "number": 9,
+          "kind": "UINT64"
+        },
+        {
+          "name": "active",
+          "json": "active",
+          "number": 10,
+          "kind": "UINT32"
+        },
+        {
+          "name": "error",
+          "json": "error",
+          "number": 11,
+          "kind": "STRING"
+        },
+        {
+          "name": "domain",
+          "json": "domain",
+          "number": 12,
+          "kind": "STRING"
+        },
+        {
+          "name": "port",
+          "json": "port",
+          "number": 16,
+          "kind": "UINT32"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "wafl.Outbox",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant_id",
+          "json": "tenantId",
+          "number": 2,
+          "kind": "UUID"
+        },
+        {
+          "name": "actor_id",
+          "json": "actorId",
+          "number": 8,
+          "kind": "UUID"
+        },
+        {
+          "name": "method",
+          "json": "method",
+          "number": 9,
+          "kind": "STRING"
+        },
+        {
+          "name": "by",
+          "json": "by",
+          "number": 10,
+          "kind": "STRING"
+        },
+        {
+          "name": "object_id",
+          "json": "objectId",
+          "number": 11,
+          "kind": "UUID"
+        },
+        {
+          "name": "patch",
+          "json": "patch",
+          "number": 12,
+          "kind": "BYTES"
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        },
+        {
+          "name": "event",
+          "json": "event",
+          "number": 16,
+          "kind": "BYTES",
+          "nullable": true
+        },
+        {
+          "name": "routes",
+          "json": "routes",
+          "number": 17,
+          "kind": "BYTES",
+          "nullable": true
+        },
+        {
+          "name": "signal",
+          "json": "signal",
+          "number": 18,
+          "kind": "BYTES",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "queue",
+          "fields": [
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wafl.Owed",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "object",
+          "json": "object",
+          "number": 8,
+          "kind": "UUID"
+        },
+        {
+          "name": "held_by",
+          "json": "heldBy",
+          "number": 9,
+          "kind": "BYTES",
+          "collection": "list"
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "owed",
+          "fields": [
+            "date_created",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wafl.RowSeal",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant_id",
+          "json": "tenantId",
+          "number": 2,
+          "kind": "UUID"
+        },
+        {
+          "name": "sum",
+          "json": "sum",
+          "number": 8,
+          "kind": "BYTES"
+        },
+        {
+          "name": "fields",
+          "json": "fields",
+          "number": 9,
+          "kind": "UINT32",
+          "collection": "list"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "wafl.Tenant",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "alias",
+          "json": "alias",
+          "number": 4,
+          "kind": "STRING",
+          "unique": true
+        },
+        {
+          "name": "name",
+          "json": "name",
+          "number": 5,
+          "kind": "STRING"
+        },
+        {
+          "name": "desc",
+          "json": "desc",
+          "number": 6,
+          "kind": "STRING"
+        },
+        {
+          "name": "labels",
+          "json": "labels",
+          "number": 7,
+          "kind": "JSON",
+          "collection": "map"
+        },
+        {
+          "name": "date_updated",
+          "json": "dateUpdated",
+          "number": 13,
+          "kind": "TIME",
+          "version": true
+        },
+        {
+          "name": "date_created",
+          "json": "dateCreated",
+          "number": 15,
+          "kind": "TIME",
+          "immutable": true,
+          "default": ""
+        }
+      ],
+      "indexes": [
+        {
+          "name": "page",
+          "fields": [
+            "date_created",
+            "id"
+          ]
+        }
+      ]
+    }
+  ]
 }

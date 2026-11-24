@@ -2,29 +2,40 @@ edition = "2023";
 package wafl;
 
 import "payday.proto";
+import "orm.proto";
+import "wafl/payday/tenant.proto";
 
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 option features.field_presence = IMPLICIT;
 
-// The runner-local execution state for a configured app. The opaque resource
-// ID is its UTF-8 app name; it stays stable across starts within the runner.
-// No ORM entity, ID domain or persistence is declared for this computed value.
+// A tenant's runner-local execution state. The runner layer implements this
+// entity's service from memory; choosing that layer does not change its contract.
 message Instance {
-  option (payday.resource) = {filter: ".wafl.InstanceFilter"};
+  option (orm.message) = {rpc: {get: {}}};
+  option (payday.entity) = {
+    domain: 7
+    list: {
+      order: [{field: {name: "id"}}]
+      by: [{name: "ref"}]
+      size: 100
+      max: 1000
+      filters: 64
+    }
+    erase: {hard: {}}
+    trail: {off: {why: "Ephemeral execution state served by the runner layer; no persistent writes"}}
+  };
 
-  bytes id = 1;
-  Phase phase = 2;
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true}];
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+  string name = 5;
+  Phase phase = 8;
   // Monotonic start attempt within this runner process, including failed starts.
-  uint64 generation = 3;
-  uint32 active = 4;
-  string error = 5;
-  string domain = 6;
-  uint32 port = 7;
-  string name = 8;
+  uint64 generation = 9;
+  uint32 active = 10;
+  string error = 11;
+  string domain = 12;
+  uint32 port = 16;
 }
-
-// Multiple filters are ORed. An empty name matches every configured app.
-message InstanceFilter { string name = 1; }
 
 enum Phase {
   PHASE_UNSPECIFIED = 0;

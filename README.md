@@ -9,7 +9,8 @@
 ```sh
 # rustup이 rust-toolchain.toml에 지정된 도구와 타깃을 설치합니다.
 cargo build --locked -p wafl-example-hello --target wasm32-wasip2
-cargo run --locked -- examples/runner.json
+WAFL_TOKENS='{"local-dev":"00000000-0000-8000-8001-000000000001"}' \
+  cargo run --locked -- examples/runner.json
 ```
 
 다른 터미널에서:
@@ -17,7 +18,8 @@ cargo run --locked -- examples/runner.json
 ```sh
 curl -H 'Host: hello.localhost' http://127.0.0.1:8080/
 curl -H 'Host: bye.localhost' http://127.0.0.1:8080/
-curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
+curl -H 'Authorization: Bearer local-dev' -H 'Content-Type: application/json' \
+  -H 'Connect-Protocol-Version: 1' \
   -d '{}' http://127.0.0.1:8081/wafl.InstanceService/List
 ```
 

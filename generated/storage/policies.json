@@ -1,1 +1,463 @@
-{}
+{
+  "wafl.Access": {
+    "entity": {
+      "domain": 6,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "actor_id"
+          },
+          {
+            "name": "tenant_id"
+          },
+          {
+            "name": "actor_tenant_id"
+          },
+          {
+            "name": "kind"
+          }
+        ],
+        "max": 200,
+        "order": [
+          {
+            "desc": true,
+            "field": {
+              "name": "date_created"
+            }
+          },
+          {
+            "desc": true,
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 50
+      },
+      "own": "OWN_ACCESS",
+      "tenanted": {
+        "field": [
+          "tenant_id",
+          "actor_tenant_id"
+        ]
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.AccessGetRequest",
+        "output": ".wafl.Access",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.AccessListRequest",
+        "output": ".wafl.AccessListResponse",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
+  "wafl.Archived": {
+    "entity": {
+      "domain": 5,
+      "erase": {
+        "hard": {}
+      },
+      "global": {},
+      "own": "OWN_ARCHIVED"
+    },
+    "fields": {},
+    "methods": {}
+  },
+  "wafl.Audit": {
+    "entity": {
+      "domain": 3,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "object_id"
+          },
+          {
+            "name": "actor_id"
+          },
+          {
+            "name": "tenant_id"
+          },
+          {
+            "name": "actor_tenant_id"
+          },
+          {
+            "name": "counterpart_tenant_id"
+          }
+        ],
+        "max": 200,
+        "order": [
+          {
+            "desc": true,
+            "field": {
+              "name": "date_created"
+            }
+          },
+          {
+            "desc": true,
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 50
+      },
+      "own": "OWN_AUDIT",
+      "tenanted": {
+        "field": [
+          "tenant_id",
+          "actor_tenant_id",
+          "counterpart_tenant_id"
+        ]
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Add": {
+        "client_stream": false,
+        "input": ".wafl.AuditAddRequest",
+        "output": ".wafl.Audit",
+        "policy": null,
+        "server_stream": false
+      },
+      "Apply": {
+        "client_stream": false,
+        "input": ".wafl.AuditApplyRequest",
+        "output": ".wafl.Audit",
+        "policy": null,
+        "server_stream": false
+      },
+      "Erase": {
+        "client_stream": false,
+        "input": ".wafl.AuditRef",
+        "output": ".wafl.AuditEraseResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.AuditGetRequest",
+        "output": ".wafl.Audit",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.AuditListRequest",
+        "output": ".wafl.AuditListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Patch": {
+        "client_stream": false,
+        "input": ".wafl.AuditPatchRequest",
+        "output": ".wafl.Audit",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
+  "wafl.Holder": {
+    "entity": {
+      "domain": 2,
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          },
+          {
+            "name": "tenant"
+          },
+          {
+            "name": "labels"
+          }
+        ],
+        "max": 100,
+        "order": [
+          {
+            "field": {
+              "name": "date_created"
+            }
+          },
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 20
+      },
+      "own": "OWN_HOLDER",
+      "watch": {}
+    },
+    "fields": {
+      "alias": {
+        "personal": true
+      },
+      "desc": {
+        "personal": true
+      },
+      "labels": {
+        "personal": true
+      },
+      "name": {
+        "personal": true
+      }
+    },
+    "methods": {
+      "Add": {
+        "client_stream": false,
+        "input": ".wafl.HolderAddRequest",
+        "output": ".wafl.Holder",
+        "policy": null,
+        "server_stream": false
+      },
+      "Apply": {
+        "client_stream": false,
+        "input": ".wafl.HolderApplyRequest",
+        "output": ".wafl.Holder",
+        "policy": null,
+        "server_stream": false
+      },
+      "Erase": {
+        "client_stream": false,
+        "input": ".wafl.HolderRef",
+        "output": ".wafl.HolderEraseResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.HolderGetRequest",
+        "output": ".wafl.Holder",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.HolderListRequest",
+        "output": ".wafl.HolderListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Patch": {
+        "client_stream": false,
+        "input": ".wafl.HolderPatchRequest",
+        "output": ".wafl.Holder",
+        "policy": null,
+        "server_stream": false
+      },
+      "Watch": {
+        "client_stream": false,
+        "input": ".wafl.HolderWatchRequest",
+        "output": ".wafl.HolderWatchResponse",
+        "policy": null,
+        "server_stream": true
+      }
+    }
+  },
+  "wafl.Instance": {
+    "entity": {
+      "domain": 7,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          }
+        ],
+        "filters": 64,
+        "max": 1000,
+        "order": [
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 100
+      },
+      "trail": {
+        "off": {
+          "why": "Ephemeral execution state served by the runner layer; no persistent writes"
+        }
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.InstanceGetRequest",
+        "output": ".wafl.Instance",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.InstanceListRequest",
+        "output": ".wafl.InstanceListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Start": {
+        "client_stream": false,
+        "input": ".wafl.InstanceStartRequest",
+        "output": ".wafl.Instance",
+        "policy": null,
+        "server_stream": false
+      },
+      "Stop": {
+        "client_stream": false,
+        "input": ".wafl.InstanceStopRequest",
+        "output": ".wafl.Instance",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
+  "wafl.Outbox": {
+    "entity": {
+      "domain": 4,
+      "erase": {
+        "hard": {}
+      },
+      "global": {},
+      "own": "OWN_OUTBOX"
+    },
+    "fields": {},
+    "methods": {}
+  },
+  "wafl.Owed": {
+    "entity": {
+      "domain": 254,
+      "erase": {
+        "hard": {}
+      },
+      "global": {},
+      "own": "OWN_OWED"
+    },
+    "fields": {},
+    "methods": {}
+  },
+  "wafl.RowSeal": {
+    "entity": {
+      "domain": 255,
+      "erase": {
+        "hard": {}
+      },
+      "own": "OWN_ROW_SEAL",
+      "tenanted": {
+        "field": [
+          "tenant_id"
+        ]
+      }
+    },
+    "fields": {},
+    "methods": {}
+  },
+  "wafl.Tenant": {
+    "entity": {
+      "domain": 1,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          }
+        ],
+        "max": 100,
+        "order": [
+          {
+            "field": {
+              "name": "date_created"
+            }
+          },
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 20
+      },
+      "own": "OWN_TENANT",
+      "tenant": {}
+    },
+    "fields": {
+      "alias": {
+        "personal": false
+      },
+      "desc": {
+        "personal": false
+      },
+      "labels": {
+        "personal": false
+      },
+      "name": {
+        "personal": false
+      }
+    },
+    "methods": {
+      "Add": {
+        "client_stream": false,
+        "input": ".wafl.TenantAddRequest",
+        "output": ".wafl.Tenant",
+        "policy": null,
+        "server_stream": false
+      },
+      "Apply": {
+        "client_stream": false,
+        "input": ".wafl.TenantApplyRequest",
+        "output": ".wafl.Tenant",
+        "policy": null,
+        "server_stream": false
+      },
+      "Erase": {
+        "client_stream": false,
+        "input": ".wafl.TenantRef",
+        "output": ".wafl.TenantEraseResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.TenantGetRequest",
+        "output": ".wafl.Tenant",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.TenantListRequest",
+        "output": ".wafl.TenantListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Patch": {
+        "client_stream": false,
+        "input": ".wafl.TenantPatchRequest",
+        "output": ".wafl.Tenant",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  }
+}

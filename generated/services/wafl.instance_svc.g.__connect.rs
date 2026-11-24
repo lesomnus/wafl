@@ -149,7 +149,7 @@ pub const INSTANCE_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::s
 /// example` doc.
 #[allow(clippy::type_complexity)]
 pub trait InstanceService: Send + Sync + 'static {
-    /// Handle the Get RPC.
+    /// Get retrieves a Instance
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///
@@ -169,7 +169,7 @@ pub trait InstanceService: Send + Sync + 'static {
             > + Send + use<'a, Self>,
         >,
     > + Send;
-    /// Handle the List RPC.
+    /// List reads Instances a page at a time.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///

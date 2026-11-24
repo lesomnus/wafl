@@ -1593,7 +1593,7 @@ dependencies = [
 [[package]]
 name = "paydirt"
 version = "0.1.0"
-source = "git+https://github.com/lesomnus/paydirt?rev=208a8580706d853e3f7cbbc831338e9caf84bba3#208a8580706d853e3f7cbbc831338e9caf84bba3"
+source = "git+https://github.com/lesomnus/paydirt?rev=d235c260d2ec5334a94650ab07517c242af2cdff#d235c260d2ec5334a94650ab07517c242af2cdff"
 dependencies = [
  "async-stream",
  "base64 0.22.1",
@@ -1612,7 +1612,7 @@ dependencies = [
 [[package]]
 name = "paydirt-server"
 version = "0.1.0"
-source = "git+https://github.com/lesomnus/paydirt?rev=208a8580706d853e3f7cbbc831338e9caf84bba3#208a8580706d853e3f7cbbc831338e9caf84bba3"
+source = "git+https://github.com/lesomnus/paydirt?rev=d235c260d2ec5334a94650ab07517c242af2cdff#d235c260d2ec5334a94650ab07517c242af2cdff"
 dependencies = [
  "axum",
  "base64 0.22.1",
@@ -2777,6 +2777,7 @@ name = "wafl-runner"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "buffa",
  "buffa-types",
  "bytes",

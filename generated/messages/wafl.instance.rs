@@ -169,9 +169,8 @@ impl ::buffa::Enumeration for Phase {
         ]
     }
 }
-/// The runner-local execution state for a configured app. The opaque resource
-/// ID is its UTF-8 app name; it stays stable across starts within the runner.
-/// No ORM entity, ID domain or persistence is declared for this computed value.
+/// A tenant's runner-local execution state. The runner layer implements this
+/// entity's service from memory; choosing that layer does not change its contract.
 #[derive(Clone, PartialEq, Default)]
 #[derive(::serde::Serialize, ::serde::Deserialize)]
 #[serde(default)]
@@ -183,7 +182,20 @@ pub struct Instance {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_bytes"
     )]
     pub id: ::buffa::alloc::vec::Vec<u8>,
-    /// Field 2: `phase`
+    /// Field 2: `tenant`
+    #[serde(
+        rename = "tenant",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub tenant: ::buffa::MessageField<Tenant>,
+    /// Field 5: `name`
+    #[serde(
+        rename = "name",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub name: ::buffa::alloc::string::String,
+    /// Field 8: `phase`
     #[serde(
         rename = "phase",
         with = "::buffa::json_helpers::proto_enum",
@@ -192,48 +204,41 @@ pub struct Instance {
     pub phase: ::buffa::EnumValue<Phase>,
     /// Monotonic start attempt within this runner process, including failed starts.
     ///
-    /// Field 3: `generation`
+    /// Field 9: `generation`
     #[serde(
         rename = "generation",
         with = "::buffa::json_helpers::uint64",
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub generation: u64,
-    /// Field 4: `active`
+    /// Field 10: `active`
     #[serde(
         rename = "active",
         with = "::buffa::json_helpers::uint32",
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
     )]
     pub active: u32,
-    /// Field 5: `error`
+    /// Field 11: `error`
     #[serde(
         rename = "error",
         with = "::buffa::json_helpers::proto_string",
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub error: ::buffa::alloc::string::String,
-    /// Field 6: `domain`
+    /// Field 12: `domain`
     #[serde(
         rename = "domain",
         with = "::buffa::json_helpers::proto_string",
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub domain: ::buffa::alloc::string::String,
-    /// Field 7: `port`
+    /// Field 16: `port`
     #[serde(
         rename = "port",
         with = "::buffa::json_helpers::uint32",
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
     )]
     pub port: u32,
-    /// Field 8: `name`
-    #[serde(
-        rename = "name",
-        with = "::buffa::json_helpers::proto_string",
-        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
-    )]
-    pub name: ::buffa::alloc::string::String,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -242,13 +247,14 @@ impl ::core::fmt::Debug for Instance {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
         f.debug_struct("Instance")
             .field("id", &self.id)
+            .field("tenant", &self.tenant)
+            .field("name", &self.name)
             .field("phase", &self.phase)
             .field("generation", &self.generation)
             .field("active", &self.active)
             .field("error", &self.error)
             .field("domain", &self.domain)
             .field("port", &self.port)
-            .field("name", &self.name)
             .finish()
     }
 }
@@ -273,12 +279,23 @@ impl ::buffa::Message for Instance {
     /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
     /// compliant message will never overflow this type.
     #[allow(clippy::let_and_return)]
-    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
         #[allow(unused_imports)]
         use ::buffa::Enumeration as _;
         let mut size = 0u32;
         if !self.id.is_empty() {
             size += 1u32 + ::buffa::types::bytes_encoded_len(&self.id) as u32;
+        }
+        if self.tenant.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.tenant.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if !self.name.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
         }
         {
             let val = self.phase.to_i32();
@@ -299,17 +316,14 @@ impl ::buffa::Message for Instance {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.domain) as u32;
         }
         if self.port != 0u32 {
-            size += 1u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
-        }
-        if !self.name.is_empty() {
-            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
+            size += 2u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
     fn write_to(
         &self,
-        _cache: &mut ::buffa::SizeCache,
+        __cache: &mut ::buffa::SizeCache,
         buf: &mut impl ::buffa::bytes::BufMut,
     ) {
         #[allow(unused_imports)]
@@ -317,29 +331,33 @@ impl ::buffa::Message for Instance {
         if !self.id.is_empty() {
             ::buffa::types::put_bytes_field(1u32, &self.id, buf);
         }
+        if self.tenant.is_set() {
+            ::buffa::types::put_len_delimited_header(2u32, __cache.consume_next(), buf);
+            self.tenant.write_to(__cache, buf);
+        }
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.name, buf);
+        }
         {
             let val = self.phase.to_i32();
             if val != 0 {
-                ::buffa::types::put_int32_field(2u32, val, buf);
+                ::buffa::types::put_int32_field(8u32, val, buf);
             }
         }
         if self.generation != 0u64 {
-            ::buffa::types::put_uint64_field(3u32, self.generation, buf);
+            ::buffa::types::put_uint64_field(9u32, self.generation, buf);
         }
         if self.active != 0u32 {
-            ::buffa::types::put_uint32_field(4u32, self.active, buf);
+            ::buffa::types::put_uint32_field(10u32, self.active, buf);
         }
         if !self.error.is_empty() {
-            ::buffa::types::put_string_field(5u32, &self.error, buf);
+            ::buffa::types::put_string_field(11u32, &self.error, buf);
         }
         if !self.domain.is_empty() {
-            ::buffa::types::put_string_field(6u32, &self.domain, buf);
+            ::buffa::types::put_string_field(12u32, &self.domain, buf);
         }
         if self.port != 0u32 {
-            ::buffa::types::put_uint32_field(7u32, self.port, buf);
-        }
-        if !self.name.is_empty() {
-            ::buffa::types::put_string_field(8u32, &self.name, buf);
+            ::buffa::types::put_uint32_field(16u32, self.port, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -364,53 +382,64 @@ impl ::buffa::Message for Instance {
             2u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
-                    ::buffa::encoding::WireType::Varint,
+                    ::buffa::encoding::WireType::LengthDelimited,
                 )?;
-                self.phase = ::buffa::EnumValue::from(
-                    ::buffa::types::decode_int32(buf)?,
-                );
-            }
-            3u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
+                ::buffa::Message::merge_length_delimited(
+                    self.tenant.get_or_insert_default(),
+                    buf,
+                    ctx,
                 )?;
-                self.generation = ::buffa::types::decode_uint64(buf)?;
-            }
-            4u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
-                )?;
-                self.active = ::buffa::types::decode_uint32(buf)?;
             }
             5u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
+                ::buffa::types::merge_string(&mut self.name, buf)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.phase = ::buffa::EnumValue::from(
+                    ::buffa::types::decode_int32(buf)?,
+                );
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.generation = ::buffa::types::decode_uint64(buf)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.active = ::buffa::types::decode_uint32(buf)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
                 ::buffa::types::merge_string(&mut self.error, buf)?;
             }
-            6u32 => {
+            12u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::LengthDelimited,
                 )?;
                 ::buffa::types::merge_string(&mut self.domain, buf)?;
             }
-            7u32 => {
+            16u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::Varint,
                 )?;
                 self.port = ::buffa::types::decode_uint32(buf)?;
-            }
-            8u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::LengthDelimited,
-                )?;
-                ::buffa::types::merge_string(&mut self.name, buf)?;
             }
             _ => {
                 self.__buffa_unknown_fields
@@ -421,13 +450,14 @@ impl ::buffa::Message for Instance {
     }
     fn clear(&mut self) {
         self.id.clear();
+        self.tenant = ::buffa::MessageField::none();
+        self.name.clear();
         self.phase = ::buffa::EnumValue::from(0);
         self.generation = 0u64;
         self.active = 0u32;
         self.error.clear();
         self.domain.clear();
         self.port = 0u32;
-        self.name.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -458,128 +488,5 @@ pub const __INSTANCE_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::t
     type_url: "type.googleapis.com/wafl.Instance",
     to_json: ::buffa::type_registry::any_to_json::<Instance>,
     from_json: ::buffa::type_registry::any_from_json::<Instance>,
-    is_wkt: false,
-};
-/// Multiple filters are ORed. An empty name matches every configured app.
-#[derive(Clone, PartialEq, Default)]
-#[derive(::serde::Serialize, ::serde::Deserialize)]
-#[serde(default)]
-pub struct InstanceFilter {
-    /// Field 1: `name`
-    #[serde(
-        rename = "name",
-        with = "::buffa::json_helpers::proto_string",
-        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
-    )]
-    pub name: ::buffa::alloc::string::String,
-    #[serde(skip)]
-    #[doc(hidden)]
-    pub __buffa_unknown_fields: ::buffa::UnknownFields,
-}
-impl ::core::fmt::Debug for InstanceFilter {
-    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_struct("InstanceFilter").field("name", &self.name).finish()
-    }
-}
-impl InstanceFilter {
-    /// Protobuf type URL for this message, for use with `Any::pack` and
-    /// `Any::unpack_if`.
-    ///
-    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
-    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceFilter";
-}
-::buffa::impl_default_instance!(InstanceFilter);
-impl ::buffa::MessageName for InstanceFilter {
-    const PACKAGE: &'static str = "wafl";
-    const NAME: &'static str = "InstanceFilter";
-    const FULL_NAME: &'static str = "wafl.InstanceFilter";
-    const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceFilter";
-}
-impl ::buffa::Message for InstanceFilter {
-    /// Returns the total encoded size in bytes.
-    ///
-    /// The result is a `u32`; the protobuf specification requires all
-    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
-    /// compliant message will never overflow this type.
-    #[allow(clippy::let_and_return)]
-    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
-        #[allow(unused_imports)]
-        use ::buffa::Enumeration as _;
-        let mut size = 0u32;
-        if !self.name.is_empty() {
-            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
-        }
-        size += self.__buffa_unknown_fields.encoded_len() as u32;
-        size
-    }
-    fn write_to(
-        &self,
-        _cache: &mut ::buffa::SizeCache,
-        buf: &mut impl ::buffa::bytes::BufMut,
-    ) {
-        #[allow(unused_imports)]
-        use ::buffa::Enumeration as _;
-        if !self.name.is_empty() {
-            ::buffa::types::put_string_field(1u32, &self.name, buf);
-        }
-        self.__buffa_unknown_fields.write_to(buf);
-    }
-    fn merge_field(
-        &mut self,
-        tag: ::buffa::encoding::Tag,
-        buf: &mut impl ::buffa::bytes::Buf,
-        ctx: ::buffa::DecodeContext<'_>,
-    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
-        #[allow(unused_imports)]
-        use ::buffa::bytes::Buf as _;
-        #[allow(unused_imports)]
-        use ::buffa::Enumeration as _;
-        match tag.field_number() {
-            1u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::LengthDelimited,
-                )?;
-                ::buffa::types::merge_string(&mut self.name, buf)?;
-            }
-            _ => {
-                self.__buffa_unknown_fields
-                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
-            }
-        }
-        ::core::result::Result::Ok(())
-    }
-    fn clear(&mut self) {
-        self.name.clear();
-        self.__buffa_unknown_fields.clear();
-    }
-}
-impl ::buffa::ExtensionSet for InstanceFilter {
-    const PROTO_FQN: &'static str = "wafl.InstanceFilter";
-    fn unknown_fields(&self) -> &::buffa::UnknownFields {
-        &self.__buffa_unknown_fields
-    }
-    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
-        &mut self.__buffa_unknown_fields
-    }
-}
-impl ::buffa::json_helpers::ProtoElemJson for InstanceFilter {
-    fn serialize_proto_json<S: ::serde::Serializer>(
-        v: &Self,
-        s: S,
-    ) -> ::core::result::Result<S::Ok, S::Error> {
-        ::serde::Serialize::serialize(v, s)
-    }
-    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
-        d: D,
-    ) -> ::core::result::Result<Self, D::Error> {
-        <Self as ::serde::Deserialize>::deserialize(d)
-    }
-}
-#[doc(hidden)]
-pub const __INSTANCE_FILTER_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
-    type_url: "type.googleapis.com/wafl.InstanceFilter",
-    to_json: ::buffa::type_registry::any_to_json::<InstanceFilter>,
-    from_json: ::buffa::type_registry::any_from_json::<InstanceFilter>,
     is_wkt: false,
 };

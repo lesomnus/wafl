@@ -1,5 +1,5 @@
 use anyhow::{Context, Result, ensure};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::{
     collections::{BTreeMap, BTreeSet},
     net::SocketAddr,
@@ -17,6 +17,8 @@ pub struct Config {
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct App {
+    pub id: Id,
+    pub tenant: Id,
     pub name: String,
     pub artifact: PathBuf,
     pub runtime: Runtime,
@@ -37,6 +39,21 @@ pub struct App {
     pub env: BTreeMap<String, String>,
     #[serde(default)]
     pub bindings: Vec<Binding>,
+}
+
+pub const INSTANCE_DOMAIN: u8 = 7;
+pub const TENANT_DOMAIN: u8 = 1;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Id(pub [u8; 16]);
+
+impl<'de> Deserialize<'de> for Id {
+    fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let value = String::deserialize(deserializer)?;
+        paydirt::parse_id(&value)
+            .map(Self)
+            .ok_or_else(|| serde::de::Error::custom("expected a Payday UUID"))
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -100,8 +117,18 @@ impl Config {
         );
         ensure!(!self.apps.is_empty(), "at least one app is required");
         let mut names = BTreeSet::new();
+        let mut ids = BTreeSet::new();
         let mut domains = BTreeSet::new();
         for app in &self.apps {
+            ensure!(
+                paydirt::has_domain(&app.id.0, INSTANCE_DOMAIN),
+                "invalid Instance ID: expected domain {INSTANCE_DOMAIN}"
+            );
+            ensure!(
+                paydirt::has_domain(&app.tenant.0, TENANT_DOMAIN),
+                "invalid Tenant ID: expected domain {TENANT_DOMAIN}"
+            );
+            ensure!(ids.insert(app.id), "duplicate Instance ID");
             ensure!(
                 !app.name.is_empty()
                     && app.name.len() <= 63
