@@ -16,7 +16,7 @@ hello.tar.gz
 
 query를 포함한 서명 URL과 사내 HTTP 저장소를 사용할 수 있습니다. URL userinfo와 fragment는 받지 않으며, 별도의 다운로드 인증 헤더 설정은 없습니다. URL은 `Instance.manifest`에 유지됩니다. HTTP redirect는 최대 5번, 연결 제한은 5초, 다운로드 전체 제한은 30초입니다. HTTP 2xx 응답의 본문 자체가 gzip 압축된 tar여야 합니다.
 
-압축 다운로드는 최대 64 MiB, 압축 해제한 tar 스트림은 메타데이터·패딩을 포함해 최대 256 MiB입니다. 실제 파일·디렉터리 항목은 최대 4,096개입니다. 크기를 미리 알 수 없는 응답도 다운로드 도중 제한합니다.
+기본 한도는 압축 다운로드 64 MiB, 압축 해제한 tar 스트림 256 MiB(메타데이터·패딩 포함), 실제 파일·디렉터리 항목 4,096개입니다. runner 설정의 `bundle.download_bytes`, `bundle.expanded_bytes`, `bundle.entries`로 변경합니다. 모두 양수이며 `expanded_bytes`는 `u64::MAX`보다 작아야 합니다. 크기를 미리 알 수 없는 응답도 다운로드 도중 제한하고, cache hit도 receipt의 실제 크기·항목 수를 현재 한도와 비교합니다. 공유 캐시 총량은 별도의 `cache.capacity_bytes`입니다. [설정과 GC 계약](store.md)을 참고하세요.
 
 ## 파일 규칙
 

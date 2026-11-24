@@ -93,10 +93,15 @@ impl Drop for Addition {
 impl Runner {
     pub async fn new(config: &Config) -> Result<Self> {
         config.validate()?;
+        let directory = config.directory()?;
+        let limits = config.bundle.clone();
+        let cache = config.cache.clone();
+        let store =
+            tokio::task::spawn_blocking(move || Store::new(&directory, limits, &cache)).await??;
         Ok(Self(Arc::new(Registry {
             entries: Mutex::new(Entries::default()),
             runtime: Arc::new(Runtime::new()?),
-            store: Store::new(&config.directory()?)?,
+            store,
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(5))
                 .timeout(Duration::from_secs(30))

@@ -27,6 +27,9 @@ fn command() -> Command {
     command
 }
 fn bundle() -> Vec<u8> {
+    bundle_data(b"shared data")
+}
+fn bundle_data(data: &[u8]) -> Vec<u8> {
     let base = std::env::var_os("WAFL_TEST_GUEST_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| {
@@ -37,10 +40,7 @@ fn bundle() -> Vec<u8> {
         Vec::new(),
         flate2::Compression::fast(),
     ));
-    for (name, data) in [
-        ("main.wasm", wasm),
-        ("data/index.html", b"shared data".to_vec()),
-    ] {
+    for (name, data) in [("main.wasm", wasm), ("data/index.html", data.to_vec())] {
         let mut header = tar::Header::new_gnu();
         header.set_size(data.len() as u64);
         header.set_mode(0o644);
@@ -108,6 +108,14 @@ impl Server {
         Self::configured(directory, flag, None).await
     }
     async fn configured(directory: &Path, flag: bool, metrics: Option<serde_json::Value>) -> Self {
+        Self::options(
+            directory,
+            flag,
+            metrics.map(|m| serde_json::json!({"metrics":m})),
+        )
+        .await
+    }
+    async fn options(directory: &Path, flag: bool, options: Option<serde_json::Value>) -> Self {
         for _ in 0..5 {
             // Hold both reservations so the kernel cannot return the same port
             // twice. Another process can still win the handoff below; retry only
@@ -118,16 +126,12 @@ impl Server {
             let control = control_socket.local_addr().unwrap();
             let mut command = command();
             command.args(["serve", "runner"]);
-            if let Some(metrics) = &metrics {
+            if let Some(options) = &options {
+                let mut config = options.clone();
+                config["listen"] = serde_json::json!(ingress);
+                config["control"] = serde_json::json!(control);
                 let path = directory.join("runner-metrics.json");
-                std::fs::write(
-                    &path,
-                    serde_json::to_vec(&serde_json::json!({
-                        "listen": ingress, "control": control, "metrics": metrics,
-                    }))
-                    .unwrap(),
-                )
-                .unwrap();
+                std::fs::write(&path, serde_json::to_vec(&config).unwrap()).unwrap();
                 command.arg("--config").arg(path);
             }
             if flag {
@@ -195,6 +199,8 @@ impl Server {
     }
 }
 
+#[path = "cli/cache.rs"]
+mod cache;
 #[path = "cli/metrics.rs"]
 mod metrics;
 async fn cli(endpoint: &str, args: &[&str]) -> Output {
@@ -252,13 +258,13 @@ async fn cli_alias_logs_and_two_processes_share_complete_bundles() {
         "only the cache-lock owner should fetch"
     );
     assert_eq!(
-        std::fs::read_dir(directory.path().join("v1/objects/sha256"))
+        std::fs::read_dir(directory.path().join("v2/objects/sha256"))
             .unwrap()
             .count(),
         1
     );
     assert_eq!(
-        std::fs::read_dir(directory.path().join("v1/tmp"))
+        std::fs::read_dir(directory.path().join("v2/tmp"))
             .unwrap()
             .count(),
         0
@@ -443,7 +449,7 @@ async fn killed_download_owner_releases_lock_and_staging_is_recovered() {
         .await
         .unwrap();
     assert_eq!(
-        std::fs::read_dir(directory.path().join("v1/tmp"))
+        std::fs::read_dir(directory.path().join("v2/tmp"))
             .unwrap()
             .count(),
         1
@@ -458,7 +464,7 @@ async fn killed_download_owner_releases_lock_and_staging_is_recovered() {
     assert_eq!(result.phase, Phase::Running);
     assert_eq!(assets.count.load(Ordering::SeqCst), 2);
     assert_eq!(
-        std::fs::read_dir(directory.path().join("v1/tmp"))
+        std::fs::read_dir(directory.path().join("v2/tmp"))
             .unwrap()
             .count(),
         0
@@ -492,7 +498,7 @@ async fn local_file_and_digest_validation_are_available_from_cli() {
         .success()
     );
     assert_eq!(
-        std::fs::read_dir(directory.path().join("v1/objects/sha256"))
+        std::fs::read_dir(directory.path().join("v2/objects/sha256"))
             .unwrap()
             .count(),
         0

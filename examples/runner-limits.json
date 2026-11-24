@@ -1,0 +1,10 @@
+{
+  "listen": "127.0.0.1:8080",
+  "control": "127.0.0.1:8081",
+  "bundle": {
+    "download_bytes": 67108864,
+    "expanded_bytes": 268435456,
+    "entries": 4096
+  },
+  "cache": { "capacity_bytes": 10737418240 }
+}

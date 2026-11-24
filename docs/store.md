@@ -1,73 +1,87 @@
-# 공유 번들 저장소 v1
+# 공유 번들 저장소 v2
 
-이 계약은 같은 로컬 파일시스템의 디렉터리를 사용하는 여러 runner 프로세스에 적용합니다. 프로세스 간 파일 잠금과 같은 파일시스템의 atomic rename을 요구합니다. 현재 Linux의 로컬 파일시스템에서 검증하며 NFS·분산 파일시스템의 동작까지 보장하지 않습니다. 쓰기 주체는 이 계약을 따르는 신뢰된 runner/운영자입니다.
+같은 로컬 파일시스템의 디렉터리를 여러 runner 프로세스가 공유합니다. OS 파일 잠금과 같은 파일시스템의 atomic rename을 요구하며 Linux 로컬 파일시스템에서 검증합니다. NFS·분산 파일시스템은 지원 계약에 포함하지 않습니다. 디렉터리는 신뢰된 runner와 운영자만 수정해야 합니다.
 
-## 위치와 레이아웃
+## 위치와 설정
 
-`wafl serve runner [DIRECTORY]` 또는 `--directory`가 경로를 지정합니다. 생략하면 JSON 설정의 `directory`, 절대 경로인 `$XDG_CACHE_HOME/wafl`, `$HOME/.cache/wafl` 순으로 결정합니다. XDG 기본값은 [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir/)을 따릅니다.
-
-```text
-<directory>/
-└── v1/
-    ├── objects/sha256/<bundle hash>/
-    │   ├── main.wasm
-    │   ├── data/
-    │   └── ready.json
-    ├── refs/sha256/<source URL hash>.json
-    ├── locks/source-<source URL hash>
-    ├── locks/object-<bundle hash>
-    └── tmp/<source URL hash>-<random>/
-```
-
-Bundle hash는 원본 tar.gz 전체의 SHA-256입니다. URL hash는 파서가 정규화한 URL 문자열 UTF-8의 SHA-256이며 URL 원문을 인덱스에 저장하지 않습니다. hex는 소문자 64자입니다.
-
-`ready.json`과 source reference의 형식은 아래와 같습니다.
+`wafl serve runner [DIRECTORY]` 또는 `--directory`로 경로를 지정합니다. 생략하면 JSON 설정의 `directory`, 절대 경로인 `$XDG_CACHE_HOME/wafl`, `$HOME/.cache/wafl` 순입니다.
 
 ```json
-{"version":1,"digest":"sha256:<bundle hash>"}
+{
+  "listen": "127.0.0.1:8080",
+  "control": "127.0.0.1:8081",
+  "bundle": {
+    "download_bytes": 67108864,
+    "expanded_bytes": 268435456,
+    "entries": 4096
+  },
+  "cache": { "capacity_bytes": 10737418240 }
+}
 ```
 
-`ready.json`은 번들이 검증·추출되었음을 뜻합니다. WASM 컴파일이나 앱의 실행 준비 상태를 나타내지는 않습니다. Instance 상태는 각 runner가 관리합니다. 향후 호환되지 않는 레이아웃은 다른 버전 디렉터리를 사용합니다.
+표시한 값이 기본값입니다. 모든 한도는 양수입니다. `expanded_bytes`는 `u64::MAX`보다 작아야 합니다. `/data`는 읽기 전용이며 게스트가 쓸 수 있는 임시 FS는 제공하지 않습니다. `expanded_bytes`가 개별 번들의 FS 입력 상한이고 `cache.capacity_bytes`가 **공개된 v2 번들의 일반 파일 논리 크기 합계** 상한입니다. 같은 digest는 한 번만 셉니다.
 
-## 읽기·공개 순서
+파일시스템의 실제 블록·메타데이터, 압축 다운로드/추출 중 staging, v1 파일, 컴파일·실행 메모리는 캐시 상한에 포함하지 않습니다. 따라서 디스크 전체 hard quota는 아닙니다. staging은 Add마다 최대 `download_bytes + expanded_bytes`가 필요할 수 있고, 여러 프로세스의 동시 Add 수만큼 여유 공간을 확보해야 합니다. 실행 memory는 별도의 `Manifest.memory_bytes`로 제한하며 CPU/fuel 제한은 하지 않습니다.
 
-1. 요청의 `Asset.digest`가 있고 완성된 해당 object가 있으면 그대로 사용합니다.
-2. 정규화된 URL의 source lock을 독점 획득합니다. 기다리는 요청은 취소할 수 있습니다. 잠금 후 캐시를 다시 확인합니다.
-3. digest가 없는 요청은 URL reference가 가리키는 완성된 object를 사용합니다. object가 없으면 다운로드합니다. 잘못된 receipt는 오류로 처리합니다.
-4. 해당 source lock을 보유한 상태에서 그 URL에 속한 버려진 staging만 정리합니다. 고유한 `v1/tmp/<source hash>-...`에 파일을 받아 크기·digest를 확인하고 추출 규칙을 검증합니다.
-5. 내용 hash의 object lock을 획득합니다. 다른 URL을 통해 같은 내용을 받은 프로세스도 이 잠금으로 공개를 직렬화합니다.
-6. 다른 프로세스가 이미 완성한 같은 object가 있으면 재사용합니다. 없으면 `ready.json`을 작성한 staging 디렉터리를 최종 object 경로로 한 번에 rename합니다. 이미 공개된 object를 수정하거나 덮어쓰지 않습니다.
-7. source reference도 임시 파일을 작성한 뒤 rename하여 교체합니다. 잠금을 해제합니다.
+공유 디렉터리의 살아 있는 runner는 같은 `cache.capacity_bytes`를 써야 합니다. 다르면 시작을 거절합니다. 번들별 한도는 runner마다 달라도 됩니다. cache hit에서도 기록한 실제 크기·항목 수를 검사합니다. 용량을 변경하려면 모든 관련 runner를 종료하고 새 값으로 시작합니다. 줄어든 상한을 맞추기 위한 시작 시 GC는 아래 Add 시 GC의 유일한 예외입니다.
 
-독자는 공개된 object만 읽습니다. 같은 URL의 동시 cache miss는 하나만 다운로드하며, URL이 달라도 같은 내용은 object 하나로 합쳐집니다. **staging을 캐시 파일시스템 안에 두므로 `/tmp`가 다른 mount여도 atomic rename이 유지됩니다.** 같은 URL의 잠금 → object 잠금 순서를 바꾸지 않습니다.
+## 레이아웃과 잠금
 
-잠금은 OS 파일 잠금이며 PID 파일의 존재 여부로 판단하지 않습니다. 프로세스가 죽으면 OS가 잠금을 해제합니다. `locks/` 파일은 삭제하지 않습니다. 삭제 후 다시 만들면 같은 이름을 서로 다른 inode로 잠그는 문제가 생깁니다.
-
-취소된 압축 해제·공개 작업이 이미 blocking worker에서 실행 중이면 그 작업은 끝날 때까지 잠금과 동시성 슬롯을 유지합니다. 정상 취소는 staging을 정리하고, 강제 종료로 남은 staging은 다음 source lock 소유자가 회수합니다. 공개된 object만 남고 reference 기록 전 프로세스가 죽으면 이후 요청이 내용을 다시 받아 같은 object에 합칠 수 있습니다. 이 버전은 프로세스 중단 중 공개의 원자성을 보장하며 전원 장애에 대한 완전한 디스크 내구성까지 약속하지 않습니다.
-
-## URL과 digest
-
-URL reference는 **cache-first**입니다. 파일 서버가 사라졌거나 file URL의 원본이 없어도 캐시에 있는 내용을 사용합니다. 동일 URL의 서버 내용 변경을 ETag·mtime으로 자동 감지하지 않습니다.
-
-배포 내용이 바뀌면 버전이 다른 URL을 쓰거나 새 번들의 `Asset.digest`를 명시합니다. 명시한 digest는 URL reference보다 우선하며, 다운로드 bytes와 다르면 인스턴스를 생성하지 않습니다. Add 응답에는 실제 사용한 digest를 `Instance.manifest.bundle.digest`에 채웁니다. 이미 같은 digest가 있으면 다른 URL로 요청해도 해당 object를 사용할 수 있습니다.
-
-```sh
-bundle_digest="sha256:$(sha256sum /tmp/wafl-example/hello.tar.gz | cut -d' ' -f1)"
-wafl instance add file:///tmp/wafl-example/hello.tar.gz --digest "$bundle_digest"
+```text
+<directory>/v2/
+├── policy.json                    # 공유 capacity_bytes
+├── catalog.lock                   # pin/공개/GC 직렬화
+├── users.lock                     # 살아 있는 Store/Bundle의 공유 잠금
+├── objects/sha256/<bundle hash>/
+│   ├── main.wasm
+│   ├── data/
+│   ├── ready.json
+│   └── lease                      # reader pin과 최근 사용 시각
+├── refs/sha256/<source URL hash>.json
+├── locks/source-<00..ff>           # 최대 256개 stripe
+├── tmp/<source URL hash>-<random>/
+└── trash/<bundle hash>/
 ```
 
-캐시는 로컬의 신뢰된 immutable 저장소입니다. cache hit는 receipt와 기본 파일 구조를 확인하며 매번 추출된 모든 파일의 hash를 재계산하지 않습니다. 외부 프로세스가 공개된 파일을 수정하는 것은 이 계약에 포함되지 않습니다.
+Bundle hash는 원본 tar.gz 전체의 SHA-256입니다. URL hash는 정규화된 URL 문자열 UTF-8의 SHA-256입니다. 소문자 hex를 쓰며 URL 원문은 인덱스에 저장하지 않습니다. `ready.json`과 reference는 다음 정보를 갖습니다.
 
-`Stop`은 실행만 중지합니다. `Erase`는 runner의 Instance·alias·로그를 제거하며 공유 object는 보존합니다. runner 종료 후에도 캐시는 남지만 인스턴스 목록은 남지 않습니다. 자동 GC와 실행 중 cache 삭제는 제공하지 않습니다. 캐시 정리는 해당 디렉터리를 쓰는 모든 runner를 중지한 상태에서 수행합니다. 컴파일 결과는 프로세스/인스턴스 메모리에 있으며 디스크 캐시에는 원본 WASM과 data를 보관합니다.
+```json
+{"version":2,"digest":"sha256:<64 lowercase hex>","download_bytes":123,"expanded_bytes":2048,"entries":2,"payload_bytes":12}
+```
+
+Receipt는 검증·추출 완료를 나타내며 컴파일/실행 준비 상태를 뜻하지 않습니다. 파일은 immutable이고 매 cache hit에서 전체 내용을 다시 hash하지 않습니다. v1 reader에는 pin 계약이 없으므로 v2가 v1 파일을 사용하거나 회수하지 않습니다. v1은 예전 runner를 모두 종료한 뒤 운영자가 지워야 하며 v2 용량에 포함되지 않습니다. tar.gz 번들 규격은 그대로 v1입니다.
+
+## 수명과 GC
+
+1. Add가 catalog 잠금 아래 digest 또는 URL reference를 조회합니다. 존재하면 object의 `lease`에 공유 잠금을 잡고 반환합니다.
+2. Miss면 URL hash 앞 2자리의 source stripe를 독점 잠급니다. 동일 URL의 다운로드를 합치며, 드물게 다른 URL도 같은 stripe를 기다립니다. 대기는 취소할 수 있습니다. 잠금 후 캐시를 다시 확인합니다.
+3. source 잠금을 보유한 staging과 잠금 없이 버려진 다른 stripe의 staging을 정리합니다. 다운로드·추출은 catalog 밖에서 하며, 취소된 blocking 작업은 끝날 때까지 잠금과 Add 슬롯을 보유합니다.
+4. 검증 후 catalog 잠금 아래 같은 digest가 있으면 재사용합니다. 없다면 `payload_bytes`만큼 공간을 확보합니다. 충분하면 GC를 하지 않습니다.
+5. 부족하면 `lease` 독점 잠금을 즉시 얻을 수 있는 object만 후보로 삼습니다. **등록된 Instance가 참조하는 번들은 Running·Stopped·Failed 여부와 무관하게 보호됩니다.** 컴파일 중에도 pin을 유지합니다. 미참조 번들은 마지막 획득/해제 시각의 오래된 순서(LRU)로 회수합니다. 사용자 우선순위 필드는 없습니다.
+6. 후보 총량이 부족하거나 번들 하나가 용량을 넘으면 `RESOURCE_EXHAUSTED`로 거절합니다. 부족한데 일부만 지우지는 않습니다. 실행 중 Instance를 내리지 않습니다.
+7. 회수 대상은 잠금 아래 `trash`로 rename한 뒤 삭제합니다. 중간에 죽어도 다음 공간 확보가 trash를 청소합니다. 삭제된 object를 가리키는 reference도 정리합니다. staging은 같은 파일시스템에서 최종 object 경로로 rename해 공개하고 reference도 임시 파일에서 rename합니다.
+
+`lease`는 Instance 및 이를 사용하는 작업의 수명 동안 유지합니다. `Stop`은 pin을 해제하지 않습니다. `Erase`·runner 종료 후 마지막 사용자가 해제되면 다음 Add의 GC 후보가 됩니다. 별도 주기적 sweeper는 없습니다. 프로세스가 죽으면 OS가 잠금을 해제합니다. catalog 잠금이 pin 열기와 삭제를 직렬화하므로 GC는 object 내부의 lease 파일도 안전하게 제거할 수 있습니다. 고정 catalog/users/source 잠금 파일은 삭제하지 않습니다.
+
+잠금 순서는 source → catalog → object lease입니다. 다른 source의 staging 정리는 nonblocking try-lock만 사용합니다. 네트워크 다운로드와 WASM 컴파일은 catalog를 잡지 않습니다. 프로세스 중단에 대한 공개 원자성을 제공하지만 전원 장애 시 완전한 디스크 내구성까지 보장하지는 않습니다.
+
+## URL과 운영 예시
+
+URL reference는 cache-first입니다. 원본 서버나 로컬 파일이 없어도 캐시에 있으면 사용하며 ETag·mtime으로 갱신하지 않습니다. 새 코드는 새 URL 또는 `Asset.digest`를 제출합니다. digest는 URL reference보다 우선하고 다운로드 bytes와 다르면 거절합니다. Add 응답에는 실제 digest를 채웁니다.
+
+- **여러 runner:** 같은 설정과 디렉터리로 두 프로세스를 시작하고 서로 다른 ingress/control 포트를 씁니다. 동일 번들은 한 object로 공유하지만 Instance·alias·로그는 각 runner에 독립적입니다.
+- **캐시 가득 참:** 여유가 없고 기존 Instance가 모든 번들을 참조하면 Add가 실패합니다. 필요 없는 Instance를 Stop 후 Erase하고 Add를 다시 요청하면 해당 캐시를 회수할 수 있습니다. Stop만으로는 회수하지 않습니다.
+- **프로세스 강제 종료:** pin은 OS가 해제합니다. 다음 miss는 버려진 staging을 청소하고 해당 object를 GC 후보로 사용할 수 있습니다.
+- **용량 변경:** 공유 runner를 전부 종료한 다음 같은 새 용량으로 다시 실행합니다. 살아 있는 runner 하나만 다른 용량으로 바꾸면 시작에 실패합니다.
 
 ## 원격 data를 필요할 때 읽는 확장
 
 현재 실행기는 완전히 추출된 로컬 `/data`를 WASI에 preopen합니다. 아직 원격 지연 읽기를 수행하지 않습니다. 코드상 소스 fetch, bundle 검증/저장(`store.rs`, `bundle.rs`), WASI 실행/파일 노출(`runtime.rs`)을 분리했으므로 아래 세 부분을 각자 확장할 수 있습니다.
 
 1. **파일 인덱스:** 경로, 파일 크기, 파일 또는 chunk별 digest, 원격 위치/offset을 담는 immutable manifest. 전체 tar를 순회하지 않고 파일을 찾을 수 있어야 합니다.
-2. **부분 fetch와 캐시:** 먼저 main.wasm 및 인덱스를 받고, data는 open/read 시 필요한 파일·chunk만 가져옵니다. 검증된 chunk를 내용 hash로 공유하며, v1과 별도 레이아웃/버전을 사용합니다.
+2. **부분 fetch와 캐시:** 먼저 main.wasm 및 인덱스를 받고, data는 open/read 시 필요한 파일·chunk만 가져옵니다. 검증된 chunk를 내용 hash로 공유하며, v2와 별도 레이아웃/버전을 사용합니다.
 3. **게스트 파일 API 연결:** 앱은 계속 `std::fs` 같은 WASI 파일 API를 씁니다. Wasmtime의 파일 호스트 구현 또는 FUSE 같은 mount 계층에서 읽기를 가로채 fetch·검증·캐시에 연결해야 합니다. 현재의 로컬 디렉터리 preopen만으로 자동 해결되지는 않습니다.
 
 구현 후보는 파일별 object와 인덱스, 또는 seek 가능한 압축 이미지입니다. [eStargz 규격](https://github.com/containerd/stargz-snapshotter/blob/main/docs/estargz.md)은 tar.gz 호환 형식에 색인·chunk 검증을 추가해 필요한 파일 부분만 가져옵니다. 따라서 파일 확장자를 반드시 바꿀 필요는 없지만, 일반 gzip tar에 없는 인덱스와 부분 검증 계약은 필요합니다. OCI registry에 일반 tar.gz blob을 올리는 것만으로 지연 읽기가 생기지는 않습니다.
 
-WAFL의 원격 파일 형식, Wasmtime 파일 계층 구현, cache GC와 ORAS fetch adapter는 후속 범위이며 이번 v1 계약에 지원된 것으로 포함하지 않습니다. Credential 작업도 보류 상태입니다.
+WAFL의 원격 파일 형식, Wasmtime 파일 계층 구현, ORAS fetch adapter는 후속 범위이며 이번 계약에 지원된 것으로 포함하지 않습니다. Credential 작업도 보류 상태입니다.

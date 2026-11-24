@@ -232,6 +232,8 @@ async fn main() -> Result<()> {
                     control: "127.0.0.1:8081".parse()?,
                     directory: None,
                     metrics: None,
+                    bundle: Default::default(),
+                    cache: Default::default(),
                 },
             };
             if let Some(path) = args.path.or(args.directory) {

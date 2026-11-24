@@ -21,6 +21,40 @@ pub struct Config {
     pub directory: Option<PathBuf>,
     #[serde(default)]
     pub metrics: Option<Metrics>,
+    #[serde(default)]
+    pub bundle: BundleLimits,
+    #[serde(default)]
+    pub cache: Cache,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct BundleLimits {
+    pub download_bytes: u64,
+    pub expanded_bytes: u64,
+    pub entries: usize,
+}
+impl Default for BundleLimits {
+    fn default() -> Self {
+        Self {
+            download_bytes: 64 * 1024 * 1024,
+            expanded_bytes: 256 * 1024 * 1024,
+            entries: 4096,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Cache {
+    pub capacity_bytes: u64,
+}
+impl Default for Cache {
+    fn default() -> Self {
+        Self {
+            capacity_bytes: 10 * 1024 * 1024 * 1024,
+        }
+    }
 }
 
 /// Runner-owned OTLP/HTTP protobuf export; never passed to a guest manifest.
@@ -71,6 +105,17 @@ impl Config {
         Ok(value)
     }
     pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.bundle.download_bytes > 0
+                && self.bundle.expanded_bytes > 0
+                && self.bundle.expanded_bytes < u64::MAX
+                && self.bundle.entries > 0,
+            "bundle limits must be positive and expanded_bytes less than u64::MAX"
+        );
+        ensure!(
+            self.cache.capacity_bytes > 0,
+            "cache.capacity_bytes must be positive"
+        );
         ensure!(
             self.listen != self.control || self.listen.port() == 0,
             "ingress and control require separate listeners"
