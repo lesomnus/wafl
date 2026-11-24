@@ -130,6 +130,8 @@
         f1 -> Binary,
         /// wafl.Instance.tenant
         f2 -> Binary,
+        /// wafl.Instance.alias
+        f4 -> Text,
         /// wafl.Instance.name
         f5 -> Text,
         /// wafl.Instance.phase

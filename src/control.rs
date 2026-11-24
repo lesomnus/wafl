@@ -29,18 +29,11 @@ impl<N: Server> server::Layer<N> for Instances {
         }
     }
 }
-fn id(reference: &InstanceRef) -> Result<&[u8], ConnectError> {
-    match &reference.key {
-        Some(instance_ref::Key::Id(id)) if paydirt::has_domain(id, INSTANCE_DOMAIN) => Ok(id),
-        _ => Err(ConnectError::invalid_argument(
-            "ref.id must be a domain-7 Payday ID",
-        )),
-    }
-}
 impl Instances {
     fn app(&self, reference: &InstanceRef) -> Result<Arc<Execution>, ConnectError> {
         self.0
-            .instance(id(reference)?)
+            .resolve(reference)?
+            .and_then(|id| self.0.instance(&id))
             .ok_or_else(|| ConnectError::not_found("instance not found"))
     }
 }
@@ -69,8 +62,12 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
         req: ServiceRequest<'_, InstanceRef>,
     ) -> ServiceResult<InstanceEraseResponse> {
         let req = req.to_owned_message();
+        let erased = match self.0.resolve(&req)? {
+            Some(id) => self.0.erase(&id).await?,
+            None => false,
+        };
         Response::ok(InstanceEraseResponse {
-            erased: Some(self.0.erase(id(&req)?).await?),
+            erased: Some(erased),
             ..Default::default()
         })
     }
@@ -97,6 +94,9 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
                 ));
             }
             if !select.all.unwrap_or(false) {
+                if !select.alias.unwrap_or(false) {
+                    value.alias.clear();
+                }
                 if select.tenant.as_option().is_none() {
                     value.tenant = Default::default();
                 }
@@ -137,7 +137,7 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
         let filters = req
             .filters
             .iter()
-            .map(|filter| id(&filter.r#ref))
+            .map(|filter| self.0.resolve(&filter.r#ref))
             .collect::<Result<Vec<_>, _>>()?;
         let size = if req.size <= 0 {
             100
@@ -148,7 +148,7 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
             .0
             .list()
             .into_iter()
-            .filter(|item| filters.is_empty() || filters.iter().any(|id| item.id == *id))
+            .filter(|item| filters.is_empty() || filters.iter().flatten().any(|id| item.id == *id))
             .collect();
         items.sort_by(|a, b| a.id.cmp(&b.id));
         if req.reverse {
@@ -219,5 +219,18 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
             .await
             .map_err(|e| ConnectError::failed_precondition(e.to_string()))?;
         Response::ok(app.snapshot())
+    }
+
+    async fn tail(
+        &self,
+        _: &N,
+        _: RequestContext,
+        req: ServiceRequest<'_, InstanceTailRequest>,
+    ) -> ServiceResult<connectrpc::ServiceStream<Log>> {
+        let req = req.to_owned_message();
+        Response::ok(
+            self.app(&req.r#ref)?
+                .tail(req.cursor, req.limit, req.follow)?,
+        )
     }
 }

@@ -18,6 +18,9 @@ pub struct InstanceAddRequest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub tenant: ::buffa::MessageField<TenantRef>,
+    /// Field 4: `alias`
+    #[serde(rename = "alias", skip_serializing_if = "::core::option::Option::is_none")]
+    pub alias: ::core::option::Option<::buffa::alloc::string::String>,
     /// Field 5: `name`
     #[serde(
         rename = "name",
@@ -68,6 +71,7 @@ impl ::core::fmt::Debug for InstanceAddRequest {
         f.debug_struct("InstanceAddRequest")
             .field("id", &self.id)
             .field("tenant", &self.tenant)
+            .field("alias", &self.alias)
             .field("name", &self.name)
             .field("phase", &self.phase)
             .field("generation", &self.generation)
@@ -90,6 +94,16 @@ impl InstanceAddRequest {
     ///Sets [`Self::id`] to `Some(value)`, consuming and returning `self`.
     pub fn with_id(mut self, value: impl Into<::buffa::alloc::vec::Vec<u8>>) -> Self {
         self.id = Some(value.into());
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::alias`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_alias(
+        mut self,
+        value: impl Into<::buffa::alloc::string::String>,
+    ) -> Self {
+        self.alias = Some(value.into());
         self
     }
 }
@@ -121,6 +135,9 @@ impl ::buffa::Message for InstanceAddRequest {
             size
                 += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
+        }
+        if let Some(ref v) = self.alias {
+            size += 1u32 + ::buffa::types::string_encoded_len(v) as u32;
         }
         if !self.name.is_empty() {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
@@ -164,6 +181,9 @@ impl ::buffa::Message for InstanceAddRequest {
         if self.tenant.is_set() {
             ::buffa::types::put_len_delimited_header(2u32, __cache.consume_next(), buf);
             self.tenant.write_to(__cache, buf);
+        }
+        if let Some(ref v) = self.alias {
+            ::buffa::types::put_string_field(4u32, v, buf);
         }
         if !self.name.is_empty() {
             ::buffa::types::put_string_field(5u32, &self.name, buf);
@@ -219,6 +239,16 @@ impl ::buffa::Message for InstanceAddRequest {
                     self.tenant.get_or_insert_default(),
                     buf,
                     ctx,
+                )?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(
+                    self.alias.get_or_insert_with(::buffa::alloc::string::String::new),
+                    buf,
                 )?;
             }
             5u32 => {
@@ -279,6 +309,7 @@ impl ::buffa::Message for InstanceAddRequest {
     fn clear(&mut self) {
         self.id = ::core::option::Option::None;
         self.tenant = ::buffa::MessageField::none();
+        self.alias = ::core::option::Option::None;
         self.name.clear();
         self.phase = ::buffa::EnumValue::from(0);
         self.generation = 0u64;
@@ -526,6 +557,9 @@ impl ::buffa::Message for InstanceRef {
                 __buffa::oneof::instance_ref::Key::Id(x) => {
                     size += 1u32 + ::buffa::types::bytes_encoded_len(x) as u32;
                 }
+                __buffa::oneof::instance_ref::Key::Alias(x) => {
+                    size += 1u32 + ::buffa::types::string_encoded_len(x) as u32;
+                }
             }
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
@@ -542,6 +576,9 @@ impl ::buffa::Message for InstanceRef {
             match v {
                 __buffa::oneof::instance_ref::Key::Id(x) => {
                     ::buffa::types::put_bytes_field(1u32, x, buf);
+                }
+                __buffa::oneof::instance_ref::Key::Alias(x) => {
+                    ::buffa::types::put_string_field(4u32, x, buf);
                 }
             }
         }
@@ -566,6 +603,17 @@ impl ::buffa::Message for InstanceRef {
                 self.key = ::core::option::Option::Some(
                     __buffa::oneof::instance_ref::Key::Id(
                         ::buffa::types::decode_bytes(buf)?,
+                    ),
+                );
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                self.key = ::core::option::Option::Some(
+                    __buffa::oneof::instance_ref::Key::Alias(
+                        ::buffa::types::decode_string(buf)?,
                     ),
                 );
             }
@@ -643,6 +691,30 @@ impl<'de> serde::Deserialize<'de> for InstanceRef {
                                 );
                             }
                         }
+                        "alias" => {
+                            let v: ::core::option::Option<
+                                ::buffa::alloc::string::String,
+                            > = map
+                                .next_value_seed(
+                                    ::buffa::json_helpers::NullableDeserializeSeed(
+                                        ::buffa::json_helpers::DefaultDeserializeSeed::<
+                                            ::buffa::alloc::string::String,
+                                        >::new(),
+                                    ),
+                                )?;
+                            if let Some(v) = v {
+                                if __oneof_key.is_some() {
+                                    return Err(
+                                        serde::de::Error::custom(
+                                            "multiple oneof fields set for 'key'",
+                                        ),
+                                    );
+                                }
+                                __oneof_key = Some(
+                                    __buffa::oneof::instance_ref::Key::Alias(v),
+                                );
+                            }
+                        }
                         _ => {
                             map.next_value::<serde::de::IgnoredAny>()?;
                         }
@@ -697,6 +769,9 @@ pub struct InstanceSelect {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub tenant: ::buffa::MessageField<TenantSelect>,
+    /// Field 4: `alias`
+    #[serde(rename = "alias", skip_serializing_if = "::core::option::Option::is_none")]
+    pub alias: ::core::option::Option<bool>,
     /// Field 5: `name`
     #[serde(rename = "name", skip_serializing_if = "::core::option::Option::is_none")]
     pub name: ::core::option::Option<bool>,
@@ -730,6 +805,7 @@ impl ::core::fmt::Debug for InstanceSelect {
         f.debug_struct("InstanceSelect")
             .field("all", &self.all)
             .field("tenant", &self.tenant)
+            .field("alias", &self.alias)
             .field("name", &self.name)
             .field("phase", &self.phase)
             .field("generation", &self.generation)
@@ -752,6 +828,13 @@ impl InstanceSelect {
     ///Sets [`Self::all`] to `Some(value)`, consuming and returning `self`.
     pub fn with_all(mut self, value: bool) -> Self {
         self.all = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::alias`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_alias(mut self, value: bool) -> Self {
+        self.alias = Some(value);
         self
     }
     #[must_use = "with_* setters return `self` by value; assign or chain the result"]
@@ -826,6 +909,9 @@ impl ::buffa::Message for InstanceSelect {
                 += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.alias.is_some() {
+            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         if self.name.is_some() {
             size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
@@ -860,6 +946,9 @@ impl ::buffa::Message for InstanceSelect {
         if self.tenant.is_set() {
             ::buffa::types::put_len_delimited_header(2u32, __cache.consume_next(), buf);
             self.tenant.write_to(__cache, buf);
+        }
+        if let Some(v) = self.alias {
+            ::buffa::types::put_bool_field(4u32, v, buf);
         }
         if let Some(v) = self.name {
             ::buffa::types::put_bool_field(5u32, v, buf);
@@ -911,6 +1000,15 @@ impl ::buffa::Message for InstanceSelect {
                     buf,
                     ctx,
                 )?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.alias = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
             }
             5u32 => {
                 ::buffa::encoding::check_wire_type(
@@ -976,6 +1074,7 @@ impl ::buffa::Message for InstanceSelect {
     fn clear(&mut self) {
         self.all = ::core::option::Option::None;
         self.tenant = ::buffa::MessageField::none();
+        self.alias = ::core::option::Option::None;
         self.name = ::core::option::Option::None;
         self.phase = ::core::option::Option::None;
         self.generation = ::core::option::Option::None;
@@ -1917,5 +2016,208 @@ pub const __INSTANCE_STOP_REQUEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry
     type_url: "type.googleapis.com/wafl.InstanceStopRequest",
     to_json: ::buffa::type_registry::any_to_json::<InstanceStopRequest>,
     from_json: ::buffa::type_registry::any_from_json::<InstanceStopRequest>,
+    is_wkt: false,
+};
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct InstanceTailRequest {
+    /// Field 1: `ref`
+    #[serde(
+        rename = "ref",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub r#ref: ::buffa::MessageField<InstanceRef>,
+    /// Field 2: `follow`
+    #[serde(
+        rename = "follow",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub follow: bool,
+    /// Resume strictly beyond this sequence. Zero starts with retained history.
+    ///
+    /// Field 3: `cursor`
+    #[serde(
+        rename = "cursor",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub cursor: u64,
+    /// Initial history records, not lines. Zero returns all retained records.
+    ///
+    /// Field 4: `limit`
+    #[serde(
+        rename = "limit",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub limit: u32,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for InstanceTailRequest {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("InstanceTailRequest")
+            .field("ref", &self.r#ref)
+            .field("follow", &self.follow)
+            .field("cursor", &self.cursor)
+            .field("limit", &self.limit)
+            .finish()
+    }
+}
+impl InstanceTailRequest {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceTailRequest";
+}
+::buffa::impl_default_instance!(InstanceTailRequest);
+impl ::buffa::MessageName for InstanceTailRequest {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "InstanceTailRequest";
+    const FULL_NAME: &'static str = "wafl.InstanceTailRequest";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceTailRequest";
+}
+impl ::buffa::Message for InstanceTailRequest {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.r#ref.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.r#ref.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.follow {
+            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.cursor != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.cursor) as u32;
+        }
+        if self.limit != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.limit) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if self.r#ref.is_set() {
+            ::buffa::types::put_len_delimited_header(1u32, __cache.consume_next(), buf);
+            self.r#ref.write_to(__cache, buf);
+        }
+        if self.follow {
+            ::buffa::types::put_bool_field(2u32, self.follow, buf);
+        }
+        if self.cursor != 0u64 {
+            ::buffa::types::put_uint64_field(3u32, self.cursor, buf);
+        }
+        if self.limit != 0u32 {
+            ::buffa::types::put_uint32_field(4u32, self.limit, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.r#ref.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.follow = ::buffa::types::decode_bool(buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.cursor = ::buffa::types::decode_uint64(buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.limit = ::buffa::types::decode_uint32(buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.r#ref = ::buffa::MessageField::none();
+        self.follow = false;
+        self.cursor = 0u64;
+        self.limit = 0u32;
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for InstanceTailRequest {
+    const PROTO_FQN: &'static str = "wafl.InstanceTailRequest";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for InstanceTailRequest {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __INSTANCE_TAIL_REQUEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.InstanceTailRequest",
+    to_json: ::buffa::type_registry::any_to_json::<InstanceTailRequest>,
+    from_json: ::buffa::type_registry::any_from_json::<InstanceTailRequest>,
     is_wkt: false,
 };

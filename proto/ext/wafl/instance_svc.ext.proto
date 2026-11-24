@@ -2,17 +2,29 @@ edition = "2023";
 package wafl;
 
 import "wafl/instance.proto";
+import "wafl/log.proto";
 
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 
-// Add/Get/List/Erase come from the entity declaration. Only lifecycle actions
-// extend the generated service.
+// Add/Get/List/Erase come from the entity declaration. Runtime actions and log
+// streaming extend the generated service.
 service InstanceService {
   // Reuse a running instance or wait for the shared startup attempt.
   rpc Start(InstanceStartRequest) returns (Instance);
   // Refuse active requests. A later request starts the instance again.
   rpc Stop(InstanceStopRequest) returns (Instance);
+  // Read retained stdout/stderr, optionally following across Stop/Start.
+  rpc Tail(InstanceTailRequest) returns (stream Log);
 }
 
 message InstanceStartRequest { InstanceRef ref = 1; }
 message InstanceStopRequest { InstanceRef ref = 1; }
+
+message InstanceTailRequest {
+  InstanceRef ref = 1;
+  bool follow = 2 [features.field_presence = IMPLICIT];
+  // Resume strictly beyond this sequence. Zero starts with retained history.
+  uint64 cursor = 3 [features.field_presence = IMPLICIT];
+  // Initial history records, not lines. Zero returns all retained records.
+  uint32 limit = 4 [features.field_presence = IMPLICIT];
+}

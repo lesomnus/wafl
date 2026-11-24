@@ -521,6 +521,14 @@
           "immutable": true
         },
         {
+          "name": "alias",
+          "json": "alias",
+          "number": 4,
+          "kind": "STRING",
+          "unique": true,
+          "default": ""
+        },
+        {
           "name": "name",
           "json": "name",
           "number": 5,

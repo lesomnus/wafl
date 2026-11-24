@@ -1,8 +1,9 @@
 use crate::{
-    bundle::Bundle,
     config::{Config, Spec},
-    proto::wafl::{Instance, InstanceAddRequest, Phase, Tenant},
+    logs::{LogStream, Logs},
+    proto::wafl::{Instance, InstanceAddRequest, InstanceRef, Phase, Tenant, instance_ref},
     runtime::Runtime,
+    store::{Bundle, Store},
 };
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use connectrpc::ConnectError;
@@ -27,6 +28,7 @@ struct Registry {
     entries: Mutex<Entries>,
     runtime: Arc<Runtime>,
     client: reqwest::Client,
+    store: Store,
     slots: Arc<Semaphore>,
     closed: Arc<AtomicBool>,
     stopped: Notify,
@@ -35,10 +37,12 @@ struct Registry {
 struct Entries {
     instances: BTreeMap<[u8; 16], Arc<Execution>>,
     pending: BTreeSet<[u8; 16]>,
+    aliases: BTreeMap<String, [u8; 16]>,
 }
 pub struct Execution {
     pub spec: Spec,
     bundle: Bundle,
+    logs: Arc<Logs>,
     runtime: Arc<Runtime>,
     component: Component,
     state: Mutex<State>,
@@ -67,19 +71,17 @@ pub struct Lease {
 struct Addition {
     runner: Runner,
     id: [u8; 16],
+    alias: String,
     execution: Option<Arc<Execution>>,
     committed: bool,
 }
 impl Drop for Addition {
     fn drop(&mut self) {
         if !self.committed {
-            self.runner
-                .0
-                .entries
-                .lock()
-                .unwrap()
-                .pending
-                .remove(&self.id);
+            let mut entries = self.runner.0.entries.lock().unwrap();
+            entries.pending.remove(&self.id);
+            entries.aliases.remove(&self.alias);
+            drop(entries);
             if let Some(execution) = &self.execution {
                 let _ = execution.retire(true);
             }
@@ -93,6 +95,7 @@ impl Runner {
         Ok(Self(Arc::new(Registry {
             entries: Mutex::new(Entries::default()),
             runtime: Arc::new(Runtime::new()?),
+            store: Store::new(&config.directory()?)?,
             client: reqwest::Client::builder()
                 .connect_timeout(Duration::from_secs(5))
                 .timeout(Duration::from_secs(30))
@@ -106,7 +109,7 @@ impl Runner {
     }
 
     pub async fn add(&self, req: InstanceAddRequest) -> Result<Instance, ConnectError> {
-        let spec = Spec::parse(req)?;
+        let mut spec = Spec::parse(req)?;
         let slot = Arc::new(self.0.slots.clone().try_acquire_owned().map_err(|_| {
             ConnectError::resource_exhausted("at most 4 concurrent Add operations")
         })?);
@@ -125,16 +128,33 @@ impl Runner {
                     "runner instance limit is 128",
                 ));
             }
+            if entries.aliases.contains_key(&spec.alias) {
+                return Err(ConnectError::already_exists(
+                    "instance alias already exists or is being added",
+                ));
+            }
             entries.pending.insert(spec.id);
+            entries.aliases.insert(spec.alias.clone(), spec.id);
             Addition {
                 runner: self.clone(),
                 id: spec.id,
+                alias: spec.alias.clone(),
                 execution: None,
                 committed: false,
             }
         };
         let create = async {
-            let bundle = Bundle::load(&self.0.client, spec.url.clone(), slot.clone()).await?;
+            let bundle = self
+                .0
+                .store
+                .load(
+                    &self.0.client,
+                    spec.url.clone(),
+                    &spec.manifest.bundle.digest,
+                    slot.clone(),
+                )
+                .await?;
+            spec.manifest.bundle.get_or_insert_default().digest = bundle.digest.clone();
             let engine = self.0.runtime.engine.clone();
             let compilation_slot = slot.clone();
             let (bundle, component) = tokio::task::spawn_blocking(move || {
@@ -150,6 +170,7 @@ impl Runner {
             let execution = Arc::new(Execution {
                 spec,
                 bundle,
+                logs: Logs::new(),
                 component,
                 runtime: self.0.runtime.clone(),
                 changed,
@@ -199,6 +220,21 @@ impl Runner {
         let id: [u8; 16] = id.try_into().ok()?;
         self.0.entries.lock().unwrap().instances.get(&id).cloned()
     }
+    pub fn resolve(&self, reference: &InstanceRef) -> Result<Option<[u8; 16]>, ConnectError> {
+        match &reference.key {
+            Some(instance_ref::Key::Id(id))
+                if paydirt::has_domain(id, crate::config::INSTANCE_DOMAIN) =>
+            {
+                Ok(Some(id.as_slice().try_into().unwrap()))
+            }
+            Some(instance_ref::Key::Alias(alias)) if crate::config::valid_alias(alias) => {
+                Ok(self.0.entries.lock().unwrap().aliases.get(alias).copied())
+            }
+            _ => Err(ConnectError::invalid_argument(
+                "ref must contain a domain-7 ID or an alias without @",
+            )),
+        }
+    }
     pub fn list(&self) -> Vec<Instance> {
         self.executions()
             .iter()
@@ -235,6 +271,7 @@ impl Runner {
                 .retire(false)
                 .map_err(|e| ConnectError::failed_precondition(e.to_string()))?;
             entries.instances.remove(&id);
+            entries.aliases.remove(&execution.spec.alias);
             (execution, task)
         };
         if let Some(task) = task {
@@ -255,9 +292,15 @@ impl Runner {
             let _ = execution.stop(true, false).await;
         }
     }
-    pub async fn shutdown(&self) {
+    pub(crate) fn drain(&self) {
         self.0.closed.store(true, Ordering::Release);
         self.0.stopped.notify_waiters();
+        for execution in self.executions() {
+            execution.logs.close();
+        }
+    }
+    pub async fn shutdown(&self) {
+        self.drain();
         let instances = std::mem::take(&mut self.0.entries.lock().unwrap().instances);
         for execution in instances.values() {
             if let Ok(Some(task)) = execution.retire(true) {
@@ -286,6 +329,7 @@ impl Execution {
             })
             .into(),
             name: self.spec.name.clone(),
+            alias: self.spec.alias.clone(),
             phase: state.phase.into(),
             generation: state.generation,
             active: state.active,
@@ -372,9 +416,14 @@ impl Execution {
     async fn run(self: Arc<Self>, generation: u64) {
         let (ready, receiver) = oneshot::channel();
         let data = self.bundle.data();
-        let guest = self
-            .runtime
-            .execute(&self.component, &self.spec, &data, ready);
+        let guest = self.runtime.execute(
+            &self.component,
+            &self.spec,
+            &data,
+            self.logs.clone(),
+            generation,
+            ready,
+        );
         tokio::pin!(guest);
         let started = tokio::select! {
             result = &mut guest => Err(result.err().unwrap_or_else(|| anyhow!("guest exited before listening"))),
@@ -414,12 +463,22 @@ impl Execution {
         state.retired = true;
         state.phase = Phase::Stopped;
         state.address = None;
+        self.logs.close();
         self.changed.send_replace(());
         let task = state.task.take();
         if let Some(task) = &task {
             task.abort();
         }
         Ok(task)
+    }
+
+    pub(crate) fn tail(
+        &self,
+        cursor: u64,
+        limit: u32,
+        follow: bool,
+    ) -> Result<LogStream, ConnectError> {
+        self.logs.tail(cursor, limit, follow)
     }
 
     pub async fn stop(self: &Arc<Self>, idle: bool, force: bool) -> Result<()> {

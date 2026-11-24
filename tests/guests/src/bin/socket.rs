@@ -5,6 +5,8 @@ use std::{
 };
 
 fn main() -> std::io::Result<()> {
+    println!("guest boot");
+    eprintln!("guest stderr");
     match std::env::var("MODE").as_deref() {
         Ok("exit") => return Ok(()),
         Ok("spin") => loop {
@@ -47,6 +49,11 @@ fn main() -> std::io::Result<()> {
             .unwrap_or("/")
             .to_owned();
         let body = match path.as_str() {
+            "/logs" => {
+                println!("request stdout");
+                eprintln!("request stderr");
+                "logged".into()
+            }
             "/data" => std::fs::read_to_string("/data/index.html")?,
             "/headers" => {
                 let headers = String::from_utf8_lossy(&request).to_ascii_lowercase();

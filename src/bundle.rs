@@ -1,97 +1,14 @@
 use anyhow::{Context, Result, ensure};
-use connectrpc::ConnectError;
 use flate2::read::MultiGzDecoder;
 use std::{
     collections::BTreeSet,
     fs::File,
     io::{self, Read},
     path::{Component, PathBuf},
-    sync::Arc,
 };
 use tempfile::TempDir;
-use tokio::{io::AsyncWriteExt, sync::OwnedSemaphorePermit};
 
-pub(crate) const DOWNLOAD_BYTES: u64 = 64 * 1024 * 1024;
-const EXPANDED_BYTES: u64 = 256 * 1024 * 1024;
-const ENTRIES: usize = 4096;
-
-/// A validated, private directory whose lifetime follows the instance.
-pub(crate) struct Bundle {
-    root: TempDir,
-}
-impl Bundle {
-    pub fn main(&self) -> PathBuf {
-        self.root.path().join("main.wasm")
-    }
-    pub fn data(&self) -> PathBuf {
-        self.root.path().join("data")
-    }
-
-    pub async fn load(
-        client: &reqwest::Client,
-        url: reqwest::Url,
-        slot: Arc<OwnedSemaphorePermit>,
-    ) -> Result<Self, ConnectError> {
-        let root = tempfile::Builder::new()
-            .prefix("wafl-bundle-")
-            .tempdir()
-            .map_err(|_| ConnectError::internal("cannot create bundle directory"))?;
-        let mut response = client
-            .get(url)
-            .header("accept-encoding", "identity")
-            .send()
-            .await
-            .map_err(|e| {
-                ConnectError::unavailable(format!("bundle download: {}", e.without_url()))
-            })?;
-        if !response.status().is_success() {
-            return Err(ConnectError::unavailable(format!(
-                "bundle download returned HTTP {}",
-                response.status().as_u16()
-            )));
-        }
-        if response
-            .content_length()
-            .is_some_and(|n| n > DOWNLOAD_BYTES)
-        {
-            return Err(ConnectError::resource_exhausted(
-                "bundle exceeds 64 MiB download limit",
-            ));
-        }
-        let mut file = tokio::fs::File::create(root.path().join("archive.gz"))
-            .await
-            .map_err(|_| ConnectError::internal("cannot stage bundle"))?;
-        let mut total = 0u64;
-        while let Some(chunk) = response.chunk().await.map_err(|e| {
-            ConnectError::unavailable(format!("bundle download: {}", e.without_url()))
-        })? {
-            total += chunk.len() as u64;
-            if total > DOWNLOAD_BYTES {
-                return Err(ConnectError::resource_exhausted(
-                    "bundle exceeds 64 MiB download limit",
-                ));
-            }
-            file.write_all(&chunk)
-                .await
-                .map_err(|_| ConnectError::internal("cannot stage bundle"))?;
-        }
-        file.flush()
-            .await
-            .map_err(|_| ConnectError::internal("cannot finish bundle download"))?;
-        drop(file);
-        // The blocking task owns its directory, including if the RPC is cancelled.
-        tokio::task::spawn_blocking(move || {
-            // Blocking work keeps its capacity even if its caller is cancelled.
-            let _slot = slot;
-            unpack(root, EXPANDED_BYTES, ENTRIES)
-        })
-        .await
-        .map_err(|_| ConnectError::internal("bundle extraction task failed"))?
-        .map_err(|e| ConnectError::invalid_argument(format!("invalid bundle: {e:#}")))
-    }
-}
-
-fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<Bundle> {
+pub(crate) fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<TempDir> {
     let decoder = MultiGzDecoder::new(File::open(root.path().join("archive.gz"))?);
     let mut input = decoder.take(limit + 1);
     let mut paths = BTreeSet::new();
@@ -170,7 +87,7 @@ fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<Bundle> {
     );
     std::fs::create_dir_all(root.path().join("data"))?;
     std::fs::remove_file(root.path().join("archive.gz"))?;
-    Ok(Bundle { root })
+    Ok(root)
 }
 
 #[cfg(test)]
@@ -218,16 +135,25 @@ mod tests {
         ]));
         let bundle = unpack(stage(&bytes), 16_384, 10).unwrap();
         assert_eq!(
-            std::fs::read(bundle.data().join("index.html")).unwrap(),
+            std::fs::read(bundle.path().join("data").join("index.html")).unwrap(),
             b"hello"
         );
-        assert_eq!(std::fs::read(bundle.main()).unwrap(), b"wasm");
-        let root = bundle.root.path().to_owned();
+        assert_eq!(
+            std::fs::read(bundle.path().join("main.wasm")).unwrap(),
+            b"wasm"
+        );
+        let root = bundle.path().to_owned();
         assert!(!root.join("archive.gz").exists());
         drop(bundle);
         assert!(!root.exists());
         let bytes = gzip(&archive(&[("main.wasm", tar::EntryType::Regular, b"wasm")]));
-        assert!(unpack(stage(&bytes), 16_384, 10).unwrap().data().is_dir());
+        assert!(
+            unpack(stage(&bytes), 16_384, 10)
+                .unwrap()
+                .path()
+                .join("data")
+                .is_dir()
+        );
     }
 
     #[test]
@@ -305,9 +231,6 @@ mod tests {
         }
         let bytes = gzip(&archive.into_inner().unwrap());
         let bundle = unpack(stage(&bytes), 16_384, 10).unwrap();
-        assert_eq!(
-            std::fs::read(bundle.root.path().join(name)).unwrap(),
-            b"test"
-        );
+        assert_eq!(std::fs::read(bundle.path().join(name)).unwrap(), b"test");
     }
 }

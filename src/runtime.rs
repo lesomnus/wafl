@@ -1,5 +1,6 @@
 //! WASI socket translation stays in the host; guests use standard WASI APIs.
 use crate::config::Spec;
+use crate::{logs::Logs, proto::wafl::Channel};
 use anyhow::{Context, Result};
 use std::{
     collections::HashMap,
@@ -242,13 +243,15 @@ impl Runtime {
         component: &Component,
         app: &Spec,
         data: &std::path::Path,
+        logs: Arc<Logs>,
+        generation: u64,
         ready: oneshot::Sender<SocketAddr>,
     ) -> Result<()> {
         let bindings: HashMap<_, _> = app.bindings.iter().map(|b| (b.port, b.target)).collect();
         let targets: Vec<_> = bindings.values().copied().collect();
         let mut wasi = WasiCtxBuilder::new();
-        let stderr = p2::pipe::MemoryOutputPipe::new(16 * 1024);
-        wasi.stderr(stderr.clone());
+        wasi.stdout(logs.sink(generation, Channel::Stdout));
+        wasi.stderr(logs.sink(generation, Channel::Stderr));
         wasi.preopened_dir(data, "/data", FsPerms::ReadOnly)?;
         wasi.arg("main.wasm")
             .env("PORT", app.port.to_string())
@@ -302,12 +305,7 @@ impl Runtime {
             .await
             .map_err(anyhow::Error::from)
             .context("execute WASI command")?
-            .map_err(|()| {
-                anyhow::anyhow!(
-                    "guest returned failure: {}",
-                    String::from_utf8_lossy(&stderr.contents())
-                )
-            })
+            .map_err(|()| anyhow::anyhow!("guest returned failure: {}", logs.stderr(generation)))
     }
 }
 

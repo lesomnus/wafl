@@ -339,6 +339,28 @@ impl<
             call.unary::<crate::proto::r#wafl::r#Instance, _>(reply)
         }
     }
+    fn tail(
+        &self,
+        next: &N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceTailRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            ::connectrpc::ServiceStream<
+                impl ::connectrpc::Encodable<crate::proto::wafl::Log> + Send + use<N>,
+            >,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.InstanceService/Tail", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.tail(call.ctx.clone(), request).await;
+            call.stream::<crate::proto::r#wafl::r#Log, _>(reply)
+        }
+    }
 }
 impl<
     N: crate::services::r#wafl::AccessService,
@@ -2344,6 +2366,71 @@ mod sink_wafl_instance {
                     >(&self.db, &response.body)
                     .await?;
                 Ok(response)
+            }
+        }
+        fn tail(
+            &self,
+            next: &N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::InstanceTailRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                ::connectrpc::ServiceStream<
+                    impl ::connectrpc::Encodable<crate::proto::wafl::Log> + Send + use<N>,
+                >,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.InstanceTailRequest",
+                    "wafl.Log",
+                    "/wafl.InstanceService/Tail",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Instance",
+                        "Tail",
+                        self.public.contains(&"/wafl.InstanceService/Tail"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.tail(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                Ok(
+                    response
+                        .map_body(|body| {
+                            attempt
+                                .stream::<
+                                    crate::proto::r#wafl::r#Log,
+                                    _,
+                                >(self.db.clone(), Database::enforce_presence(&ctx, body))
+                        }),
+                )
             }
         }
     }

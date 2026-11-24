@@ -27,6 +27,8 @@ message Instance {
 
   bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
   Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+  // Runner-local name. API values omit @; the CLI uses @alias references.
+  string alias = 4 [(orm.field) = {unique: true, default: ""}];
   string name = 5;
   Phase phase = 8 [(payday.field) = {stamped: true}];
   // Monotonic start attempt within this runner process, including failed starts.

@@ -9,7 +9,7 @@ option features.field_presence = IMPLICIT;
 message Manifest {
   // Currently "wasmtime". Empty also selects wasmtime.
   string runtime = 1;
-  // HTTP(S) tar.gz: main.wasm at the root, optional data/ mounted as /data.
+  // HTTP(S) or local file tar.gz: main.wasm and optional data/ mounted as /data.
   Asset bundle = 2;
   // The guest's TCP listening port. Required, 1..65535.
   uint32 port = 3;
@@ -30,6 +30,9 @@ message Asset {
   oneof kind {
     string url = 1;
   }
+  // Optional expected digest of the compressed bundle: sha256:<64 lowercase hex>.
+  // A digest selects immutable cached content independently of its source URL.
+  string digest = 2;
 }
 
 // Map a guest loopback TCP port to a runner-reachable IPv4 socket.

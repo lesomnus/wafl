@@ -350,6 +350,13 @@
         "output": ".wafl.Instance",
         "policy": null,
         "server_stream": false
+      },
+      "Tail": {
+        "client_stream": false,
+        "input": ".wafl.InstanceTailRequest",
+        "output": ".wafl.Log",
+        "policy": null,
+        "server_stream": true
       }
     }
   },

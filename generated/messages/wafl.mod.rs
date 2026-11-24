@@ -3,6 +3,7 @@
 include!("wafl.manifest.rs");
 include!("wafl.payday.tenant.rs");
 include!("wafl.instance.rs");
+include!("wafl.log.rs");
 include!("wafl.payday.tenant_svc.g.rs");
 include!("wafl.instance_svc.g.rs");
 include!("wafl.payday.access.rs");
@@ -35,6 +36,7 @@ pub mod __buffa {
         include!("wafl.manifest.__view.rs");
         include!("wafl.payday.tenant.__view.rs");
         include!("wafl.instance.__view.rs");
+        include!("wafl.log.__view.rs");
         include!("wafl.payday.tenant_svc.g.__view.rs");
         include!("wafl.instance_svc.g.__view.rs");
         include!("wafl.payday.access.__view.rs");
@@ -75,6 +77,7 @@ pub mod __buffa {
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_JSON_ANY);
+        reg.register_json_any(super::__LOG_JSON_ANY);
         reg.register_json_any(super::__TENANT_ADD_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_REF_JSON_ANY);
@@ -95,6 +98,7 @@ pub mod __buffa {
         reg.register_json_any(super::__INSTANCE_FILTER_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_START_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_STOP_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__INSTANCE_TAIL_REQUEST_JSON_ANY);
         reg.register_json_any(super::__ACCESS_JSON_ANY);
         reg.register_json_any(super::__ACCESS_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__ACCESS_REF_JSON_ANY);
@@ -154,6 +158,10 @@ pub use self::__buffa::view::TenantOwnedView;
 pub use self::__buffa::view::InstanceView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::LogView;
+#[doc(inline)]
+pub use self::__buffa::view::LogOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantAddRequestView;
 #[doc(inline)]
@@ -234,6 +242,10 @@ pub use self::__buffa::view::InstanceStartRequestOwnedView;
 pub use self::__buffa::view::InstanceStopRequestView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceStopRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceTailRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceTailRequestOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::AccessView;
 #[doc(inline)]
