@@ -7,6 +7,7 @@ fn main() -> std::io::Result<()> {
     let port = std::env::var("PORT").unwrap_or_else(|_| "8080".into());
     let name = std::env::var("GREETING").unwrap_or_else(|_| "Hello from Wafl".into());
     let listener = TcpListener::bind(format!("0.0.0.0:{port}"))?;
+    println!("listening on port {port}");
     let mut count = 0;
     for stream in listener.incoming() {
         let mut stream = stream?;
@@ -26,6 +27,7 @@ fn main() -> std::io::Result<()> {
             continue;
         }
         count += 1;
+        println!("request {count}");
         let path = String::from_utf8_lossy(&request)
             .split_whitespace()
             .nth(1)

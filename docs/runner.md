@@ -2,6 +2,8 @@
 
 runner는 `InstanceService.Add(InstanceAddRequest)`로 인스턴스를 만들고 ID로 전달된 HTTP/gRPC 요청을 해당 WASM 소켓에 연결합니다. 앱 등록·배포·도메인 선택은 플랫폼이 담당합니다.
 
+명령행 사용은 [wafl CLI 튜토리얼](cli.md)을 참고하세요. 아래는 RPC 계약과 실행 시나리오입니다.
+
 ## 1. 로컬에서 앱 개발하기
 
 [`examples/hello/src/main.rs`](../examples/hello/src/main.rs)는 `std::net::TcpListener`로 HTTP를 받고 `/index.html` 요청에는 파일을 읽어 응답합니다. 일반 네이티브 프로그램으로 먼저 실행할 수 있습니다.
@@ -29,7 +31,7 @@ python3 -m http.server 9000 --bind 127.0.0.1 --directory /tmp/wafl-example
 다른 터미널에서 실행합니다.
 
 ```sh
-cargo run --locked -- examples/runner.json
+cargo run --locked -- serve runner --config examples/runner.json
 ```
 
 ```json
@@ -39,7 +41,7 @@ cargo run --locked -- examples/runner.json
 }
 ```
 
-이 파일은 프로세스 설정입니다. `listen`은 HTTP/1.1·HTTP/2 cleartext 앱 트래픽, `control`은 Connect/gRPC 관리 RPC 주소입니다. 아직 인스턴스는 없습니다. 기존 `apps`, `artifact`, `domain` 설정은 사용하지 않습니다.
+이 파일은 프로세스 설정입니다. `listen`은 HTTP/1.1·HTTP/2 cleartext 앱 트래픽, `control`은 Connect/gRPC 관리 RPC 주소입니다. 선택적인 `directory`로 공유 번들 저장소를 지정할 수 있습니다. 아직 인스턴스는 없습니다. 기존 `apps`, `artifact`, `domain` 설정은 사용하지 않습니다.
 
 ## 4. 생성된 Add RPC 호출하기
 
@@ -99,7 +101,8 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | 필드 | 의미 |
 | --- | --- |
 | `runtime`, `abi` | 현재 `wasmtime`, `wasip2`. 생략하면 이 기본값 사용 |
-| `bundle.url` | runner가 다운로드할 HTTP(S) tar.gz URL. 필수 |
+| `bundle.url` | runner가 읽을 HTTP(S) 또는 로컬 file tar.gz URL. 필수 |
+| `bundle.digest` | 선택적인 `sha256:<hex>`. 압축된 번들 내용을 고정·검증 |
 | `port` | 게스트 IPv4 TCP listen 포트, 1–65535. `PORT` 환경 변수로도 전달 |
 | `protocol` | `http`(기본) 또는 HTTP/2 prior knowledge용 `h2c` |
 | `idle_ms` | 활성 요청이 0이 된 뒤 회수까지의 시간. 기본 60초, 최대 7일 |
@@ -118,9 +121,10 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | `Add` | `InstanceAddRequest` → `Instance` | manifest로 번들을 받아 실행 준비 |
 | `Get` | `InstanceGetRequest` → `Instance` | 상태와 manifest 조회, `select` 지원 |
 | `List` | `InstanceListRequest` → `InstanceListResponse` | 이 runner의 인스턴스를 ID순 페이지 조회 |
-| `Erase` | `InstanceRef` → `InstanceEraseResponse` | 인스턴스 제거 및 번들 해제. 없으면 `erased: false` |
+| `Erase` | `InstanceRef` → `InstanceEraseResponse` | 인스턴스·alias·로그 제거. 공유 캐시 보존. 없으면 `erased: false` |
 | `Start` | `InstanceStartRequest` → `Instance` | 보관한 인스턴스 실행 시작 또는 재사용 |
-| `Stop` | `InstanceStopRequest` → `Instance` | 실행 종료. 인스턴스 ID·manifest·번들은 보관 |
+| `Stop` | `InstanceStopRequest` → `Instance` | 실행 종료. 인스턴스 ID·alias·manifest·번들은 보관 |
+| `Tail` | `InstanceTailRequest` → `stream Log` | 보관한 stdout/stderr 조회. `follow: true`이면 계속 구독 |
 
 HTTP 경로는 `/wafl.InstanceService/<동사>`입니다. 모두 인증 없이 호출하며 tenant에 따른 접근 범위를 제한하지 않습니다. `tenant`는 entity 소속 정보입니다. 관리 RPC와 앱 트래픽 모두 별도의 토큰 설정이 없습니다.
 
@@ -142,6 +146,8 @@ curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
   -d '{"id":"AAAAAAAAgACABwAAAAAAAQ=="}' \
   http://127.0.0.1:8081/wafl.InstanceService/Erase
 ```
+
+InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `@hello`는 이 alias 참조로 변환됩니다. Add의 alias를 생략하면 서버가 `i-<UUID>`로 발급하며, alias는 해당 runner에서 유일합니다.
 
 활성 요청이 있는 `Stop`·`Erase`는 `FAILED_PRECONDITION`입니다. 응답 body·trailers가 끝나거나 클라이언트가 취소할 때까지 활성 요청으로 유지합니다. 열린 gRPC 스트림도 유휴 회수를 막습니다. HTTP keep-alive 연결만 남아 있는 경우는 회수를 막지 않습니다.
 
@@ -177,9 +183,9 @@ Traefik/Envoy 등의 upstream을 runner의 `listen`으로 연결하고, 플랫�
 
 게스트는 IPv4 `0.0.0.0` 또는 loopback에 bind하며 실제 호스트 포트는 인스턴스마다 다릅니다. WASI 호출 수준의 소켓 가상화이며 OS network namespace를 생성하지는 않습니다. `/data` 이외의 파일시스템 preopen, 호스트 환경 상속, DNS, UDP와 선언하지 않은 outbound 연결은 제공하지 않습니다.
 
-WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout은 버리고 stderr는 최대 16 KiB를 실패 진단에 보관합니다. 별도 로그 API는 없습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 HTTP 연결을 최대 5초 drain한 뒤 나머지 실행을 종료합니다.
+WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout/stderr를 최대 1 MiB·4,096개 레코드로 보관하고 `Tail`로 조회합니다. 최근 stderr 최대 16 KiB는 게스트 실패 진단에도 사용합니다. 로그 구독은 유휴 회수를 막지 않으며 Stop/Start를 가로질러 유지됩니다. 자세한 cursor·보존 계약은 [로그 사용법](cli.md#로그)에 있습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 HTTP 연결을 최대 5초 drain한 뒤 나머지 실행을 종료합니다.
 
-`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 포트는 `manifest.port`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop만 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
+`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 포트는 `manifest.port`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Tail을 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
 
 서버는 생성된 `Unimplemented → Instances` 레이어를 조합합니다. 메모리 구현을 선택하고 DB Sink를 넣지 않으므로 DB 연결·마이그레이션은 실행하지 않습니다. runner 재시작 후에는 플랫폼이 Instance를 다시 제출해야 합니다.
 
