@@ -8,14 +8,24 @@ use std::{
 };
 use tempfile::TempDir;
 
-pub(crate) fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<TempDir> {
+pub(crate) struct Unpacked {
+    pub root: TempDir,
+    pub expanded_bytes: u64,
+    pub entries: usize,
+    pub payload_bytes: u64,
+}
+
+pub(crate) fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<Unpacked> {
     let decoder = MultiGzDecoder::new(File::open(root.path().join("archive.gz"))?);
     let mut input = decoder.take(limit + 1);
     let mut paths = BTreeSet::new();
+    let mut count = 0;
+    let mut payload_bytes = 0u64;
     {
         let mut archive = tar::Archive::new(&mut input);
         for (index, entry) in archive.entries()?.enumerate() {
             ensure!(index < entries, "too many archive entries");
+            count += 1;
             let mut entry = entry.context("read tar entry")?;
             let raw = entry.path()?;
             let raw = raw
@@ -63,7 +73,9 @@ pub(crate) fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<TempDi
                 ensure!(entry.size() <= limit, "file exceeds expanded size limit");
                 std::fs::create_dir_all(destination.parent().unwrap())?;
                 let mut file = File::create_new(destination)?;
-                io::copy(&mut entry, &mut file)?;
+                payload_bytes = payload_bytes
+                    .checked_add(io::copy(&mut entry, &mut file)?)
+                    .context("bundle size overflow")?;
             }
         }
     }
@@ -87,7 +99,12 @@ pub(crate) fn unpack(root: TempDir, limit: u64, entries: usize) -> Result<TempDi
     );
     std::fs::create_dir_all(root.path().join("data"))?;
     std::fs::remove_file(root.path().join("archive.gz"))?;
-    Ok(root)
+    Ok(Unpacked {
+        root,
+        expanded_bytes: limit + 1 - input.limit(),
+        entries: count,
+        payload_bytes,
+    })
 }
 
 #[cfg(test)]
@@ -135,14 +152,14 @@ mod tests {
         ]));
         let bundle = unpack(stage(&bytes), 16_384, 10).unwrap();
         assert_eq!(
-            std::fs::read(bundle.path().join("data").join("index.html")).unwrap(),
+            std::fs::read(bundle.root.path().join("data").join("index.html")).unwrap(),
             b"hello"
         );
         assert_eq!(
-            std::fs::read(bundle.path().join("main.wasm")).unwrap(),
+            std::fs::read(bundle.root.path().join("main.wasm")).unwrap(),
             b"wasm"
         );
-        let root = bundle.path().to_owned();
+        let root = bundle.root.path().to_owned();
         assert!(!root.join("archive.gz").exists());
         drop(bundle);
         assert!(!root.exists());
@@ -150,6 +167,7 @@ mod tests {
         assert!(
             unpack(stage(&bytes), 16_384, 10)
                 .unwrap()
+                .root
                 .path()
                 .join("data")
                 .is_dir()
@@ -231,6 +249,9 @@ mod tests {
         }
         let bytes = gzip(&archive.into_inner().unwrap());
         let bundle = unpack(stage(&bytes), 16_384, 10).unwrap();
-        assert_eq!(std::fs::read(bundle.path().join(name)).unwrap(), b"test");
+        assert_eq!(
+            std::fs::read(bundle.root.path().join(name)).unwrap(),
+            b"test"
+        );
     }
 }

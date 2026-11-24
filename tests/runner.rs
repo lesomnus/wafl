@@ -157,6 +157,8 @@ fn config() -> Config {
         control: "127.0.0.1:0".parse().unwrap(),
         directory: None,
         metrics: None,
+        bundle: Default::default(),
+        cache: Default::default(),
     }
 }
 struct Harness {
