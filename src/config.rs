@@ -25,6 +25,8 @@ pub struct Config {
     pub bundle: BundleLimits,
     #[serde(default)]
     pub cache: Cache,
+    #[serde(default)]
+    pub capacity: Capacity,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -54,6 +56,65 @@ impl Default for Cache {
         Self {
             capacity_bytes: 10 * 1024 * 1024 * 1024,
         }
+    }
+}
+
+/// Admission budgets per process, independent of disk cache capacity.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+pub struct Capacity {
+    pub instances: usize,
+    pub preparations: usize,
+    pub startups: usize,
+    pub running: usize,
+    pub memory_bytes: u64,
+    pub requests: usize,
+    pub waiting: usize,
+    pub queue_ms: u64,
+    pub drain_ms: u64,
+    pub compilations: usize,
+}
+impl Default for Capacity {
+    fn default() -> Self {
+        Self {
+            instances: 128,
+            preparations: 4,
+            startups: 4,
+            running: 128,
+            memory_bytes: 8 * 1024 * 1024 * 1024,
+            requests: 1024,
+            waiting: 128,
+            queue_ms: 10_000,
+            drain_ms: 30_000,
+            compilations: 32,
+        }
+    }
+}
+impl Capacity {
+    fn validate(&self) -> Result<()> {
+        for value in [
+            self.instances,
+            self.preparations,
+            self.startups,
+            self.running,
+            self.requests,
+            self.waiting,
+            self.compilations,
+        ] {
+            ensure!(
+                value > 0 && value <= tokio::sync::Semaphore::MAX_PERMITS,
+                "capacity counts must be positive and fit a semaphore"
+            );
+        }
+        ensure!(
+            self.memory_bytes >= 1024 * 1024,
+            "capacity.memory_bytes must be at least 1 MiB"
+        );
+        ensure!(
+            (1..=600_000).contains(&self.queue_ms) && (1..=600_000).contains(&self.drain_ms),
+            "queue_ms and drain_ms must be 1..600000"
+        );
+        Ok(())
     }
 }
 
@@ -120,6 +181,7 @@ impl Config {
             self.listen != self.control || self.listen.port() == 0,
             "ingress and control require separate listeners"
         );
+        self.capacity.validate()?;
         if let Some(metrics) = &self.metrics {
             metrics.validate()?;
         }
@@ -180,9 +242,12 @@ impl Spec {
             || req.generation != 0
             || req.active != 0
             || !req.error.is_empty()
+            || !req.session.is_empty()
+            || req.revision != 0
+            || req.draining
         {
             return Err(invalid(
-                "phase, generation, active and error are server-set",
+                "phase, generation, active, error, session, revision and draining are server-set",
             ));
         }
         let id = match req.id {

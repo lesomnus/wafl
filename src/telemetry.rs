@@ -27,6 +27,11 @@ pub(crate) struct Snapshot {
     pub instances: Vec<InstanceSample>,
     pub pending: u64,
     pub preparing: u64,
+    pub usage: crate::proto::wafl::Usage,
+    pub compilations: u64,
+    pub compile_hits: u64,
+    pub compile_misses: u64,
+    pub accepting: bool,
 }
 pub(crate) type Observe = Arc<dyn Fn() -> Option<Snapshot> + Send + Sync>;
 
@@ -34,13 +39,13 @@ pub(crate) type Observe = Arc<dyn Fn() -> Option<Snapshot> + Send + Sync>;
 /// has its own provider; it never changes OpenTelemetry's process-global one.
 pub(crate) struct Telemetry(Option<SdkMeterProvider>);
 impl Telemetry {
-    pub async fn start(config: Metrics, observe: Observe) -> Result<Self> {
-        tokio::task::spawn_blocking(move || Self::build(config, observe))
+    pub async fn start(config: Metrics, observe: Observe, session: String) -> Result<Self> {
+        tokio::task::spawn_blocking(move || Self::build(config, observe, session))
             .await
             .context("initialize metrics worker")?
     }
 
-    fn build(config: Metrics, observe: Observe) -> Result<Self> {
+    fn build(config: Metrics, observe: Observe, session: String) -> Result<Self> {
         let timeout = Duration::from_millis(config.timeout_ms);
         let client = reqwest::blocking::Client::builder()
             .timeout(timeout)
@@ -67,7 +72,7 @@ impl Telemetry {
             .with_attributes([
                 KeyValue::new("service.name", "wafl-runner"),
                 KeyValue::new("service.version", env!("CARGO_PKG_VERSION")),
-                KeyValue::new("service.instance.id", uuid::Uuid::new_v4().to_string()),
+                KeyValue::new("service.instance.id", session),
             ])
             .build();
         let provider = SdkMeterProvider::builder()
@@ -113,6 +118,56 @@ impl Telemetry {
             .with_callback(move |observer| {
                 if let Some(snapshot) = preparing() {
                     observer.observe(snapshot.preparing, &[]);
+                }
+            })
+            .build();
+        for (name, unit, select) in [
+            (
+                "wafl.runner.startups",
+                "{instance}",
+                (|s: &Snapshot| s.usage.startups) as fn(&Snapshot) -> u64,
+            ),
+            ("wafl.runner.executions", "{instance}", |s: &Snapshot| {
+                s.usage.running
+            }),
+            ("wafl.runner.memory.reserved", "By", |s: &Snapshot| {
+                s.usage.memory_bytes
+            }),
+            ("wafl.runner.requests", "{lease}", |s: &Snapshot| {
+                s.usage.requests
+            }),
+            ("wafl.runner.waiting", "{instance}", |s: &Snapshot| {
+                s.usage.waiting
+            }),
+            ("wafl.runner.compilations", "{component}", |s: &Snapshot| {
+                s.compilations
+            }),
+            ("wafl.runner.accepting", "1", |s: &Snapshot| {
+                u64::from(s.accepting)
+            }),
+        ] {
+            let sample = observe.clone();
+            meter
+                .u64_observable_gauge(name)
+                .with_unit(unit)
+                .with_callback(move |observer| {
+                    if let Some(snapshot) = sample() {
+                        observer.observe(select(&snapshot), &[]);
+                    }
+                })
+                .build();
+        }
+        let compilation = observe.clone();
+        meter
+            .u64_observable_counter("wafl.runner.compilation.requests")
+            .with_unit("{operation}")
+            .with_callback(move |observer| {
+                if let Some(snapshot) = compilation() {
+                    observer.observe(snapshot.compile_hits, &[KeyValue::new("result", "reused")]);
+                    observer.observe(
+                        snapshot.compile_misses,
+                        &[KeyValue::new("result", "compiled")],
+                    );
                 }
             })
             .build();

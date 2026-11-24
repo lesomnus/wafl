@@ -114,7 +114,7 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | `env` | 게스트 환경 변수. 호스트 환경은 상속하지 않음. `PORT` 덮어쓰기 불가 |
 | `bindings` | 선택적인 IPv4 loopback TCP 포트 매핑. 일반 발신 연결에는 필요 없음 |
 
-수치 필드의 0은 기본값을 선택합니다. runner는 생성 중인 항목을 포함해 최대 128개 Instance, 동시에 최대 4개 Add를 받습니다. 초과 시 `RESOURCE_EXHAUSTED`입니다.
+Manifest 수치 필드의 0은 기본값을 선택합니다. runner의 `capacity`로 전체 등록·준비·기동·실행·요청·메모리 예약을 제한합니다. 기본값과 대기 계약은 [운영 튜토리얼](operations.md)에 있습니다.
 
 ## 관리 API와 수명
 
@@ -126,6 +126,7 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | `Erase` | `InstanceRef` → `InstanceEraseResponse` | 인스턴스·alias·로그 제거. 공유 캐시 보존. 없으면 `erased: false` |
 | `Start` | `InstanceStartRequest` → `Instance` | 보관한 인스턴스 실행 시작 또는 재사용 |
 | `Stop` | `InstanceStopRequest` → `Instance` | 실행 종료. 인스턴스 ID·alias·manifest·번들은 보관 |
+| `Drain` | `InstanceDrainRequest` → `Instance` | 새 수락/자동 재기동 차단, 기존 요청 대기 후 Stop. Start로 재개 |
 | `Tail` | `InstanceTailRequest` → `stream Log` | 보관한 stdout/stderr 조회. `follow: true`이면 계속 구독 |
 
 HTTP 경로는 `/wafl.InstanceService/<동사>`입니다. 모두 인증 없이 호출하며 tenant에 따른 접근 범위를 제한하지 않습니다. `tenant`는 entity 소속 정보입니다. 관리 RPC와 앱 트래픽 모두 별도의 토큰 설정이 없습니다.
@@ -153,7 +154,7 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 활성 요청이 있는 `Stop`·`Erase`는 `FAILED_PRECONDITION`입니다. 응답 body·trailers가 끝나거나 클라이언트가 취소할 때까지 활성 요청으로 유지합니다. 열린 gRPC 스트림도 유휴 회수를 막습니다. HTTP keep-alive 연결만 남아 있는 경우는 회수를 막지 않습니다.
 
-중지된 Instance에 요청이 오면 한 번만 기동하고 동시 요청들이 같은 준비 결과를 기다립니다. 첫 호출자가 취소해도 다른 요청의 기동은 계속됩니다. 시작 실패는 503, upstream 연결 실패는 502이며 전송을 시작한 요청을 자동 재시도하지 않습니다. 실패한 인스턴스에는 약 1초의 재시도 간격을 둡니다. `generation`은 시작 시도 횟수이고 `error`는 최근 실패 진단입니다.
+중지된 Instance에 요청이 오면 한 번만 기동하고 동시 요청들이 같은 준비 결과를 기다립니다. 첫 호출자가 취소해도 다른 요청의 기동은 계속됩니다. 용량 초과는 429, 드레인/시작 실패는 503, 기동 기한 초과는 504, upstream 실패는 502입니다. `wafl-error`로 이유를 구분하며 전송을 시작한 요청을 자동 재시도하지 않습니다. 실패한 인스턴스에는 약 1초의 재시도 간격을 둡니다. `generation`은 시작 시도 횟수이고 `error`는 최근 실패 진단입니다.
 
 `Get`은 select 생략 또는 `all: true`이면 전체 상태를 반환합니다. 명시적 select는 ID와 선택한 필드를 반환합니다. tenant 관계에는 ID만 보유하므로 `tenant: {}`로 선택할 수 있지만 tenant 이름·alias 등 확장은 `UNIMPLEMENTED`입니다.
 
@@ -187,9 +188,9 @@ Traefik/Envoy 등의 upstream을 runner의 `listen`으로 연결하고, 플랫�
 
 게스트 서버는 IPv4 `0.0.0.0` 또는 loopback의 선언된 포트에 bind하며 실제 호스트 포트는 인스턴스마다 다릅니다. 발신 TCP는 IPv4·IPv6와 DNS를 지원하고 runner 호스트·Pod의 네트워크 접근 범위를 따릅니다. 클라이언트가 wildcard/loopback의 포트 0에 명시적으로 bind할 수 있지만, 이를 추가 listen 소켓으로 사용할 수는 없습니다. WASI 호출 수준의 수신 포트 가상화이며 OS network namespace나 인스턴스별 발신 격리를 생성하지 않습니다. `/data` 이외의 파일시스템 preopen, 호스트 환경 상속과 UDP는 제공하지 않습니다.
 
-WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout/stderr를 최대 1 MiB·4,096개 레코드로 보관하고 `Tail`로 조회합니다. 최근 stderr 최대 16 KiB는 게스트 실패 진단에도 사용합니다. 로그 구독은 유휴 회수를 막지 않으며 Stop/Start를 가로질러 유지됩니다. 자세한 cursor·보존 계약은 [로그 사용법](cli.md#로그)에 있습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 HTTP 연결을 최대 5초 drain한 뒤 나머지 실행을 종료합니다.
+WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout/stderr를 최대 1 MiB·4,096개 레코드로 보관하고 `Tail`로 조회합니다. 최근 stderr 최대 16 KiB는 게스트 실패 진단에도 사용합니다. 로그 구독은 유휴 회수를 막지 않으며 Stop/Start를 가로질러 유지됩니다. 자세한 cursor·보존 계약은 [로그 사용법](cli.md#로그)에 있습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 ingress 연결을 `capacity.drain_ms` 동안 drain한 뒤 나머지 실행을 종료합니다. 기본값은 30초입니다.
 
-`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 포트는 `manifest.port`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Tail을 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
+`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 포트는 `manifest.port`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Drain/Tail을 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
 
 서버는 생성된 `Unimplemented → Instances` 레이어를 조합합니다. 메모리 구현을 선택하고 DB Sink를 넣지 않으므로 DB 연결·마이그레이션은 실행하지 않습니다. runner 재시작 후에는 플랫폼이 Instance를 다시 제출해야 합니다.
 
@@ -201,3 +202,5 @@ cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
 
 `generated/`를 직접 수정하지 않습니다. 코드 생성에는 Rust, Go와 Buf가 필요하고 일반 빌드는 포함된 생성 파일을 사용합니다. 테스트 스크립트는 WASM fixture를 먼저 빌드한 뒤 실제 runner를 검증합니다.
+
+Runner 조회, 생성 중 상태, command 조건, Drain, 용량·컴파일 재사용과 운영 시나리오는 [운영 튜토리얼](operations.md)을 참고하세요.

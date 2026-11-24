@@ -12,7 +12,9 @@ use paydirt::spin::Stop;
 use std::{
     convert::Infallible,
     error::Error,
+    future::Future,
     pin::Pin,
+    sync::{Arc, Mutex},
     task::{Context, Poll},
     time::Duration,
 };
@@ -28,8 +30,11 @@ pub const INSTANCE_HEADER: &str = "wafl-instance";
 
 struct ResponseBody {
     inner: Incoming,
-    lease: Option<Lease>,
+    lease: Arc<Mutex<Option<Lease>>>,
+    expiry: Option<AbortHandle>,
     connection: AbortHandle,
+    deadline: Option<Pin<Box<tokio::time::Sleep>>>,
+    expired: bool,
 }
 impl Body for ResponseBody {
     type Data = Bytes;
@@ -38,18 +43,40 @@ impl Body for ResponseBody {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Option<Result<Frame<Bytes>, BoxError>>> {
+        if self.expired {
+            return Poll::Ready(None);
+        }
+        if self
+            .deadline
+            .as_mut()
+            .is_some_and(|timer| timer.as_mut().poll(cx).is_ready())
+        {
+            self.expired = true;
+            self.connection.abort();
+            self.lease.lock().unwrap().take();
+            let mut trailers = HeaderMap::new();
+            trailers.insert("grpc-status", http::HeaderValue::from_static("4"));
+            trailers.insert(
+                "grpc-message",
+                http::HeaderValue::from_static("runner request deadline exceeded"),
+            );
+            return Poll::Ready(Some(Ok(Frame::trailers(trailers))));
+        }
         match Pin::new(&mut self.inner).poll_frame(cx) {
             Poll::Ready(None) => {
-                self.lease.take();
+                self.lease.lock().unwrap().take();
                 Poll::Ready(None)
             }
             Poll::Ready(Some(Err(e))) => {
-                self.lease.take();
+                self.lease.lock().unwrap().take();
                 Poll::Ready(Some(Err(Box::new(e))))
             }
-            Poll::Ready(Some(Ok(frame))) => {
+            Poll::Ready(Some(Ok(mut frame))) => {
+                if let Some(trailers) = frame.trailers_mut() {
+                    trailers.remove("wafl-error");
+                }
                 if self.inner.is_end_stream() {
-                    self.lease.take();
+                    self.lease.lock().unwrap().take();
                 }
                 Poll::Ready(Some(Ok(frame)))
             }
@@ -57,15 +84,23 @@ impl Body for ResponseBody {
         }
     }
     fn is_end_stream(&self) -> bool {
-        self.inner.is_end_stream()
+        self.expired || self.inner.is_end_stream()
     }
     fn size_hint(&self) -> SizeHint {
-        self.inner.size_hint()
+        if self.deadline.is_some() {
+            SizeHint::default()
+        } else {
+            self.inner.size_hint()
+        }
     }
 }
 impl Drop for ResponseBody {
     fn drop(&mut self) {
         self.connection.abort();
+        if let Some(expiry) = &self.expiry {
+            expiry.abort();
+        }
+        self.lease.lock().unwrap().take();
     }
 }
 
@@ -91,9 +126,115 @@ fn reply(status: StatusCode, text: &'static str) -> Response<ProxyBody> {
         .unwrap()
 }
 
+fn reject(status: StatusCode, reason: &'static str, text: &'static str) -> Response<ProxyBody> {
+    let mut response = reply(status, text);
+    response
+        .headers_mut()
+        .insert("wafl-error", http::HeaderValue::from_static(reason));
+    response
+}
+
 pub async fn forward(
     runner: Runner,
+    request: Request<Incoming>,
+) -> Result<Response<ProxyBody>, Infallible> {
+    let grpc = request
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v == "application/grpc" || v.starts_with("application/grpc+"));
+    let deadline = if grpc {
+        match grpc_deadline(request.headers()) {
+            Ok(deadline) => deadline,
+            Err(()) => {
+                return Ok(reject(
+                    StatusCode::BAD_REQUEST,
+                    "invalid_request",
+                    "invalid grpc-timeout\n",
+                ));
+            }
+        }
+    } else {
+        None
+    };
+    if let Some(deadline) = deadline {
+        tokio::select! {
+            biased;
+            _ = tokio::time::sleep_until(deadline) => {
+                let mut response = reply(StatusCode::OK, "");
+                response.headers_mut().insert(header::CONTENT_TYPE, http::HeaderValue::from_static("application/grpc"));
+                response.headers_mut().insert("grpc-status", http::HeaderValue::from_static("4"));
+                response.headers_mut().insert("grpc-message", http::HeaderValue::from_static("runner request deadline exceeded"));
+                response.headers_mut().insert("wafl-error", http::HeaderValue::from_static("deadline"));
+                Ok(response)
+            },
+            result = forward_inner(runner, request, Some(deadline)) => result,
+        }
+    } else {
+        forward_inner(runner, request, None).await
+    }
+}
+
+fn grpc_deadline(headers: &HeaderMap) -> Result<Option<tokio::time::Instant>, ()> {
+    let mut values = headers.get_all("grpc-timeout").iter();
+    let Some(value) = values.next() else {
+        return Ok(None);
+    };
+    if values.next().is_some() {
+        return Err(());
+    }
+    let value = value.to_str().map_err(|_| ())?;
+    if !value.is_ascii() || !(2..=9).contains(&value.len()) {
+        return Err(());
+    }
+    let (count, unit) = value.split_at(value.len() - 1);
+    if !count.bytes().all(|b| b.is_ascii_digit()) {
+        return Err(());
+    }
+    let count = count.parse::<u64>().map_err(|_| ())?;
+    let duration = match unit {
+        "H" => Duration::from_secs(count * 3600),
+        "M" => Duration::from_secs(count * 60),
+        "S" => Duration::from_secs(count),
+        "m" => Duration::from_millis(count),
+        "u" => Duration::from_micros(count),
+        "n" => Duration::from_nanos(count),
+        _ => return Err(()),
+    };
+    // Zero is treated as immediately expired, never as an infinite deadline.
+    tokio::time::Instant::now()
+        .checked_add(duration)
+        .map(Some)
+        .ok_or(())
+}
+fn remaining(request: &mut Request<Incoming>, deadline: Option<tokio::time::Instant>) {
+    let Some(deadline) = deadline else { return };
+    let nanos = deadline
+        .saturating_duration_since(tokio::time::Instant::now())
+        .as_nanos()
+        .max(1);
+    for (unit, scale) in [
+        ("n", 1),
+        ("u", 1000),
+        ("m", 1_000_000),
+        ("S", 1_000_000_000),
+        ("M", 60_000_000_000),
+        ("H", 3_600_000_000_000),
+    ] {
+        let count = nanos.div_ceil(scale);
+        if count <= 99_999_999 {
+            request
+                .headers_mut()
+                .insert("grpc-timeout", format!("{count}{unit}").parse().unwrap());
+            return;
+        }
+    }
+}
+
+async fn forward_inner(
+    runner: Runner,
     mut request: Request<Incoming>,
+    deadline: Option<tokio::time::Instant>,
 ) -> Result<Response<ProxyBody>, Infallible> {
     let authority = request.uri().authority().map(|a| a.as_str()).or_else(|| {
         request
@@ -106,8 +247,9 @@ pub async fn forward(
         .and_then(|a| a.parse::<http::uri::Authority>().ok())
         .map(|a| a.to_string());
     if authority.is_none() {
-        return Ok(reply(
+        return Ok(reject(
             StatusCode::BAD_REQUEST,
+            "invalid_request",
             "invalid request authority\n",
         ));
     }
@@ -119,25 +261,70 @@ pub async fn forward(
         .filter(|id| paydirt::has_domain(id, crate::config::INSTANCE_DOMAIN))
         .filter(|_| values.next().is_none());
     let Some(id) = id else {
-        return Ok(reply(
+        return Ok(reject(
             StatusCode::BAD_REQUEST,
+            "invalid_request",
             "wafl-instance must name one Instance UUID\n",
         ));
     };
+    let condition = match crate::control::condition(&connectrpc::RequestContext::new(
+        request.headers().clone(),
+    )) {
+        Ok(condition) if condition.revision.is_none() => condition,
+        _ => {
+            return Ok(reject(
+                StatusCode::BAD_REQUEST,
+                "invalid_request",
+                "invalid routing session\n",
+            ));
+        }
+    };
+    if runner.check_session(condition.session).is_err() {
+        return Ok(reject(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "session_mismatch",
+            "runner session changed\n",
+        ));
+    }
     let Some(app) = runner.instance(&id) else {
-        return Ok(reply(StatusCode::NOT_FOUND, "unknown instance\n"));
+        return Ok(if runner.snapshot(&id).is_some() {
+            reject(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "preparing",
+                "instance is being added\n",
+            )
+        } else {
+            reject(StatusCode::NOT_FOUND, "not_found", "unknown instance\n")
+        });
     };
     request.headers_mut().remove(INSTANCE_HEADER);
+    request.headers_mut().remove("wafl-session");
+    request.headers_mut().remove("wafl-revision");
     if request.method() == http::Method::CONNECT || request.headers().contains_key(header::UPGRADE)
     {
-        return Ok(reply(
+        return Ok(reject(
             StatusCode::NOT_IMPLEMENTED,
+            "unsupported",
             "protocol upgrades are not supported\n",
         ));
     }
     let lease = match runner.acquire(&app).await {
         Ok(lease) => lease,
-        Err(_) => return Ok(reply(StatusCode::SERVICE_UNAVAILABLE, "app unavailable\n")),
+        Err(error) => {
+            use connectrpc::ErrorCode;
+            let (status, reason) = match error.code {
+                ErrorCode::ResourceExhausted => (StatusCode::TOO_MANY_REQUESTS, "capacity"),
+                ErrorCode::DeadlineExceeded => (StatusCode::GATEWAY_TIMEOUT, "startup_timeout"),
+                ErrorCode::FailedPrecondition => (StatusCode::SERVICE_UNAVAILABLE, "draining"),
+                ErrorCode::NotFound => (StatusCode::NOT_FOUND, "not_found"),
+                _ => (StatusCode::SERVICE_UNAVAILABLE, "unavailable"),
+            };
+            return Ok(reject(
+                status,
+                reason,
+                "instance rejected request before forwarding\n",
+            ));
+        }
     };
     strip_hop_headers(request.headers_mut());
     let result: Result<_, BoxError> = async {
@@ -165,6 +352,7 @@ pub async fn forward(
                 });
                 let driver = Driver(Some(task.abort_handle()));
                 sender.ready().await?;
+                remaining(&mut request, deadline);
                 (sender.send_request(request).await?, driver)
             }
             Protocol::H2c => {
@@ -184,24 +372,52 @@ pub async fn forward(
                 });
                 let driver = Driver(Some(task.abort_handle()));
                 sender.ready().await?;
+                remaining(&mut request, deadline);
                 (sender.send_request(request).await?, driver)
             }
         };
         let (mut parts, body) = response.into_parts();
         strip_hop_headers(&mut parts.headers);
+        parts.headers.remove("wafl-error");
+        if deadline.is_some() {
+            parts.headers.remove(header::CONTENT_LENGTH);
+        }
+        let connection = driver.0.take().unwrap();
+        let lease = Arc::new(Mutex::new(Some(lease)));
+        let expiry = deadline.map(|deadline| {
+            let connection = connection.clone();
+            let lease = lease.clone();
+            // ResponseBody may not be polled while downstream flow control is
+            // blocked. The deadline must still release admission and upstream.
+            tokio::spawn(async move {
+                tokio::time::sleep_until(deadline).await;
+                connection.abort();
+                lease.lock().unwrap().take();
+            })
+            .abort_handle()
+        });
         Ok(Response::from_parts(
             parts,
             ResponseBody {
                 inner: body,
-                lease: Some(lease),
-                connection: driver.0.take().unwrap(),
+                lease,
+                expiry,
+                connection,
+                deadline: deadline.map(|deadline| Box::pin(tokio::time::sleep_until(deadline))),
+                expired: false,
             }
             .boxed_unsync(),
         ))
     }
     .await;
     // A request body may already have reached the application. Never replay it.
-    Ok(result.unwrap_or_else(|_| reply(StatusCode::BAD_GATEWAY, "app connection failed\n")))
+    Ok(result.unwrap_or_else(|_| {
+        reject(
+            StatusCode::BAD_GATEWAY,
+            "upstream",
+            "app connection failed; delivery may have started\n",
+        )
+    }))
 }
 
 fn strip_hop_headers(headers: &mut HeaderMap) {
@@ -241,6 +457,7 @@ pub async fn serve(listener: TcpListener, runner: Runner, stop: Stop) -> anyhow:
             Some(_) = connections.join_next() => {},
             socket = listener.accept() => {
                 let (socket, _) = socket?;
+                let timeout = runner.drain_timeout();
                 let runner = runner.clone();
                 let stop = stop.clone();
                 connections.spawn(async move {
@@ -253,7 +470,7 @@ pub async fn serve(listener: TcpListener, runner: Runner, stop: Stop) -> anyhow:
                         _ = &mut connection => {},
                         _ = stop.cancelled() => {
                             connection.as_mut().graceful_shutdown();
-                            let _ = tokio::time::timeout(Duration::from_secs(5), connection).await;
+                            let _ = tokio::time::timeout(timeout, connection).await;
                         }
                     }
                 });

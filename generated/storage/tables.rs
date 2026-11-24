@@ -144,6 +144,12 @@
         f11 -> Text,
         /// wafl.Instance.manifest
         f17 -> Nullable<Text>,
+        /// wafl.Instance.session
+        f18 -> Binary,
+        /// wafl.Instance.revision
+        f19 -> Text,
+        /// wafl.Instance.draining
+        f20 -> Bool,
     }
 }
 ::diesel::table! {
@@ -197,6 +203,33 @@
         f8 -> Binary,
         /// wafl.RowSeal.fields
         f9 -> Text,
+    }
+}
+::diesel::table! {
+    #[sql_name = "pd_wafl__Runner"]
+    pd_wafl_runner (f1) {
+        /// wafl.Runner.id
+        f1 -> Binary,
+        /// wafl.Runner.alias
+        f4 -> Text,
+        /// wafl.Runner.version
+        f8 -> Text,
+        /// wafl.Runner.runtime
+        f9 -> Text,
+        /// wafl.Runner.abi
+        f10 -> Text,
+        /// wafl.Runner.ingress
+        f11 -> Text,
+        /// wafl.Runner.control
+        f12 -> Text,
+        /// wafl.Runner.accepting
+        f16 -> Bool,
+        /// wafl.Runner.capacity
+        f17 -> Nullable<Text>,
+        /// wafl.Runner.usage
+        f18 -> Nullable<Text>,
+        /// wafl.Runner.capabilities
+        f19 -> Text,
     }
 }
 ::diesel::table! {

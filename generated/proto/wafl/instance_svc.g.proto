@@ -22,6 +22,8 @@ service InstanceService {
   rpc Start(InstanceStartRequest) returns (Instance);
   // Refuse active requests. A later request starts the instance again.
   rpc Stop(InstanceStopRequest) returns (Instance);
+  // Close admission, finish current requests, then stop. Start resumes admission.
+  rpc Drain(InstanceDrainRequest) returns (Instance);
   // Read retained stdout/stderr, optionally following across Stop/Start.
   rpc Tail(InstanceTailRequest) returns (stream Log);
 }
@@ -36,6 +38,12 @@ message InstanceAddRequest {
   uint32 active = 10 [features.field_presence = IMPLICIT];
   string error = 11 [features.field_presence = IMPLICIT];
   Manifest manifest = 17 [(orm.field) = {type: TYPE_JSON}];
+  bytes session = 18 [
+    (orm.field) = {type: TYPE_UUID},
+    features.field_presence = IMPLICIT
+  ];
+  uint64 revision = 19 [features.field_presence = IMPLICIT];
+  bool draining = 20 [features.field_presence = IMPLICIT];
 }
 
 message InstanceGetRequest {
@@ -60,6 +68,9 @@ message InstanceSelect {
   bool active = 10;
   bool error = 11;
   bool manifest = 17;
+  bool session = 18;
+  bool revision = 19;
+  bool draining = 20;
 }
 
 message InstanceEraseResponse {
@@ -117,6 +128,17 @@ message InstanceStartRequest {
 
 message InstanceStopRequest {
   InstanceRef ref = 1;
+}
+
+// Mutations accept optional wafl-session (Runner UUID) and wafl-revision
+// (decimal Instance.revision) RPC metadata. Add only accepts wafl-session.
+// Revision requires session; check and mutation are atomic in the runner.
+message InstanceDrainRequest {
+  InstanceRef ref = 1;
+  // Zero uses the runner default. Maximum 600000 ms.
+  uint64 timeout_ms = 2 [features.field_presence = IMPLICIT];
+  // On expiry, terminate the guest and interrupt remaining requests.
+  bool force = 3 [features.field_presence = IMPLICIT];
 }
 
 message InstanceTailRequest {

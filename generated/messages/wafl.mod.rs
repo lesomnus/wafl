@@ -16,6 +16,8 @@ include!("wafl.payday.holder_svc.g.rs");
 include!("wafl.payday.outbox.rs");
 include!("wafl.payday.owed.rs");
 include!("wafl.payday.rowseal.rs");
+include!("wafl.runner.rs");
+include!("wafl.runner_svc.g.rs");
 #[allow(
     non_camel_case_types,
     dead_code,
@@ -49,6 +51,8 @@ pub mod __buffa {
         include!("wafl.payday.outbox.__view.rs");
         include!("wafl.payday.owed.__view.rs");
         include!("wafl.payday.rowseal.__view.rs");
+        include!("wafl.runner.__view.rs");
+        include!("wafl.runner_svc.g.__view.rs");
         pub mod oneof {
             #[allow(unused_imports)]
             use super::*;
@@ -58,6 +62,7 @@ pub mod __buffa {
             include!("wafl.payday.access_svc.g.__view_oneof.rs");
             include!("wafl.payday.audit_svc.g.__view_oneof.rs");
             include!("wafl.payday.holder_svc.g.__view_oneof.rs");
+            include!("wafl.runner_svc.g.__view_oneof.rs");
         }
     }
     pub mod oneof {
@@ -69,6 +74,7 @@ pub mod __buffa {
         include!("wafl.payday.access_svc.g.__oneof.rs");
         include!("wafl.payday.audit_svc.g.__oneof.rs");
         include!("wafl.payday.holder_svc.g.__oneof.rs");
+        include!("wafl.runner_svc.g.__oneof.rs");
     }
     /// Register this package's `Any` type entries and extension entries.
     pub fn register_types(reg: &mut ::buffa::type_registry::TypeRegistry) {
@@ -98,6 +104,7 @@ pub mod __buffa {
         reg.register_json_any(super::__INSTANCE_FILTER_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_START_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_STOP_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__INSTANCE_DRAIN_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_TAIL_REQUEST_JSON_ANY);
         reg.register_json_any(super::__ACCESS_JSON_ANY);
         reg.register_json_any(super::__ACCESS_GET_REQUEST_JSON_ANY);
@@ -136,6 +143,15 @@ pub mod __buffa {
         reg.register_json_any(super::__OUTBOX_JSON_ANY);
         reg.register_json_any(super::__OWED_JSON_ANY);
         reg.register_json_any(super::__ROW_SEAL_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_JSON_ANY);
+        reg.register_json_any(super::__CAPACITY_JSON_ANY);
+        reg.register_json_any(super::__USAGE_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_REF_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_SELECT_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_LIST_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_LIST_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__RUNNER_FILTER_JSON_ANY);
     }
 }
 #[doc(inline)]
@@ -242,6 +258,10 @@ pub use self::__buffa::view::InstanceStartRequestOwnedView;
 pub use self::__buffa::view::InstanceStopRequestView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceStopRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceDrainRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceDrainRequestOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceTailRequestView;
 #[doc(inline)]
@@ -394,5 +414,41 @@ pub use self::__buffa::view::OwedOwnedView;
 pub use self::__buffa::view::RowSealView;
 #[doc(inline)]
 pub use self::__buffa::view::RowSealOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::CapacityView;
+#[doc(inline)]
+pub use self::__buffa::view::CapacityOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::UsageView;
+#[doc(inline)]
+pub use self::__buffa::view::UsageOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerRefView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerListRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerListRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerListResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerListResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerFilterView;
+#[doc(inline)]
+pub use self::__buffa::view::RunnerFilterOwnedView;
 #[doc(inline)]
 pub use self::__buffa::register_types;

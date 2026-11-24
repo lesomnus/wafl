@@ -339,6 +339,28 @@ impl<
             call.unary::<crate::proto::r#wafl::r#Instance, _>(reply)
         }
     }
+    fn drain<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceDrainRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.InstanceService/Drain", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.drain(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#Instance, _>(reply)
+        }
+    }
     fn tail(
         &self,
         next: &N,
@@ -655,6 +677,46 @@ impl<
 impl<
     N: crate::services::r#wafl::RowSealService,
 > crate::services::r#wafl::RowSealServiceLayer<N> for crate::storage::intercept::Layer {}
+impl<
+    N: crate::services::r#wafl::RunnerService,
+> crate::services::r#wafl::RunnerServiceLayer<N> for crate::storage::intercept::Layer {
+    fn get<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::RunnerGetRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<crate::proto::wafl::Runner> + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.RunnerService/Get", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.get(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#Runner, _>(reply)
+        }
+    }
+    fn list<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::RunnerListRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::RunnerListResponse,
+            > + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.RunnerService/List", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.list(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#RunnerListResponse, _>(reply)
+        }
+    }
+}
 mod sink_wafl_access {
     use super::*;
     pub struct Sink(pub Database);
@@ -2368,6 +2430,68 @@ mod sink_wafl_instance {
                 Ok(response)
             }
         }
+        fn drain<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::InstanceDrainRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Instance,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.InstanceDrainRequest",
+                    "wafl.Instance",
+                    "/wafl.InstanceService/Drain",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Instance",
+                        "Drain",
+                        self.public.contains(&"/wafl.InstanceService/Drain"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.drain(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#Instance,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
         fn tail(
             &self,
             next: &N,
@@ -2626,6 +2750,272 @@ mod sink_wafl_instance {
                     )
                     .await?;
                 let result = next.stop(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+        fn drain<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::InstanceDrainRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Instance,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Instance",
+                        "Drain",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.drain(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+    }
+}
+mod sink_wafl_runner {
+    use super::*;
+    pub struct Sink(pub Database);
+    #[allow(refining_impl_trait)]
+    impl<
+        N: crate::services::r#wafl::RunnerService,
+    > crate::services::r#wafl::RunnerServiceLayer<N> for Sink {
+        async fn get(
+            &self,
+            _: &N,
+            ctx: RequestContext,
+            request: ServiceRequest<'_, crate::proto::r#wafl::r#RunnerGetRequest>,
+        ) -> ServiceResult<crate::proto::r#wafl::r#Runner> {
+            Response::ok(
+                self
+                    .0
+                    .rpc(&ctx, "wafl.Runner", "Get", &request.to_owned_message())
+                    .await?,
+            )
+        }
+        async fn list(
+            &self,
+            _: &N,
+            ctx: RequestContext,
+            request: ServiceRequest<'_, crate::proto::r#wafl::r#RunnerListRequest>,
+        ) -> ServiceResult<crate::proto::r#wafl::r#RunnerListResponse> {
+            Response::ok(
+                self
+                    .0
+                    .rpc(&ctx, "wafl.Runner", "List", &request.to_owned_message())
+                    .await?,
+            )
+        }
+    }
+    impl<
+        N: crate::services::r#wafl::RunnerService,
+    > crate::services::r#wafl::RunnerServiceLayer<N> for Gate {
+        fn get<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::RunnerGetRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Runner,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.RunnerGetRequest",
+                    "wafl.Runner",
+                    "/wafl.RunnerService/Get",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Runner",
+                        "Get",
+                        self.public.contains(&"/wafl.RunnerService/Get"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.get(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#Runner,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
+        fn list<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::RunnerListRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::RunnerListResponse,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.RunnerListRequest",
+                    "wafl.RunnerListResponse",
+                    "/wafl.RunnerService/List",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Runner",
+                        "List",
+                        self.public.contains(&"/wafl.RunnerService/List"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.list(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#RunnerListResponse,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
+    }
+    impl<
+        N: crate::services::r#wafl::RunnerService,
+    > crate::services::r#wafl::RunnerServiceLayer<N> for Audit {
+        fn get<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::RunnerGetRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Runner,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Runner",
+                        "Get",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.get(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+        fn list<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::RunnerListRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::RunnerListResponse,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Runner",
+                        "List",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.list(ctx, request).await;
                 if let Some(guard) = guard {
                     guard.finish(result.is_ok()).await?;
                 }
@@ -3167,6 +3557,12 @@ impl Next {
             layer: sink_wafl_instance::Sink(self.0.clone()),
         }
     }
+    pub fn wafl_runner(&self) -> impl crate::services::r#wafl::RunnerService + use<> {
+        crate::services::r#wafl::RunnerServiceOverlay {
+            next: crate::services::r#wafl::RunnerServiceUnimplemented,
+            layer: sink_wafl_runner::Sink(self.0.clone()),
+        }
+    }
     pub fn wafl_tenant(&self) -> impl crate::services::r#wafl::TenantService + use<> {
         crate::services::r#wafl::TenantServiceOverlay {
             next: crate::services::r#wafl::TenantServiceUnimplemented,
@@ -3601,8 +3997,92 @@ pub trait InstanceCalls: crate::services::r#wafl::InstanceService {
                 "invalid downstream response",
             ))
     }
+    async fn drain_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#InstanceDrainRequest,
+    ) -> Result<crate::proto::r#wafl::r#Instance, ::connectrpc::ConnectError> {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#InstanceDrainRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .drain(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#Instance::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
 }
 impl<N: crate::services::r#wafl::InstanceService> InstanceCalls for N {}
+#[allow(async_fn_in_trait)]
+pub trait RunnerCalls: crate::services::r#wafl::RunnerService {
+    async fn get_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#RunnerGetRequest,
+    ) -> Result<crate::proto::r#wafl::r#Runner, ::connectrpc::ConnectError> {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#RunnerGetRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .get(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#Runner::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+    fn list_all<'a>(
+        &'a self,
+        ctx: &'a RequestContext,
+        request: &crate::proto::r#wafl::r#RunnerListRequest,
+    ) -> impl ::paydirt::page::Stream<
+        Item = Result<crate::proto::r#wafl::Runner, ::connectrpc::ConnectError>,
+    > + 'a {
+        ::paydirt::page::all(
+            request,
+            |q| &mut q.after,
+            move |q| async move {
+                let page = self.list_owned(ctx, q).await?;
+                Ok((page.items, page.next))
+            },
+            || ::connectrpc::ConnectError::internal("repeated continuation token"),
+        )
+    }
+    async fn list_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#RunnerListRequest,
+    ) -> Result<crate::proto::r#wafl::r#RunnerListResponse, ::connectrpc::ConnectError> {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#RunnerListRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .list(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#RunnerListResponse::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+}
+impl<N: crate::services::r#wafl::RunnerService> RunnerCalls for N {}
 #[allow(async_fn_in_trait)]
 pub trait TenantCalls: crate::services::r#wafl::TenantService {
     async fn get_owned(
@@ -3721,6 +4201,9 @@ impl<N: server::Server> server::Layer<N> for Sink {
     fn wafl_instance(&self, _: &N) -> impl crate::services::r#wafl::InstanceService {
         Next(self.0.clone()).wafl_instance()
     }
+    fn wafl_runner(&self, _: &N) -> impl crate::services::r#wafl::RunnerService {
+        Next(self.0.clone()).wafl_runner()
+    }
     fn wafl_tenant(&self, _: &N) -> impl crate::services::r#wafl::TenantService {
         Next(self.0.clone()).wafl_tenant()
     }
@@ -3747,6 +4230,12 @@ impl<N: server::Server> server::Layer<N> for Gate {
     fn wafl_instance(&self, next: &N) -> impl crate::services::r#wafl::InstanceService {
         crate::services::r#wafl::InstanceServiceOverlay {
             next: next.wafl_instance(),
+            layer: self.clone(),
+        }
+    }
+    fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::RunnerService {
+        crate::services::r#wafl::RunnerServiceOverlay {
+            next: next.wafl_runner(),
             layer: self.clone(),
         }
     }
@@ -3782,6 +4271,12 @@ impl<N: server::Server> server::Layer<N> for Audit {
             layer: self.clone(),
         }
     }
+    fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::RunnerService {
+        crate::services::r#wafl::RunnerServiceOverlay {
+            next: next.wafl_runner(),
+            layer: self.clone(),
+        }
+    }
     fn wafl_tenant(&self, next: &N) -> impl crate::services::r#wafl::TenantService {
         crate::services::r#wafl::TenantServiceOverlay {
             next: next.wafl_tenant(),
@@ -3811,6 +4306,12 @@ impl<N: server::Server> server::Layer<N> for intercept::Layer {
     fn wafl_instance(&self, next: &N) -> impl crate::services::r#wafl::InstanceService {
         crate::services::r#wafl::InstanceServiceOverlay {
             next: next.wafl_instance(),
+            layer: self.clone(),
+        }
+    }
+    fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::RunnerService {
+        crate::services::r#wafl::RunnerServiceOverlay {
+            next: next.wafl_runner(),
             layer: self.clone(),
         }
     }
@@ -3852,6 +4353,12 @@ pub trait Layers {
     ) -> impl crate::services::r#wafl::InstanceService {
         next
     }
+    fn wafl_runner(
+        &self,
+        next: impl crate::services::r#wafl::RunnerService,
+    ) -> impl crate::services::r#wafl::RunnerService {
+        next
+    }
     fn wafl_tenant(
         &self,
         next: impl crate::services::r#wafl::TenantService,
@@ -3872,6 +4379,9 @@ impl<N: server::Server, L: Layers> server::Layer<N> for Application<'_, L> {
     }
     fn wafl_instance(&self, next: &N) -> impl crate::services::r#wafl::InstanceService {
         self.0.wafl_instance(next.wafl_instance())
+    }
+    fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::RunnerService {
+        self.0.wafl_runner(next.wafl_runner())
     }
     fn wafl_tenant(&self, next: &N) -> impl crate::services::r#wafl::TenantService {
         self.0.wafl_tenant(next.wafl_tenant())
@@ -3895,6 +4405,7 @@ pub fn mount(router: Router, db: Database, layers: &impl Layers) -> Router {
             "wafl.AuditService" => crate::transport::access::OPTIONS.reads,
             "wafl.HolderService" => true,
             "wafl.InstanceService" => true,
+            "wafl.RunnerService" => true,
             "wafl.TenantService" => true,
             _ => false,
         },

@@ -66,6 +66,14 @@ async fn echo(
 ) -> Result<(), h2::Error> {
     let headers = http::Response::builder()
         .header("content-type", "application/grpc")
+        .header(
+            "echo-timeout",
+            request
+                .headers()
+                .get("grpc-timeout")
+                .cloned()
+                .unwrap_or_else(|| "none".parse().unwrap()),
+        )
         .body(())
         .unwrap();
     let mut output = response.send_response(headers, false)?;
@@ -101,6 +109,9 @@ async fn serve(stream: TcpStream) -> Result<(), h2::Error> {
 }
 
 fn main() -> io::Result<()> {
+    if std::env::var("MODE").as_deref() == Ok("delay") {
+        std::thread::sleep(Duration::from_millis(200));
+    }
     let listener = TcpListener::bind(("0.0.0.0", 8080))?;
     for stream in listener.incoming() {
         let stream = stream?;

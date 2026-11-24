@@ -40,8 +40,8 @@ hyper-util = { version = "0.1", features = ["tokio", "server-auto"] }
 opentelemetry = { version = "0.32", default-features = false, features = ["metrics"] }
 opentelemetry_sdk = { version = "0.32", default-features = false, features = ["metrics"] }
 opentelemetry-otlp = { version = "0.32", default-features = false, features = ["http-proto", "metrics", "reqwest-blocking-client", "reqwest-rustls"] }
-paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "d235c260d2ec5334a94650ab07517c242af2cdff", features = ["watch-postgres"] }
-paydirt-server = { git = "https://github.com/lesomnus/paydirt", rev = "d235c260d2ec5334a94650ab07517c242af2cdff" }
+paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021", features = ["watch-postgres"] }
+paydirt-server = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021" }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

@@ -281,6 +281,22 @@ async fn dispatch(
                 .await?;
             emit(serde_json::to_value(res.into_owned())?)?;
         }
+        ("wafl.Instance", "Drain") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#InstanceDrainRequest,
+                <proto::r#wafl::r#Instance as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.InstanceService",
+                    "Drain",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Instance", "Erase") => {
             let res = call_unary::<
                 _,
@@ -382,6 +398,40 @@ async fn dispatch(
             while let Some(msg) = stream.message::<proto::r#wafl::r#Log>().await? {
                 emit(serde_json::to_value(msg.to_owned_message())?)?;
             }
+        }
+        ("wafl.Runner", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#RunnerGetRequest,
+                <proto::r#wafl::r#Runner as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.RunnerService",
+                    "Get",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Runner", "List") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#RunnerListRequest,
+                <proto::r#wafl::r#RunnerListResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.RunnerService",
+                    "List",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
         }
         ("wafl.Tenant", "Add") => {
             let res = call_unary::<

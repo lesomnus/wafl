@@ -1,0 +1,59 @@
+edition = "2023";
+package wafl;
+import "payday.proto";
+import "orm.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// Process-local infrastructure resource, intentionally global rather than
+// owned by any one tenant. List discovers the single current process session.
+message Runner {
+  option (orm.message) = {rpc: {get: {}}};
+  option (payday.entity) = {
+    domain: 8
+    global: {}
+    erase: {hard: {}}
+    trail: {off: {why: "Ephemeral process observation; lifecycle metrics are exported separately."}}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}] size: 1 max: 1 filters: 64}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  reserved 2, 3;
+  string alias = 4 [(orm.field) = {unique: true, default: ""}];
+  string version = 8;
+  string runtime = 9;
+  string abi = 10;
+  string ingress = 11;
+  string control = 12;
+  bool accepting = 16;
+  Capacity capacity = 17 [(orm.field) = {type: TYPE_JSON}];
+  Usage usage = 18 [(orm.field) = {type: TYPE_JSON}];
+  // Supported protocol and runner contract names, not guest WASI imports.
+  repeated string capabilities = 19 [(orm.field) = {type: TYPE_JSON}];
+}
+message Capacity {
+  uint64 instances = 1;
+  uint64 preparations = 2;
+  uint64 startups = 3;
+  // Reserved executions, including startup queue and starting guests.
+  uint64 running = 4;
+  uint64 memory_bytes = 5;
+  uint64 requests = 6;
+  uint64 waiting = 7;
+  uint64 queue_ms = 8;
+  uint64 drain_ms = 9;
+  // Retained entries without Instance references; referenced code stays pinned.
+  uint64 compilations = 10;
+}
+message Usage {
+  uint64 instances = 1;
+  uint64 preparations = 2;
+  uint64 startups = 3;
+  // Reserved executions, including startup queue and starting guests.
+  uint64 running = 4;
+  // Sum of declared linear-memory limits, not process RSS or measured usage.
+  uint64 memory_bytes = 5;
+  uint64 requests = 6;
+  uint64 waiting = 7;
+  // All code entries: referenced, retained, or currently compiling.
+  uint64 compilations = 8;
+}

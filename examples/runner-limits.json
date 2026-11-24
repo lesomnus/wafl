@@ -6,5 +6,19 @@
     "expanded_bytes": 268435456,
     "entries": 4096
   },
-  "cache": { "capacity_bytes": 10737418240 }
+  "cache": {
+    "capacity_bytes": 10737418240
+  },
+  "capacity": {
+    "instances": 128,
+    "preparations": 4,
+    "startups": 4,
+    "running": 128,
+    "memory_bytes": 8589934592,
+    "requests": 1024,
+    "waiting": 128,
+    "queue_ms": 10000,
+    "drain_ms": 30000,
+    "compilations": 32
+  }
 }

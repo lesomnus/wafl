@@ -29,6 +29,16 @@ pub struct InstanceView<'a> {
     pub manifest: ::buffa::MessageFieldView<
         super::super::__buffa::view::ManifestView<'a>,
     >,
+    /// Domain-8 Runner ID; changes whenever the runner process restarts.
+    ///
+    /// Field 18: `session`
+    pub session: &'a [u8],
+    /// Runner-wide monotonic lifecycle revision; not a request count or CP lease.
+    ///
+    /// Field 19: `revision`
+    pub revision: u64,
+    /// Field 20: `draining`
+    pub draining: bool,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
@@ -151,6 +161,27 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                     }
                 }
             }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.session = ::buffa::types::borrow_bytes(&mut cur)?;
+            }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.revision = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.draining = ::buffa::types::decode_bool(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -196,6 +227,9 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            session: (self.session).to_vec(),
+            revision: self.revision,
+            draining: self.draining,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -247,6 +281,15 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if !self.session.is_empty() {
+            size += 2u32 + ::buffa::types::bytes_encoded_len(&self.session) as u32;
+        }
+        if self.revision != 0u64 {
+            size += 2u32 + ::buffa::types::uint64_encoded_len(self.revision) as u32;
+        }
+        if self.draining {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -289,6 +332,15 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if !self.session.is_empty() {
+            ::buffa::types::put_bytes_field(18u32, &self.session, buf);
+        }
+        if self.revision != 0u64 {
+            ::buffa::types::put_uint64_field(19u32, self.revision, buf);
+        }
+        if self.draining {
+            ::buffa::types::put_bool_field(20u32, self.draining, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -349,6 +401,23 @@ impl<'__a> ::serde::Serialize for InstanceView<'__a> {
             if let ::core::option::Option::Some(__v) = self.manifest.as_option() {
                 __map.serialize_entry("manifest", __v)?;
             }
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_bytes(self.session) {
+            __map
+                .serialize_entry(
+                    "session",
+                    &::buffa::json_helpers::BytesJson(self.session),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.revision) {
+            __map
+                .serialize_entry(
+                    "revision",
+                    &::buffa::json_helpers::ProtoJson(&self.revision),
+                )?;
+        }
+        if self.draining {
+            __map.serialize_entry("draining", &self.draining)?;
         }
         __map.end()
     }
@@ -489,6 +558,25 @@ impl InstanceOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ManifestView<'_>> {
         &self.0.reborrow().manifest
+    }
+    /// Domain-8 Runner ID; changes whenever the runner process restarts.
+    ///
+    /// Field 18: `session`
+    #[must_use]
+    pub fn session(&self) -> &'_ [u8] {
+        self.0.reborrow().session
+    }
+    /// Runner-wide monotonic lifecycle revision; not a request count or CP lease.
+    ///
+    /// Field 19: `revision`
+    #[must_use]
+    pub fn revision(&self) -> u64 {
+        self.0.reborrow().revision
+    }
+    /// Field 20: `draining`
+    #[must_use]
+    pub fn draining(&self) -> bool {
+        self.0.reborrow().draining
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<InstanceView<'static>>>

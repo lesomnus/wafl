@@ -12,7 +12,12 @@ fn main() -> std::io::Result<()> {
         Ok("spin") => loop {
             std::hint::spin_loop();
         },
-        Ok("delay") => std::thread::sleep(Duration::from_millis(200)),
+        Ok("delay") => std::thread::sleep(Duration::from_millis(
+            std::env::var("DELAY_MS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(200),
+        )),
         Ok("memory") => {
             let mut bytes = Vec::with_capacity(256 * 1024 * 1024);
             bytes.resize(256 * 1024 * 1024, 42u8);

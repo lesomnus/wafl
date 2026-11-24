@@ -1,4 +1,6 @@
+mod admission;
 mod bundle;
+mod compiler;
 pub mod config;
 pub mod control;
 pub mod host;

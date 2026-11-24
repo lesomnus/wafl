@@ -134,3 +134,15 @@ wafl serve runner /srv/wafl-cache --listen 127.0.0.1:9080 --control 127.0.0.1:90
 ```
 
 번들 파일만 공유합니다. 각 runner의 인스턴스·ID·alias·로그는 독립적이며, 공유 디렉터리에 인스턴스 목록을 저장하지 않습니다. `Erase`는 다른 프로세스도 쓸 수 있는 캐시 파일을 삭제하지 않습니다. 잠금·원자적 공개·URL 재사용 규칙은 [저장소 계약](store.md)을 따릅니다.
+
+## Runner 조회·드레인·명령 조건
+
+```sh
+wafl --json runner get
+wafl instance drain @hello --timeout-ms 30000
+wafl instance start @hello
+wafl instance drain @hello --timeout-ms 5000 --force
+wafl instance erase @hello
+```
+
+Add는 `--id <domain-7 UUID>`로 호출자가 ID를 정할 수 있습니다. global `--session <Runner UUID>`와 `--revision <number>`로 오래된 명령을 거절할 수 있으며 revision은 session과 함께 사용합니다. Add에는 session만 사용합니다. 생성 중 조회·응답 유실 복구와 각 선택의 의미는 [운영 튜토리얼](operations.md)을 참고하세요.
