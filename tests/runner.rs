@@ -107,6 +107,7 @@ impl Client {
         }
     }
     async fn send(&mut self, domain: &str, path: &str) -> hyper::Response<hyper::body::Incoming> {
+        self.sender.ready().await.unwrap();
         let request = hyper::Request::builder()
             .uri(path)
             .header("host", domain)
@@ -147,7 +148,9 @@ async fn sockets_share_a_process_without_sharing_ports_or_state() {
     assert_eq!(client.text("beta.test", "/").await, "beta:1");
     assert_eq!(client.text("alpha.test", "/").await, "alpha:2");
     assert_eq!(client.text("alpha.test", "/denied").await, "denied");
-    assert_eq!(client.send("unknown.test", "/").await.status(), 404);
+    let unknown = client.send("unknown.test", "/").await;
+    assert_eq!(unknown.status(), 404);
+    unknown.into_body().collect().await.unwrap();
     let alpha = h.runner.app("alpha").unwrap();
     assert_eq!(alpha.snapshot().generation, 1);
     let response = client.send("alpha.test", "/slow").await;

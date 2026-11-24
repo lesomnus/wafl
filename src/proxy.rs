@@ -146,6 +146,7 @@ pub async fn forward(
                     let _ = connection.await;
                 });
                 let driver = Driver(Some(task.abort_handle()));
+                sender.ready().await?;
                 (sender.send_request(request).await?, driver)
             }
             Protocol::H2c => {
@@ -164,6 +165,7 @@ pub async fn forward(
                     let _ = connection.await;
                 });
                 let driver = Driver(Some(task.abort_handle()));
+                sender.ready().await?;
                 (sender.send_request(request).await?, driver)
             }
         };
