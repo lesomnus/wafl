@@ -1,0 +1,5 @@
+{
+  "package": "wafl",
+  "go_package": "github.com/lesomnus/wafl/proto/wafl",
+  "entities": false
+}

@@ -1,5 +1,7 @@
 version: v2
 modules:
   - path: proto
+    excludes: [proto/ext]
 deps:
   - buf.build/orm/orm
+  - buf.build/patch/patch

@@ -260,9 +260,13 @@ async fn management_contract_authentication_and_lifecycle() {
     use buffa::Message;
     use http_body_util::Full;
     use tower::ServiceExt;
-    let runner = Runner::new(&config(vec![app("control", "socket")]))
-        .await
-        .unwrap();
+    let runner = Runner::new(&config(vec![
+        app("alpha", "socket"),
+        app("control", "socket"),
+        app("zulu", "socket"),
+    ]))
+    .await
+    .unwrap();
     let service = connectrpc::ConnectRpcService::new(wafl_runner::control::router(
         runner.clone(),
         Some("test-token".into()),
@@ -271,7 +275,7 @@ async fn management_contract_authentication_and_lifecycle() {
         let service = service.clone();
         let mut request = http::Request::builder()
             .method("POST")
-            .uri(format!("/wafl.RunnerService/{method}"))
+            .uri(format!("/wafl.InstanceService/{method}"))
             .header("content-type", "application/json")
             .header("connect-protocol-version", "1");
         if token {
@@ -294,27 +298,69 @@ async fn management_contract_authentication_and_lifecycle() {
         }
     };
     for method in ["List", "Get", "Start", "Stop"] {
-        let (status, body) = json(method, false, r#"{"name":"absent"}"#).await;
+        let (status, body) = json(method, false, "{}").await;
         assert_eq!(status, 401);
         assert_eq!(body["code"], "unauthenticated");
     }
-    let (_, body) = json("Get", true, r#"{"name":"absent"}"#).await;
+    for input in ["{}", r#"{"ref":{"id":"/w=="}}"#] {
+        let (_, body) = json("Get", true, input).await;
+        assert_eq!(body["code"], "invalid_argument");
+    }
+    let (_, body) = json("Get", true, r#"{"ref":{"id":"YWJzZW50"}}"#).await;
     assert_eq!(body["code"], "not_found");
-    let (status, body) = json("Start", true, r#"{"name":"control"}"#).await;
+    let (status, body) = json("List", true, r#"{"size":1}"#).await;
     assert_eq!(status, 200);
+    assert_eq!(body["items"].as_array().unwrap().len(), 1);
+    assert_eq!(body["items"][0]["name"], "alpha");
+    assert_eq!(body["next"], "alpha");
+    let (_, body) = json("List", true, r#"{"size":2,"after":"alpha"}"#).await;
+    assert_eq!(body["items"].as_array().unwrap().len(), 2);
+    assert_eq!(body["items"][0]["name"], "control");
+    assert!(body["next"].as_str().unwrap_or_default().is_empty());
+    let (_, body) = json("List", true, r#"{"size":1,"reverse":true}"#).await;
+    assert_eq!(body["items"][0]["name"], "zulu");
+    assert_eq!(body["next"], "zulu");
+    let (_, body) = json(
+        "List",
+        true,
+        r#"{"reverse":true,"after":"zulu","filters":[{"name":"alpha"},{"name":"zulu"}]}"#,
+    )
+    .await;
+    assert_eq!(body["items"].as_array().unwrap().len(), 1);
+    assert_eq!(body["items"][0]["name"], "alpha");
+    let (_, body) = json("List", true, r#"{"filters":[{"name":"absent"}]}"#).await;
+    assert!(
+        body["items"]
+            .as_array()
+            .is_none_or(|items| items.is_empty())
+    );
+    for input in [
+        r#"{"size":-1}"#,
+        r#"{"size":1001}"#,
+        r#"{"after":"absent"}"#,
+    ] {
+        let (_, body) = json("List", true, input).await;
+        assert_eq!(body["code"], "invalid_argument");
+    }
+    let (status, body) = json("Start", true, r#"{"ref":{"id":"Y29udHJvbA=="}}"#).await;
+    assert_eq!(status, 200);
+    assert_eq!(body["phase"], "PHASE_RUNNING");
+    assert_eq!(body["id"], "Y29udHJvbA==");
+    let (_, body) = json("Get", true, r#"{"ref":{"id":"Y29udHJvbA=="}}"#).await;
+    assert_eq!(body["name"], "control");
     assert_eq!(body["phase"], "PHASE_RUNNING");
     let app = runner.app("control").unwrap();
     let lease = runner.acquire(&app).await.unwrap();
-    let (_, body) = json("Stop", true, r#"{"name":"control"}"#).await;
+    let (_, body) = json("Stop", true, r#"{"ref":{"id":"Y29udHJvbA=="}}"#).await;
     assert_eq!(body["code"], "failed_precondition");
     drop(lease);
-    let (_, body) = json("Stop", true, r#"{"name":"control"}"#).await;
+    let (_, body) = json("Stop", true, r#"{"ref":{"id":"Y29udHJvbA=="}}"#).await;
     assert_eq!(body["phase"], "PHASE_STOPPED");
     // Exercise the same generated contract through the binary gRPC codec.
     let request = http::Request::builder()
         .method("POST")
         .version(http::Version::HTTP_2)
-        .uri("/wafl.RunnerService/List")
+        .uri("/wafl.InstanceService/List")
         .header("authorization", "Bearer test-token")
         .header("content-type", "application/grpc")
         .header("te", "trailers")
@@ -325,9 +371,11 @@ async fn management_contract_authentication_and_lifecycle() {
     let body = response.into_body().collect().await.unwrap();
     assert_eq!(body.trailers().unwrap()["grpc-status"], "0");
     let bytes = body.to_bytes();
-    let list = wafl_runner::proto::wafl::ListResponse::decode_from_slice(&bytes[5..]).unwrap();
-    assert_eq!(list.items.len(), 1);
-    assert_eq!(list.items[0].phase, Phase::Stopped);
+    let list =
+        wafl_runner::proto::wafl::InstanceListResponse::decode_from_slice(&bytes[5..]).unwrap();
+    assert_eq!(list.items.len(), 3);
+    assert_eq!(list.items[1].phase, Phase::Stopped);
+    assert_eq!(list.items[1].id, b"control");
     runner.shutdown().await;
     assert!(runner.acquire(&app).await.is_err());
 }

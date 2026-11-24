@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-revision=9b315a2513d9e3e9b30d649ea24a8904054f0796
+revision=208a8580706d853e3f7cbbc831338e9caf84bba3
 tools_dir=${WAFL_TOOLS_DIR:-"$PWD/target/codegen"}
 mkdir -p "$tools_dir"
 tools_dir=$(cd "$tools_dir" && pwd)

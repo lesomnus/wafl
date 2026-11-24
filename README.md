@@ -18,12 +18,12 @@ cargo run --locked -- examples/runner.json
 curl -H 'Host: hello.localhost' http://127.0.0.1:8080/
 curl -H 'Host: bye.localhost' http://127.0.0.1:8080/
 curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
-  -d '{}' http://127.0.0.1:8081/wafl.RunnerService/List
+  -d '{}' http://127.0.0.1:8081/wafl.InstanceService/List
 ```
 
 두 앱 모두 내부 포트 `8080`을 사용하지만 메모리, 환경 변수, 소켓은 각각 독립적입니다. 예제의 유휴 시간은 5초이며 회수 후 다음 호출에서 요청 카운터가 다시 1이 됩니다.
 
-[사용법과 시나리오](docs/runner.md) · [protobuf 관리 계약](proto/wafl/runner.proto)
+[사용법과 시나리오](docs/runner.md) · [Instance 리소스](proto/wafl/instance.proto) · [생성된 관리 계약](generated/proto/wafl/instance_svc.g.proto)
 
 검증:
 

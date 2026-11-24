@@ -145,6 +145,7 @@ impl App {
     pub fn snapshot(&self) -> Instance {
         let state = self.state.lock().unwrap();
         Instance {
+            id: self.spec.name.as_bytes().to_vec(),
             name: self.spec.name.clone(),
             phase: state.phase.into(),
             generation: state.generation,

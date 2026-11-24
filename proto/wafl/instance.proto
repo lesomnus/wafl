@@ -1,0 +1,36 @@
+edition = "2023";
+package wafl;
+
+import "payday.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// The runner-local execution state for a configured app. The opaque resource
+// ID is its UTF-8 app name; it stays stable across starts within the runner.
+// No ORM entity, ID domain or persistence is declared for this computed value.
+message Instance {
+  option (payday.resource) = {filter: ".wafl.InstanceFilter"};
+
+  bytes id = 1;
+  Phase phase = 2;
+  // Monotonic start attempt within this runner process, including failed starts.
+  uint64 generation = 3;
+  uint32 active = 4;
+  string error = 5;
+  string domain = 6;
+  uint32 port = 7;
+  string name = 8;
+}
+
+// Multiple filters are ORed. An empty name matches every configured app.
+message InstanceFilter { string name = 1; }
+
+enum Phase {
+  PHASE_UNSPECIFIED = 0;
+  PHASE_STOPPED = 1;
+  PHASE_STARTING = 2;
+  PHASE_RUNNING = 3;
+  PHASE_FAILED = 4;
+  PHASE_STOPPING = 5;
+}
