@@ -7,6 +7,7 @@ pub mod proxy;
 pub mod runner;
 mod runtime;
 mod store;
+mod telemetry;
 
 #[path = "../generated/messages/mod.rs"]
 #[rustfmt::skip]

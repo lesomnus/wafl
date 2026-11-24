@@ -1,4 +1,4 @@
-use crate::{config::Config, control, proxy, runner::Runner};
+use crate::{config::Config, control, proxy, runner::Runner, telemetry::Telemetry};
 use anyhow::{Result, anyhow};
 use paydirt::spin::{Lease, Placement, Workers};
 use std::time::Duration;
@@ -15,11 +15,6 @@ pub async fn serve(config: Config) -> Result<()> {
     )
     .await
     .map_err(|e| anyhow!("{e}"))?;
-    eprintln!(
-        "wafl-runner ingress={} control={}",
-        ingress.local_addr()?,
-        config.control
-    );
     let mut workers = Workers::default();
     let reaper = runner.clone();
     workers.add("wafl.reap", Placement::Everywhere, move |stop| {
@@ -31,6 +26,15 @@ pub async fn serve(config: Config) -> Result<()> {
             }
         }
     }).map_err(|e| anyhow!(e))?;
+    let telemetry = match config.metrics {
+        Some(metrics) => Some(Telemetry::start(metrics, runner.observe()).await?),
+        None => None,
+    };
+    eprintln!(
+        "wafl-runner ingress={} control={}",
+        ingress.local_addr()?,
+        config.control
+    );
     let traffic = runner.clone();
     let draining = runner.clone();
     let result = workers
@@ -54,6 +58,9 @@ pub async fn serve(config: Config) -> Result<()> {
         )
         .await;
     runner.shutdown().await;
+    if let Some(telemetry) = telemetry {
+        telemetry.shutdown().await;
+    }
     result.map_err(|e| anyhow!(e))
 }
 
