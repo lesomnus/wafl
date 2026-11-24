@@ -77,7 +77,7 @@ wafl instance erase @hello
 
 `active`는 기동 대기와 HTTP/gRPC 응답 body·trailers 전달이 끝날 때까지의 요청을 포함합니다. Add/Start가 실행 준비를 기다리는 임시 lease도 포함하므로 순수 HTTP 요청 수와 완전히 같지는 않습니다. 공개 전 Add의 lease는 Instance별 gauge에 나타나지 않습니다. 긴 gRPC 스트림은 활성 상태로 남고, 여러 요청이 샘플 사이에 완료되면 이 gauge만으로 처리량을 구할 수 없습니다.
 
-CPU와 RSS는 `/proc/self/stat`에서 읽습니다. CPU 시간은 백분율이나 할당량이 아니며, 모든 WASM·컴파일·프록시·메트릭 전송 비용을 포함합니다. RSS도 게스트별 linear memory나 Pod/cgroup 메모리 사용량과 다릅니다. 다른 OS이거나 해당 통계를 읽지 못하면 두 process 메트릭을 생략합니다. 0으로 대체하지 않습니다. 인스턴스별 CPU 계측, cgroup 용량·제한, 메모리 예약·실사용량과 요청 지연 histogram은 후속 범위입니다.
+CPU와 RSS는 `/proc/self/stat`에서 읽습니다. CPU 시간은 백분율이나 할당량이 아니며, 모든 WASM·컴파일·프록시·메트릭 전송 비용을 포함합니다. RSS도 게스트별 linear memory나 Pod/cgroup 메모리 사용량과 다릅니다. 다른 OS이거나 해당 통계를 읽지 못하면 두 process 메트릭을 생략합니다. 0으로 대체하지 않습니다. 인스턴스별 CPU 계측, cgroup 용량·제한, 게스트 실제 메모리 사용량과 요청 지연 histogram은 후속 범위입니다. 선언된 메모리 예약 합계는 아래 새 gauge로 제공합니다.
 
 각 export의 resource에는 `service.name=wafl-runner`, 빌드의 `service.version`, 서버 시작마다 새로 생성하는 `service.instance.id`가 있습니다. 이 ID는 메트릭 세션 식별자이며 Instance entity ID나 영속 runner ID가 아닙니다. runner 재시작 후의 시계열을 이전 실행과 구분할 수 있습니다. 계측 scope는 `wafl.runner`입니다.
 
@@ -104,3 +104,20 @@ bash scripts/test.sh --test cli metrics::
 ```
 
 실제 `wafl serve runner` 프로세스의 HTTP POST를 로컬 테스트 수집기가 받아 OTLP protobuf로 디코딩합니다. 사용자 지정 URL 경로, resource/session, Instance 생성·중지·삭제, Linux CPU/RSS, 종료 시 마지막 export, 느린 수집기의 타임아웃과 복구를 검증합니다.
+
+## 수락·기동·컴파일 관측
+
+`service.instance.id`는 `Runner.id`/`Instance.session`의 UUID 문자열입니다. 프로세스 재시작 시 새 값이 되므로 runner 조회와 메트릭을 같은 세션으로 연결할 수 있습니다. pending Add는 Get/List에서 조회 가능하지만 `wafl.runner.instances`에서는 계속 완료된 항목만 세고 pending gauge로 별도 집계합니다.
+
+| 이름 | 종류·단위 | 의미 |
+| --- | --- | --- |
+| `wafl.runner.startups` | Gauge, `{instance}` | 실행을 시작해 listen을 기다리는 시도 |
+| `wafl.runner.executions` | Gauge, `{instance}` | 대기/기동/실행의 예약 수 |
+| `wafl.runner.memory.reserved` | Gauge, `By` | 해당 예약의 Manifest memory_bytes 합계. RSS 아님 |
+| `wafl.runner.requests` | Gauge, `{lease}` | runner 전체 실행 lease |
+| `wafl.runner.waiting` | Gauge, `{instance}` | startup 슬롯 대기 시도 |
+| `wafl.runner.compilations` | Gauge, `{component}` | 사용 중/미참조/컴파일 중인 코드 cache entry |
+| `wafl.runner.compilation.requests` | Counter, `{operation}` | `result=compiled/reused`로 실제 컴파일·공유 횟수. 실패한 컴파일도 포함 |
+| `wafl.runner.accepting` | Gauge, `1` | 새 실행 수락 가능 시 1, 프로세스 종료 시 0 |
+
+설정 한도와 현재 usage는 `RunnerService.Get`으로도 조회합니다. 이 API는 배치 제어평면이나 metric 수집기를 구현하지 않으며, 제어평면의 메트릭 소비 방식은 후속으로 정합니다.
