@@ -257,7 +257,7 @@ async fn startup_failures_and_cpu_loops_do_not_block_other_apps() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-async fn management_contract_authentication_and_lifecycle() {
+async fn management_contract_without_authentication_and_lifecycle() {
     use base64::{Engine, engine::general_purpose::STANDARD};
     use buffa::Message;
     use http_body_util::Full;
@@ -283,30 +283,14 @@ async fn management_contract_authentication_and_lifecycle() {
         apps.push(value);
     }
     let runner = Runner::new(&config(apps)).await.unwrap();
-    let credentials = wafl_runner::control::tokens(
-        r#"{
-        "test-a":"00000000-0000-8000-8001-000000000001",
-        "test-b":"00000000-0000-8000-8001-000000000002"
-    }"#,
-    )
-    .unwrap();
-    let service = connectrpc::ConnectRpcService::new(wafl_runner::control::router(
-        runner.clone(),
-        credentials,
-    ));
-    let call = |method: &str, token: Option<&str>, body: serde_json::Value| {
+    let service = connectrpc::ConnectRpcService::new(wafl_runner::control::router(runner.clone()));
+    let call = |method: &str, body: serde_json::Value| {
         let service = service.clone();
-        let mut request = http::Request::builder()
+        let request = http::Request::builder()
             .method("POST")
             .uri(format!("/wafl.InstanceService/{method}"))
             .header("content-type", "application/json")
             .header("connect-protocol-version", "1")
-            // Untrusted scope headers must not override the token's tenant.
-            .header("payday-tenant", "00000000-0000-8000-8001-000000000002");
-        if let Some(token) = token {
-            request = request.header("authorization", token);
-        }
-        let request = request
             .body(Full::new(Bytes::from(serde_json::to_vec(&body).unwrap())))
             .unwrap();
         async move {
@@ -319,98 +303,94 @@ async fn management_contract_authentication_and_lifecycle() {
         }
     };
     let reference = |number| json!({"id":STANDARD.encode(fixed(7,number).0)});
-    let a = Some("Bearer test-a");
-    let b = Some("Bearer test-b");
-    for method in ["Get", "List", "Start", "Stop"] {
-        for token in [None, Some("Bearer unknown")] {
-            let (status, body) = call(method, token, json!({})).await;
-            assert_eq!(status, 401);
-            assert_eq!(body["code"], "unauthenticated");
-        }
-    }
     for input in [
         json!({}),
         json!({"ref":{"id":"/w=="}}),
         json!({"ref":{"id":STANDARD.encode(fixed(1,1).0)}}),
     ] {
-        assert_eq!(call("Get", a, input).await.1["code"], "invalid_argument");
+        assert_eq!(call("Get", input).await.1["code"], "invalid_argument");
     }
     for method in ["Get", "Start", "Stop"] {
-        let foreign = call(method, a, json!({"ref":reference(2)})).await;
-        let absent = call(method, a, json!({"ref":reference(99)})).await;
-        assert_eq!(foreign.0, 404);
-        assert_eq!(foreign, absent);
-        assert_eq!(call(method, b, json!({"ref":reference(3)})).await.0, 404);
+        let (status, body) = call(method, json!({"ref":reference(99)})).await;
+        assert_eq!(status, 404);
+        assert_eq!(body["code"], "not_found");
     }
-    assert_eq!(runner.app("beta").unwrap().snapshot().generation, 0);
-    assert_eq!(runner.app("control").unwrap().snapshot().generation, 0);
+    // Tenant remains entity metadata; no caller identity limits these methods.
+    for (number, owner) in [(2, 2), (3, 1)] {
+        let (status, body) = call("Get", json!({"ref":reference(number)})).await;
+        assert_eq!(status, 200);
+        assert_eq!(body["tenant"]["id"], STANDARD.encode(fixed(1, owner).0));
+    }
+    assert_eq!(
+        call("Start", json!({"ref":reference(2)})).await.1["phase"],
+        "PHASE_RUNNING"
+    );
+    assert_eq!(
+        call("Stop", json!({"ref":reference(2)})).await.1["phase"],
+        "PHASE_STOPPED"
+    );
 
-    let (status, page) = call("List", a, json!({"size":1})).await;
+    let (status, page) = call("List", json!({"size":1})).await;
     assert_eq!(status, 200);
     assert_eq!(page["items"].as_array().unwrap().len(), 1);
     assert_eq!(page["items"][0]["name"], "alpha");
     let cursor = page["next"].as_str().unwrap();
-    let (_, page) = call("List", a, json!({"size":2,"after":cursor})).await;
+    let (_, page) = call("List", json!({"size":2,"after":cursor})).await;
     assert_eq!(page["items"].as_array().unwrap().len(), 2);
-    assert_eq!(page["items"][0]["name"], "control");
+    assert_eq!(page["items"][0]["name"], "beta");
+    assert_eq!(page["items"][1]["name"], "control");
+    let (_, page) = call("List", json!({"after":page["next"]})).await;
+    assert_eq!(page["items"].as_array().unwrap().len(), 2);
+    assert_eq!(page["items"][0]["name"], "omega");
     assert_eq!(page["items"][1]["name"], "zulu");
     assert!(page["next"].as_str().unwrap_or_default().is_empty());
-    assert_eq!(call("List", b, json!({"after":cursor})).await.0, 400);
     assert_eq!(
-        call("List", a, json!({"after":cursor,"reverse":true}))
-            .await
-            .0,
+        call("List", json!({"after":cursor,"reverse":true})).await.0,
         400
     );
-    let (_, page) = call("List", a, json!({"size":1,"reverse":true})).await;
+    let (_, page) = call("List", json!({"size":1,"reverse":true})).await;
     assert_eq!(page["items"][0]["name"], "zulu");
-    let (_, page) = call("List", a, json!({"reverse":true,"after":page["next"]})).await;
-    assert_eq!(page["items"][0]["name"], "control");
-    assert_eq!(page["items"][1]["name"], "alpha");
+    let (_, page) = call("List", json!({"reverse":true,"after":page["next"]})).await;
+    assert_eq!(page["items"].as_array().unwrap().len(), 4);
+    assert_eq!(page["items"][0]["name"], "omega");
+    assert_eq!(page["items"][3]["name"], "alpha");
     let (_, page) = call(
         "List",
-        a,
         json!({"filters":[{"ref":reference(1)},{"ref":reference(2)}]}),
     )
     .await;
-    assert_eq!(page["items"].as_array().unwrap().len(), 1);
-    assert_eq!(page["items"][0]["name"], "alpha");
-    let (_, page) = call("List", a, json!({"filters":[{"ref":reference(2)}]})).await;
-    assert!(
-        page["items"]
-            .as_array()
-            .is_none_or(|items| items.is_empty())
-    );
-    let (_, page) = call("List", b, json!({})).await;
     assert_eq!(page["items"].as_array().unwrap().len(), 2);
+    assert_eq!(page["items"][0]["name"], "alpha");
+    assert_eq!(page["items"][1]["name"], "beta");
+    let (_, page) = call("List", json!({"filters":[{"ref":reference(2)}]})).await;
+    assert_eq!(page["items"].as_array().unwrap().len(), 1);
     assert_eq!(page["items"][0]["name"], "beta");
     for input in [
         json!({"filters":[{}]}),
         json!({"filters":vec![json!({"ref":reference(1)});65]}),
         json!({"after":"invalid"}),
     ] {
-        assert_eq!(call("List", a, input).await.0, 400);
+        assert_eq!(call("List", input).await.0, 400);
     }
     for size in [-1, 0, 1001] {
         assert_eq!(
-            call("List", a, json!({"size":size})).await.1["items"]
+            call("List", json!({"size":size})).await.1["items"]
                 .as_array()
                 .unwrap()
                 .len(),
-            3
+            5
         );
     }
-    let (_, body) = call("Get", a, json!({"ref":reference(3),"select":{"name":true}})).await;
+    let (_, body) = call("Get", json!({"ref":reference(3),"select":{"name":true}})).await;
     assert_eq!(body["id"], reference(3)["id"]);
     assert_eq!(body["name"], "control");
     assert!(body["tenant"].is_null());
     assert!(body["domain"].as_str().unwrap_or_default().is_empty());
-    let (_, body) = call("Get", a, json!({"ref":reference(3),"select":{"tenant":{}}})).await;
+    let (_, body) = call("Get", json!({"ref":reference(3),"select":{"tenant":{}}})).await;
     assert_eq!(body["tenant"]["id"], STANDARD.encode(fixed(1, 1).0));
     assert_eq!(
         call(
             "Get",
-            a,
             json!({"ref":reference(3),"select":{"tenant":{"all":true}}})
         )
         .await
@@ -418,26 +398,25 @@ async fn management_contract_authentication_and_lifecycle() {
         501
     );
 
-    let (status, body) = call("Start", a, json!({"ref":reference(3)})).await;
+    let (status, body) = call("Start", json!({"ref":reference(3)})).await;
     assert_eq!(status, 200);
     assert_eq!(body["phase"], "PHASE_RUNNING");
     assert_eq!(body["id"], reference(3)["id"]);
     let app = runner.app("control").unwrap();
     let lease = runner.acquire(&app).await.unwrap();
     assert_eq!(
-        call("Stop", a, json!({"ref":reference(3)})).await.1["code"],
+        call("Stop", json!({"ref":reference(3)})).await.1["code"],
         "failed_precondition"
     );
     drop(lease);
     assert_eq!(
-        call("Stop", a, json!({"ref":reference(3)})).await.1["phase"],
+        call("Stop", json!({"ref":reference(3)})).await.1["phase"],
         "PHASE_STOPPED"
     );
     let request = http::Request::builder()
         .method("POST")
         .version(http::Version::HTTP_2)
         .uri("/wafl.InstanceService/List")
-        .header("authorization", "Bearer test-a")
         .header("content-type", "application/grpc")
         .header("te", "trailers")
         .body(Full::new(Bytes::from_static(&[0, 0, 0, 0, 0])))
@@ -449,14 +428,11 @@ async fn management_contract_authentication_and_lifecycle() {
     let bytes = body.to_bytes();
     let list =
         wafl_runner::proto::wafl::InstanceListResponse::decode_from_slice(&bytes[5..]).unwrap();
-    assert_eq!(list.items.len(), 3);
-    assert_eq!(list.items[1].id, fixed(7, 3).0);
-    assert!(
-        list.items
-            .iter()
-            .all(|item| item.tenant.id == fixed(1, 1).0)
-    );
-    assert_eq!(list.items[1].phase, Phase::Stopped);
+    assert_eq!(list.items.len(), 5);
+    assert_eq!(list.items[1].tenant.id, fixed(1, 2).0);
+    assert_eq!(list.items[2].id, fixed(7, 3).0);
+    assert_eq!(list.items[2].tenant.id, fixed(1, 1).0);
+    assert_eq!(list.items[2].phase, Phase::Stopped);
     runner.shutdown().await;
     assert!(runner.acquire(&app).await.is_err());
 }
@@ -490,11 +466,6 @@ fn manifest_resolves_artifacts_and_rejects_ambiguous_configuration() {
     let mut bad = parsed.clone();
     bad.apps[0].tenant.0[9] = 7;
     assert!(bad.validate().is_err());
-    assert!(wafl_runner::control::tokens("{}").is_err());
-    assert!(
-        wafl_runner::control::tokens(r#"{"secret":"00000000-0000-8000-8007-000000000001"}"#)
-            .is_err()
-    );
     let mut bad = parsed;
     bad.apps[0].domain = "app.test:80".into();
     assert!(bad.validate().is_err());
