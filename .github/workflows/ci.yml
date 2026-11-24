@@ -8,6 +8,16 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -17,8 +27,10 @@ jobs:
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
-      - run: bash scripts/test.sh
-      - run: cargo clippy --locked --all-targets -- -D warnings
+      - run: bash scripts/test.sh --tests -- --include-ignored
+        env:
+          WAFL_TEST_DATABASE_URL: redis://localhost:6379/0
+      - run: cargo clippy --locked --workspace --all-targets -- -D warnings
   generated:
     runs-on: ubuntu-latest
     steps:

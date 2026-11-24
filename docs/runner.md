@@ -110,7 +110,7 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | `memory_bytes` | 인스턴스의 단일 linear memory 상한. 기본 64 MiB, 최소 1 MiB |
 | `max_active` | 시작 대기 요청까지 포함한 인스턴스별 동시 요청 수. 기본 128 |
 | `env` | 게스트 환경 변수. 호스트 환경은 상속하지 않음. `PORT` 덮어쓰기 불가 |
-| `bindings` | 게스트 loopback TCP 포트를 runner가 접근 가능한 IPv4 주소로 매핑 |
+| `bindings` | 선택적인 IPv4 loopback TCP 포트 매핑. 일반 발신 연결에는 필요 없음 |
 
 수치 필드의 0은 기본값을 선택합니다. runner는 생성 중인 항목을 포함해 최대 128개 Instance, 동시에 최대 4개 Add를 받습니다. 초과 시 `RESOURCE_EXHAUSTED`입니다.
 
@@ -173,7 +173,9 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 ### 인스턴스별 DB 연결
 
-Manifest에 `"bindings": [{"port": 5432, "target": "10.0.0.20:5432"}]`를 넣으면 앱의 `127.0.0.1:5432` 연결을 해당 주소로 매핑합니다. 다른 Instance는 같은 게스트 포트를 다른 DB에 연결할 수 있습니다. 로컬에서는 동일한 포트에 개발 DB를 실행하면 됩니다. runner는 TCP 연결만 제공하며 DB 계정·스키마·백업·TLS·연결 풀을 관리하지 않습니다.
+플랫폼이 DB를 준비하고 `manifest.env.DATABASE_URL`에 connection string을 넣으면 앱이 일반 DB 클라이언트로 직접 연결합니다. runner는 DNS 조회와 IPv4·IPv6 발신 TCP를 제공하므로 `bindings`가 필요하지 않습니다. DB 계정·스키마·백업은 플랫폼, DB 프로토콜·TLS·연결 풀은 앱의 클라이언트가 담당합니다. 현재 runner는 DB를 생성하지 않습니다.
+
+고정된 localhost 포트가 필요한 앱은 기존 `"bindings": [{"port": 5432, "target": "10.0.0.20:5432"}]`를 계속 사용할 수 있습니다. 해당 IPv4 loopback 연결만 매핑하고 나머지 TCP 연결은 원래 목적지로 연결합니다. 이 매핑은 목적지의 접근 권한을 제한하는 allowlist가 아닙니다. 실제 Redis 클라이언트 예제와 네트워크 범위는 [외부 연결과 DB 튜토리얼](network.md)을 참고합니다.
 
 ### Kubernetes gateway와 연동
 
@@ -181,7 +183,7 @@ Traefik/Envoy 등의 upstream을 runner의 `listen`으로 연결하고, 플랫�
 
 ## 실행 제약과 개발
 
-게스트는 IPv4 `0.0.0.0` 또는 loopback에 bind하며 실제 호스트 포트는 인스턴스마다 다릅니다. WASI 호출 수준의 소켓 가상화이며 OS network namespace를 생성하지는 않습니다. `/data` 이외의 파일시스템 preopen, 호스트 환경 상속, DNS, UDP와 선언하지 않은 outbound 연결은 제공하지 않습니다.
+게스트 서버는 IPv4 `0.0.0.0` 또는 loopback의 선언된 포트에 bind하며 실제 호스트 포트는 인스턴스마다 다릅니다. 발신 TCP는 IPv4·IPv6와 DNS를 지원하고 runner 호스트·Pod의 네트워크 접근 범위를 따릅니다. 클라이언트가 wildcard/loopback의 포트 0에 명시적으로 bind할 수 있지만, 이를 추가 listen 소켓으로 사용할 수는 없습니다. WASI 호출 수준의 수신 포트 가상화이며 OS network namespace나 인스턴스별 발신 격리를 생성하지 않습니다. `/data` 이외의 파일시스템 preopen, 호스트 환경 상속과 UDP는 제공하지 않습니다.
 
 WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout/stderr를 최대 1 MiB·4,096개 레코드로 보관하고 `Tail`로 조회합니다. 최근 stderr 최대 16 KiB는 게스트 실패 진단에도 사용합니다. 로그 구독은 유휴 회수를 막지 않으며 Stop/Start를 가로질러 유지됩니다. 자세한 cursor·보존 계약은 [로그 사용법](cli.md#로그)에 있습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 HTTP 연결을 최대 5초 drain한 뒤 나머지 실행을 종료합니다.
 
@@ -193,7 +195,7 @@ WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 
 bash scripts/codegen.sh
 bash scripts/codegen.sh --check
 bash scripts/test.sh
-cargo clippy --locked --all-targets -- -D warnings
+cargo clippy --locked --workspace --all-targets -- -D warnings
 ```
 
 `generated/`를 직접 수정하지 않습니다. 코드 생성에는 Rust, Go와 Buf가 필요하고 일반 빌드는 포함된 생성 파일을 사용합니다. 테스트 스크립트는 WASM fixture를 먼저 빌드한 뒤 실제 runner를 검증합니다.
