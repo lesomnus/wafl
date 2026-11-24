@@ -292,15 +292,37 @@
           }
         ],
         "size": 100
-      },
-      "trail": {
-        "off": {
-          "why": "Ephemeral execution state served by the runner layer; no persistent writes"
-        }
       }
     },
-    "fields": {},
+    "fields": {
+      "active": {
+        "stamped": true
+      },
+      "error": {
+        "stamped": true
+      },
+      "generation": {
+        "stamped": true
+      },
+      "phase": {
+        "stamped": true
+      }
+    },
     "methods": {
+      "Add": {
+        "client_stream": false,
+        "input": ".wafl.InstanceAddRequest",
+        "output": ".wafl.Instance",
+        "policy": null,
+        "server_stream": false
+      },
+      "Erase": {
+        "client_stream": false,
+        "input": ".wafl.InstanceRef",
+        "output": ".wafl.InstanceEraseResponse",
+        "policy": null,
+        "server_stream": false
+      },
       "Get": {
         "client_stream": false,
         "input": ".wafl.InstanceGetRequest",

@@ -140,10 +140,8 @@
         f10 -> BigInt,
         /// wafl.Instance.error
         f11 -> Text,
-        /// wafl.Instance.domain
-        f12 -> Text,
-        /// wafl.Instance.port
-        f16 -> BigInt,
+        /// wafl.Instance.manifest
+        f17 -> Nullable<Text>,
     }
 }
 ::diesel::table! {

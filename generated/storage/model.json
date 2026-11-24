@@ -509,7 +509,8 @@
           "number": 1,
           "kind": "UUID",
           "immutable": true,
-          "unique": true
+          "unique": true,
+          "default": ""
         },
         {
           "name": "tenant",
@@ -550,16 +551,12 @@
           "kind": "STRING"
         },
         {
-          "name": "domain",
-          "json": "domain",
-          "number": 12,
-          "kind": "STRING"
-        },
-        {
-          "name": "port",
-          "json": "port",
-          "number": 16,
-          "kind": "UINT32"
+          "name": "manifest",
+          "json": "manifest",
+          "number": 17,
+          "kind": "JSON",
+          "nullable": true,
+          "immutable": true
         }
       ],
       "indexes": []

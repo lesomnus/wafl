@@ -1,5 +1,5 @@
 //! WASI socket translation stays in the host; guests use standard WASI APIs.
-use crate::config::App;
+use crate::config::Spec;
 use anyhow::{Context, Result};
 use std::{
     collections::HashMap,
@@ -16,7 +16,7 @@ use wasmtime::{
     component::{Component, Linker, Resource, ResourceTable, ResourceType},
 };
 use wasmtime_wasi::{
-    WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
+    FsPerms, WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
     p2::{
         self, SocketResult, TcpSocket,
         bindings::{
@@ -240,7 +240,8 @@ impl Runtime {
     pub async fn execute(
         &self,
         component: &Component,
-        app: &App,
+        app: &Spec,
+        data: &std::path::Path,
         ready: oneshot::Sender<SocketAddr>,
     ) -> Result<()> {
         let bindings: HashMap<_, _> = app.bindings.iter().map(|b| (b.port, b.target)).collect();
@@ -248,12 +249,13 @@ impl Runtime {
         let mut wasi = WasiCtxBuilder::new();
         let stderr = p2::pipe::MemoryOutputPipe::new(16 * 1024);
         wasi.stderr(stderr.clone());
-        wasi.arg(&app.name)
+        wasi.preopened_dir(data, "/data", FsPerms::ReadOnly)?;
+        wasi.arg("main.wasm")
             .env("PORT", app.port.to_string())
             .allow_tcp(true)
             .allow_udp(false)
             .allow_ip_name_lookup(false);
-        for (key, value) in &app.env {
+        for (key, value) in &app.manifest.env {
             wasi.env(key, value);
         }
         wasi.socket_addr_check(move |addr, reason| {

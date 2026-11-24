@@ -1,7 +1,7 @@
 use crate::{
     config::INSTANCE_DOMAIN,
     proto::wafl::*,
-    runner::{App, Runner},
+    runner::{Execution, Runner},
     server::{self, Server},
     services::wafl::{InstanceService, InstanceServiceLayer, InstanceServiceOverlay},
 };
@@ -38,7 +38,7 @@ fn id(reference: &InstanceRef) -> Result<&[u8], ConnectError> {
     }
 }
 impl Instances {
-    fn app(&self, reference: &InstanceRef) -> Result<Arc<App>, ConnectError> {
+    fn app(&self, reference: &InstanceRef) -> Result<Arc<Execution>, ConnectError> {
         self.0
             .instance(id(reference)?)
             .ok_or_else(|| ConnectError::not_found("instance not found"))
@@ -54,6 +54,26 @@ struct Cursor {
 
 #[allow(refining_impl_trait)]
 impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
+    async fn add(
+        &self,
+        _: &N,
+        _: RequestContext,
+        req: ServiceRequest<'_, InstanceAddRequest>,
+    ) -> ServiceResult<Instance> {
+        Response::ok(self.0.add(req.to_owned_message()).await?)
+    }
+    async fn erase(
+        &self,
+        _: &N,
+        _: RequestContext,
+        req: ServiceRequest<'_, InstanceRef>,
+    ) -> ServiceResult<InstanceEraseResponse> {
+        let req = req.to_owned_message();
+        Response::ok(InstanceEraseResponse {
+            erased: Some(self.0.erase(id(&req)?).await?),
+            ..Default::default()
+        })
+    }
     async fn get(
         &self,
         _: &N,
@@ -95,11 +115,8 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
                 if !select.error.unwrap_or(false) {
                     value.error.clear();
                 }
-                if !select.domain.unwrap_or(false) {
-                    value.domain.clear();
-                }
-                if !select.port.unwrap_or(false) {
-                    value.port = 0;
+                if !select.manifest.unwrap_or(false) {
+                    value.manifest = Default::default();
                 }
             }
         }
@@ -147,14 +164,16 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
             let cursor: Cursor =
                 serde_json::from_slice(&URL_SAFE_NO_PAD.decode(&req.after).map_err(|_| invalid())?)
                     .map_err(|_| invalid())?;
-            if cursor.reverse != req.reverse {
+            if cursor.reverse != req.reverse || !paydirt::has_domain(&cursor.id, INSTANCE_DOMAIN) {
                 return Err(invalid());
             }
-            let offset = items
-                .iter()
-                .position(|item| item.id == cursor.id)
-                .ok_or_else(invalid)?;
-            items.drain(..=offset);
+            items.retain(|item| {
+                if req.reverse {
+                    item.id < cursor.id
+                } else {
+                    item.id > cursor.id
+                }
+            });
         }
         let next = if items.len() > size {
             URL_SAFE_NO_PAD.encode(

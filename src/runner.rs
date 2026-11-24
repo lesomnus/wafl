@@ -1,11 +1,13 @@
 use crate::{
-    config::{self, Config},
-    proto::wafl::{Instance, Phase, Tenant},
+    bundle::Bundle,
+    config::{Config, Spec},
+    proto::wafl::{Instance, InstanceAddRequest, Phase, Tenant},
     runtime::Runtime,
 };
 use anyhow::{Context, Result, anyhow, bail, ensure};
+use connectrpc::ConnectError;
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     net::SocketAddr,
     sync::{
         Arc, Mutex,
@@ -14,7 +16,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::{
-    sync::{oneshot, watch},
+    sync::{Notify, Semaphore, oneshot, watch},
     task::JoinHandle,
 };
 use wasmtime::component::Component;
@@ -22,12 +24,21 @@ use wasmtime::component::Component;
 #[derive(Clone)]
 pub struct Runner(Arc<Registry>);
 struct Registry {
-    apps: BTreeMap<String, Arc<App>>,
-    domains: BTreeMap<String, String>,
+    entries: Mutex<Entries>,
+    runtime: Arc<Runtime>,
+    client: reqwest::Client,
+    slots: Arc<Semaphore>,
     closed: Arc<AtomicBool>,
+    stopped: Notify,
 }
-pub struct App {
-    pub spec: config::App,
+#[derive(Default)]
+struct Entries {
+    instances: BTreeMap<[u8; 16], Arc<Execution>>,
+    pending: BTreeSet<[u8; 16]>,
+}
+pub struct Execution {
+    pub spec: Spec,
+    bundle: Bundle,
     runtime: Arc<Runtime>,
     component: Component,
     state: Mutex<State>,
@@ -35,6 +46,7 @@ pub struct App {
     closed: Arc<AtomicBool>,
 }
 struct State {
+    retired: bool,
     phase: Phase,
     generation: u64,
     active: u32,
@@ -46,43 +58,104 @@ struct State {
 
 /// A request owns this lease through the final response frame or cancellation.
 pub struct Lease {
-    app: Arc<App>,
+    app: Arc<Execution>,
     generation: u64,
     pub address: SocketAddr,
+}
+
+// Releases an unpublished instance and its ID on error or RPC cancellation.
+struct Addition {
+    runner: Runner,
+    id: [u8; 16],
+    execution: Option<Arc<Execution>>,
+    committed: bool,
+}
+impl Drop for Addition {
+    fn drop(&mut self) {
+        if !self.committed {
+            self.runner
+                .0
+                .entries
+                .lock()
+                .unwrap()
+                .pending
+                .remove(&self.id);
+            if let Some(execution) = &self.execution {
+                let _ = execution.retire(true);
+            }
+        }
+    }
 }
 
 impl Runner {
     pub async fn new(config: &Config) -> Result<Self> {
         config.validate()?;
-        let runtime = Arc::new(Runtime::new()?);
-        let mut components = BTreeMap::new();
-        let mut apps = BTreeMap::new();
-        let mut domains = BTreeMap::new();
-        let closed = Arc::new(AtomicBool::new(false));
-        for spec in &config.apps {
-            let path = spec
-                .artifact
-                .canonicalize()
-                .with_context(|| format!("artifact for {}", spec.name))?;
-            let component = if let Some(component) = components.get(&path) {
-                Component::clone(component)
-            } else {
-                let engine = runtime.engine.clone();
-                let file = path.clone();
-                let component =
-                    tokio::task::spawn_blocking(move || Component::from_file(&engine, file))
-                        .await??;
-                components.insert(path, component.clone());
-                component
-            };
+        Ok(Self(Arc::new(Registry {
+            entries: Mutex::new(Entries::default()),
+            runtime: Arc::new(Runtime::new()?),
+            client: reqwest::Client::builder()
+                .connect_timeout(Duration::from_secs(5))
+                .timeout(Duration::from_secs(30))
+                .redirect(reqwest::redirect::Policy::limited(5))
+                .referer(false)
+                .build()?,
+            slots: Arc::new(Semaphore::new(4)),
+            closed: Arc::new(AtomicBool::new(false)),
+            stopped: Notify::new(),
+        })))
+    }
+
+    pub async fn add(&self, req: InstanceAddRequest) -> Result<Instance, ConnectError> {
+        let spec = Spec::parse(req)?;
+        let slot = Arc::new(self.0.slots.clone().try_acquire_owned().map_err(|_| {
+            ConnectError::resource_exhausted("at most 4 concurrent Add operations")
+        })?);
+        let mut addition = {
+            let mut entries = self.0.entries.lock().unwrap();
+            if self.0.closed.load(Ordering::Acquire) {
+                return Err(ConnectError::unavailable("runner is shutting down"));
+            }
+            if entries.instances.contains_key(&spec.id) || entries.pending.contains(&spec.id) {
+                return Err(ConnectError::already_exists(
+                    "instance ID already exists or is being added",
+                ));
+            }
+            if entries.instances.len() + entries.pending.len() >= 128 {
+                return Err(ConnectError::resource_exhausted(
+                    "runner instance limit is 128",
+                ));
+            }
+            entries.pending.insert(spec.id);
+            Addition {
+                runner: self.clone(),
+                id: spec.id,
+                execution: None,
+                committed: false,
+            }
+        };
+        let create = async {
+            let bundle = Bundle::load(&self.0.client, spec.url.clone(), slot.clone()).await?;
+            let engine = self.0.runtime.engine.clone();
+            let compilation_slot = slot.clone();
+            let (bundle, component) = tokio::task::spawn_blocking(move || {
+                let _slot = compilation_slot;
+                Component::from_file(&engine, bundle.main()).map(|component| (bundle, component))
+            })
+            .await
+            .map_err(|_| ConnectError::internal("WASM compilation task failed"))?
+            .map_err(|e| {
+                ConnectError::invalid_argument(format!("invalid main.wasm component: {e}"))
+            })?;
             let (changed, _) = watch::channel(());
-            let app = Arc::new(App {
-                spec: spec.clone(),
-                runtime: runtime.clone(),
-                closed: closed.clone(),
+            let execution = Arc::new(Execution {
+                spec,
+                bundle,
                 component,
+                runtime: self.0.runtime.clone(),
                 changed,
+                closed: self.0.closed.clone(),
                 state: Mutex::new(State {
+                    retired: false,
                     phase: Phase::Stopped,
                     generation: 0,
                     active: 0,
@@ -92,69 +165,123 @@ impl Runner {
                     task: None,
                 }),
             });
-            domains.insert(spec.domain.clone(), spec.name.clone());
-            apps.insert(spec.name.clone(), app);
+            addition.execution = Some(execution.clone());
+            let lease = self
+                .acquire(&execution)
+                .await
+                .map_err(|e| ConnectError::unavailable(format!("instance startup: {e:#}")))?;
+            drop(lease);
+            {
+                let mut entries = self.0.entries.lock().unwrap();
+                if self.0.closed.load(Ordering::Acquire) {
+                    return Err(ConnectError::unavailable("runner is shutting down"));
+                }
+                entries.pending.remove(&addition.id);
+                entries.instances.insert(addition.id, execution.clone());
+                addition.committed = true;
+            }
+            Ok(execution.snapshot())
+        };
+        tokio::select! {
+            result = create => result,
+            _ = self.closing() => Err(ConnectError::unavailable("runner is shutting down")),
         }
-        Ok(Self(Arc::new(Registry {
-            apps,
-            domains,
-            closed,
-        })))
     }
 
-    pub fn app(&self, name: &str) -> Option<Arc<App>> {
-        self.0.apps.get(name).cloned()
+    async fn closing(&self) {
+        let notified = self.0.stopped.notified();
+        if self.0.closed.load(Ordering::Acquire) {
+            return;
+        }
+        notified.await;
     }
-    pub fn instance(&self, id: &[u8]) -> Option<Arc<App>> {
-        self.0
-            .apps
-            .values()
-            .find(|app| app.spec.id.0 == id)
-            .cloned()
-    }
-    pub fn domain(&self, domain: &str) -> Option<Arc<App>> {
-        self.0.domains.get(domain).and_then(|name| self.app(name))
+    pub fn instance(&self, id: &[u8]) -> Option<Arc<Execution>> {
+        let id: [u8; 16] = id.try_into().ok()?;
+        self.0.entries.lock().unwrap().instances.get(&id).cloned()
     }
     pub fn list(&self) -> Vec<Instance> {
-        self.0.apps.values().map(|app| app.snapshot()).collect()
+        self.executions()
+            .iter()
+            .map(|instance| instance.snapshot())
+            .collect()
     }
-    pub async fn acquire(&self, app: &Arc<App>) -> Result<Lease> {
+    fn executions(&self) -> Vec<Arc<Execution>> {
+        self.0
+            .entries
+            .lock()
+            .unwrap()
+            .instances
+            .values()
+            .cloned()
+            .collect()
+    }
+    pub async fn erase(&self, id: &[u8]) -> Result<bool, ConnectError> {
+        let id: [u8; 16] = id
+            .try_into()
+            .map_err(|_| ConnectError::invalid_argument("invalid instance ID"))?;
+        let (execution, task) = {
+            let mut entries = self.0.entries.lock().unwrap();
+            let Some(execution) = entries.instances.get(&id).cloned() else {
+                if entries.pending.contains(&id) {
+                    return Err(ConnectError::failed_precondition(
+                        "instance is still being added",
+                    ));
+                }
+                return Ok(false);
+            };
+            // Retire before removing the route: a previously obtained reference
+            // cannot start another guest between Stop and removal.
+            let task = execution
+                .retire(false)
+                .map_err(|e| ConnectError::failed_precondition(e.to_string()))?;
+            entries.instances.remove(&id);
+            (execution, task)
+        };
+        if let Some(task) = task {
+            let _ = task.await;
+        }
+        drop(execution);
+        Ok(true)
+    }
+    pub async fn acquire(&self, execution: &Arc<Execution>) -> Result<Lease> {
         ensure!(
             !self.0.closed.load(Ordering::Acquire),
             "runner is shutting down"
         );
-        app.acquire().await
+        execution.acquire().await
     }
     pub async fn reap(&self) {
-        for app in self.0.apps.values() {
-            let _ = app.stop(true, false).await;
+        for execution in self.executions() {
+            let _ = execution.stop(true, false).await;
         }
     }
     pub async fn shutdown(&self) {
         self.0.closed.store(true, Ordering::Release);
-        for app in self.0.apps.values() {
-            let _ = app.stop(false, true).await;
-        }
-    }
-}
-
-impl Drop for Registry {
-    fn drop(&mut self) {
-        for app in self.apps.values() {
-            if let Some(task) = app.state.lock().unwrap().task.take() {
-                task.abort();
+        self.0.stopped.notify_waiters();
+        let instances = std::mem::take(&mut self.0.entries.lock().unwrap().instances);
+        for execution in instances.values() {
+            if let Ok(Some(task)) = execution.retire(true) {
+                let _ = task.await;
             }
         }
     }
 }
+impl Drop for Registry {
+    fn drop(&mut self) {
+        self.closed.store(true, Ordering::Release);
+        for execution in self.entries.get_mut().unwrap().instances.values() {
+            let _ = execution.retire(true);
+        }
+    }
+}
 
-impl App {
+impl Execution {
     pub fn snapshot(&self) -> Instance {
         let state = self.state.lock().unwrap();
         Instance {
-            id: self.spec.id.0.to_vec(),
+            id: self.spec.id.to_vec(),
             tenant: Some(Tenant {
-                id: self.spec.tenant.0.to_vec(),
+                id: self.spec.tenant.to_vec(),
                 ..Default::default()
             })
             .into(),
@@ -163,8 +290,7 @@ impl App {
             generation: state.generation,
             active: state.active,
             error: state.error.clone(),
-            domain: self.spec.domain.clone(),
-            port: u32::from(self.spec.port),
+            manifest: Some(self.spec.manifest.clone()).into(),
             ..Default::default()
         }
     }
@@ -179,6 +305,7 @@ impl App {
                 !self.closed.load(Ordering::Acquire),
                 "runner is shutting down"
             );
+            ensure!(!state.retired, "instance was erased");
             ensure!(state.phase != Phase::Stopping, "instance is stopping");
             ensure!(
                 state.active < self.spec.max_active,
@@ -244,7 +371,10 @@ impl App {
 
     async fn run(self: Arc<Self>, generation: u64) {
         let (ready, receiver) = oneshot::channel();
-        let guest = self.runtime.execute(&self.component, &self.spec, ready);
+        let data = self.bundle.data();
+        let guest = self
+            .runtime
+            .execute(&self.component, &self.spec, &data, ready);
         tokio::pin!(guest);
         let started = tokio::select! {
             result = &mut guest => Err(result.err().unwrap_or_else(|| anyhow!("guest exited before listening"))),
@@ -268,7 +398,7 @@ impl App {
             Err(e) => e,
         };
         let mut state = self.state.lock().unwrap();
-        if state.generation == generation && state.phase != Phase::Stopping {
+        if state.generation == generation && state.phase != Phase::Stopping && !state.retired {
             state.phase = Phase::Failed;
             state.error = format!("{result:#}");
             state.address = None;
@@ -276,6 +406,20 @@ impl App {
             state.task = None;
         }
         self.changed.send_replace(());
+    }
+
+    fn retire(&self, force: bool) -> Result<Option<JoinHandle<()>>> {
+        let mut state = self.state.lock().unwrap();
+        ensure!(force || state.active == 0, "instance has active requests");
+        state.retired = true;
+        state.phase = Phase::Stopped;
+        state.address = None;
+        self.changed.send_replace(());
+        let task = state.task.take();
+        if let Some(task) = &task {
+            task.abort();
+        }
+        Ok(task)
     }
 
     pub async fn stop(self: &Arc<Self>, idle: bool, force: bool) -> Result<()> {

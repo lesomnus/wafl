@@ -4,6 +4,322 @@
 #[derive(Clone, PartialEq, Default)]
 #[derive(::serde::Serialize, ::serde::Deserialize)]
 #[serde(default)]
+pub struct InstanceAddRequest {
+    /// Field 1: `id`
+    #[serde(
+        rename = "id",
+        with = "::buffa::json_helpers::opt_bytes",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub id: ::core::option::Option<::buffa::alloc::vec::Vec<u8>>,
+    /// Field 2: `tenant`
+    #[serde(
+        rename = "tenant",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub tenant: ::buffa::MessageField<TenantRef>,
+    /// Field 5: `name`
+    #[serde(
+        rename = "name",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub name: ::buffa::alloc::string::String,
+    /// Field 8: `phase`
+    #[serde(
+        rename = "phase",
+        with = "::buffa::json_helpers::proto_enum",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_default_enum_value"
+    )]
+    pub phase: ::buffa::EnumValue<Phase>,
+    /// Field 9: `generation`
+    #[serde(
+        rename = "generation",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub generation: u64,
+    /// Field 10: `active`
+    #[serde(
+        rename = "active",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub active: u32,
+    /// Field 11: `error`
+    #[serde(
+        rename = "error",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub error: ::buffa::alloc::string::String,
+    /// Field 17: `manifest`
+    #[serde(
+        rename = "manifest",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub manifest: ::buffa::MessageField<Manifest>,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for InstanceAddRequest {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("InstanceAddRequest")
+            .field("id", &self.id)
+            .field("tenant", &self.tenant)
+            .field("name", &self.name)
+            .field("phase", &self.phase)
+            .field("generation", &self.generation)
+            .field("active", &self.active)
+            .field("error", &self.error)
+            .field("manifest", &self.manifest)
+            .finish()
+    }
+}
+impl InstanceAddRequest {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceAddRequest";
+}
+impl InstanceAddRequest {
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::id`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_id(mut self, value: impl Into<::buffa::alloc::vec::Vec<u8>>) -> Self {
+        self.id = Some(value.into());
+        self
+    }
+}
+::buffa::impl_default_instance!(InstanceAddRequest);
+impl ::buffa::MessageName for InstanceAddRequest {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "InstanceAddRequest";
+    const FULL_NAME: &'static str = "wafl.InstanceAddRequest";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceAddRequest";
+}
+impl ::buffa::Message for InstanceAddRequest {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if let Some(ref v) = self.id {
+            size += 1u32 + ::buffa::types::bytes_encoded_len(v) as u32;
+        }
+        if self.tenant.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.tenant.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if !self.name.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
+        }
+        {
+            let val = self.phase.to_i32();
+            if val != 0 {
+                size += 1u32 + ::buffa::types::int32_encoded_len(val) as u32;
+            }
+        }
+        if self.generation != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.generation) as u32;
+        }
+        if self.active != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.active) as u32;
+        }
+        if !self.error.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.error) as u32;
+        }
+        if self.manifest.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.manifest.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if let Some(ref v) = self.id {
+            ::buffa::types::put_bytes_field(1u32, v, buf);
+        }
+        if self.tenant.is_set() {
+            ::buffa::types::put_len_delimited_header(2u32, __cache.consume_next(), buf);
+            self.tenant.write_to(__cache, buf);
+        }
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(5u32, &self.name, buf);
+        }
+        {
+            let val = self.phase.to_i32();
+            if val != 0 {
+                ::buffa::types::put_int32_field(8u32, val, buf);
+            }
+        }
+        if self.generation != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.generation, buf);
+        }
+        if self.active != 0u32 {
+            ::buffa::types::put_uint32_field(10u32, self.active, buf);
+        }
+        if !self.error.is_empty() {
+            ::buffa::types::put_string_field(11u32, &self.error, buf);
+        }
+        if self.manifest.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.manifest.write_to(__cache, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_bytes(
+                    self.id.get_or_insert_with(::buffa::alloc::vec::Vec::new),
+                    buf,
+                )?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.tenant.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.name, buf)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.phase = ::buffa::EnumValue::from(
+                    ::buffa::types::decode_int32(buf)?,
+                );
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.generation = ::buffa::types::decode_uint64(buf)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.active = ::buffa::types::decode_uint32(buf)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.error, buf)?;
+            }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.manifest.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.id = ::core::option::Option::None;
+        self.tenant = ::buffa::MessageField::none();
+        self.name.clear();
+        self.phase = ::buffa::EnumValue::from(0);
+        self.generation = 0u64;
+        self.active = 0u32;
+        self.error.clear();
+        self.manifest = ::buffa::MessageField::none();
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for InstanceAddRequest {
+    const PROTO_FQN: &'static str = "wafl.InstanceAddRequest";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for InstanceAddRequest {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __INSTANCE_ADD_REQUEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.InstanceAddRequest",
+    to_json: ::buffa::type_registry::any_to_json::<InstanceAddRequest>,
+    from_json: ::buffa::type_registry::any_from_json::<InstanceAddRequest>,
+    is_wkt: false,
+};
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
 pub struct InstanceGetRequest {
     /// Field 1: `ref`
     #[serde(
@@ -399,12 +715,12 @@ pub struct InstanceSelect {
     /// Field 11: `error`
     #[serde(rename = "error", skip_serializing_if = "::core::option::Option::is_none")]
     pub error: ::core::option::Option<bool>,
-    /// Field 12: `domain`
-    #[serde(rename = "domain", skip_serializing_if = "::core::option::Option::is_none")]
-    pub domain: ::core::option::Option<bool>,
-    /// Field 16: `port`
-    #[serde(rename = "port", skip_serializing_if = "::core::option::Option::is_none")]
-    pub port: ::core::option::Option<bool>,
+    /// Field 17: `manifest`
+    #[serde(
+        rename = "manifest",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub manifest: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -419,8 +735,7 @@ impl ::core::fmt::Debug for InstanceSelect {
             .field("generation", &self.generation)
             .field("active", &self.active)
             .field("error", &self.error)
-            .field("domain", &self.domain)
-            .field("port", &self.port)
+            .field("manifest", &self.manifest)
             .finish()
     }
 }
@@ -476,16 +791,9 @@ impl InstanceSelect {
     }
     #[must_use = "with_* setters return `self` by value; assign or chain the result"]
     #[inline]
-    ///Sets [`Self::domain`] to `Some(value)`, consuming and returning `self`.
-    pub fn with_domain(mut self, value: bool) -> Self {
-        self.domain = Some(value);
-        self
-    }
-    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
-    #[inline]
-    ///Sets [`Self::port`] to `Some(value)`, consuming and returning `self`.
-    pub fn with_port(mut self, value: bool) -> Self {
-        self.port = Some(value);
+    ///Sets [`Self::manifest`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_manifest(mut self, value: bool) -> Self {
+        self.manifest = Some(value);
         self
     }
 }
@@ -533,10 +841,7 @@ impl ::buffa::Message for InstanceSelect {
         if self.error.is_some() {
             size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
-        if self.domain.is_some() {
-            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
-        }
-        if self.port.is_some() {
+        if self.manifest.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
@@ -571,11 +876,8 @@ impl ::buffa::Message for InstanceSelect {
         if let Some(v) = self.error {
             ::buffa::types::put_bool_field(11u32, v, buf);
         }
-        if let Some(v) = self.domain {
-            ::buffa::types::put_bool_field(12u32, v, buf);
-        }
-        if let Some(v) = self.port {
-            ::buffa::types::put_bool_field(16u32, v, buf);
+        if let Some(v) = self.manifest {
+            ::buffa::types::put_bool_field(17u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -655,21 +957,12 @@ impl ::buffa::Message for InstanceSelect {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
-            12u32 => {
+            17u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
                     ::buffa::encoding::WireType::Varint,
                 )?;
-                self.domain = ::core::option::Option::Some(
-                    ::buffa::types::decode_bool(buf)?,
-                );
-            }
-            16u32 => {
-                ::buffa::encoding::check_wire_type(
-                    tag,
-                    ::buffa::encoding::WireType::Varint,
-                )?;
-                self.port = ::core::option::Option::Some(
+                self.manifest = ::core::option::Option::Some(
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
@@ -688,8 +981,7 @@ impl ::buffa::Message for InstanceSelect {
         self.generation = ::core::option::Option::None;
         self.active = ::core::option::Option::None;
         self.error = ::core::option::Option::None;
-        self.domain = ::core::option::Option::None;
-        self.port = ::core::option::Option::None;
+        self.manifest = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -720,6 +1012,141 @@ pub const __INSTANCE_SELECT_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::b
     type_url: "type.googleapis.com/wafl.InstanceSelect",
     to_json: ::buffa::type_registry::any_to_json::<InstanceSelect>,
     from_json: ::buffa::type_registry::any_from_json::<InstanceSelect>,
+    is_wkt: false,
+};
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct InstanceEraseResponse {
+    /// Erased is whether this call is the one that erased the row.
+    ///
+    /// False for a row that was already gone, was never there, or is out
+    /// of this caller's reach -- which are one answer on purpose, and the
+    /// reason the RPC does not fail instead.
+    ///
+    /// Field 1: `erased`
+    #[serde(rename = "erased", skip_serializing_if = "::core::option::Option::is_none")]
+    pub erased: ::core::option::Option<bool>,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for InstanceEraseResponse {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("InstanceEraseResponse").field("erased", &self.erased).finish()
+    }
+}
+impl InstanceEraseResponse {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceEraseResponse";
+}
+impl InstanceEraseResponse {
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::erased`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_erased(mut self, value: bool) -> Self {
+        self.erased = Some(value);
+        self
+    }
+}
+::buffa::impl_default_instance!(InstanceEraseResponse);
+impl ::buffa::MessageName for InstanceEraseResponse {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "InstanceEraseResponse";
+    const FULL_NAME: &'static str = "wafl.InstanceEraseResponse";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceEraseResponse";
+}
+impl ::buffa::Message for InstanceEraseResponse {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.erased.is_some() {
+            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if let Some(v) = self.erased {
+            ::buffa::types::put_bool_field(1u32, v, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.erased = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.erased = ::core::option::Option::None;
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for InstanceEraseResponse {
+    const PROTO_FQN: &'static str = "wafl.InstanceEraseResponse";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for InstanceEraseResponse {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __INSTANCE_ERASE_RESPONSE_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.InstanceEraseResponse",
+    to_json: ::buffa::type_registry::any_to_json::<InstanceEraseResponse>,
+    from_json: ::buffa::type_registry::any_from_json::<InstanceEraseResponse>,
     is_wkt: false,
 };
 #[derive(Clone, PartialEq, Default)]

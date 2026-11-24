@@ -1,8 +1,9 @@
+use base64::{Engine, engine::general_purpose::STANDARD};
 use bytes::Bytes;
 use http_body_util::{BodyExt, Empty};
 use hyper_util::rt::TokioIo;
 use paydirt::spin::{Lease, Workers};
-use std::{net::SocketAddr, path::PathBuf, time::Duration};
+use std::{collections::BTreeMap, net::SocketAddr, path::PathBuf, sync::Arc, time::Duration};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -10,10 +11,10 @@ use tokio::{
     task::JoinHandle,
 };
 use wafl_runner::{
-    config::{App, Binding, Config, Protocol},
-    proto::wafl::Phase,
+    config::Config,
+    proto::wafl::*,
     proxy,
-    runner::Runner,
+    runner::{Execution, Runner},
 };
 
 fn guest(name: &str) -> PathBuf {
@@ -30,32 +31,157 @@ fn guest(name: &str) -> PathBuf {
     );
     file
 }
-fn app(name: &str, artifact: &str) -> App {
-    serde_json::from_value(serde_json::json!({
-        "id":paydirt::format_id(&paydirt::mint(7)).unwrap(), "tenant":"00000000-0000-8000-8001-000000000001",
-        "name":name, "artifact":guest(artifact), "runtime":"wasmtime", "abi":"wasip2",
-        "domain":format!("{name}.test"), "port":8080, "idle_ms":100,
-        "env":{"GREETING":name}
-    }))
-    .unwrap()
+struct TestApp {
+    id: [u8; 16],
+    tenant: [u8; 16],
+    name: String,
+    guest: PathBuf,
+    manifest: Manifest,
 }
-fn config(apps: Vec<App>) -> Config {
+impl std::ops::Deref for TestApp {
+    type Target = Manifest;
+    fn deref(&self) -> &Manifest {
+        &self.manifest
+    }
+}
+impl std::ops::DerefMut for TestApp {
+    fn deref_mut(&mut self) -> &mut Manifest {
+        &mut self.manifest
+    }
+}
+impl TestApp {
+    fn request(&self, url: String) -> InstanceAddRequest {
+        InstanceAddRequest {
+            id: Some(self.id.to_vec()),
+            name: self.name.clone(),
+            tenant: Some(TenantRef {
+                key: Some(tenant_ref::Key::Id(self.tenant.to_vec())),
+                ..Default::default()
+            })
+            .into(),
+            manifest: Some(Manifest {
+                bundle: Some(Asset {
+                    kind: Some(asset::Kind::Url(url)),
+                    ..Default::default()
+                })
+                .into(),
+                ..self.manifest.clone()
+            })
+            .into(),
+            ..Default::default()
+        }
+    }
+    fn bundle(&self) -> Vec<u8> {
+        archive(&[
+            ("main.wasm", std::fs::read(&self.guest).unwrap()),
+            (
+                "data/index.html",
+                format!("<h1>{}</h1>", self.name).into_bytes(),
+            ),
+        ])
+    }
+}
+fn archive(files: &[(&str, Vec<u8>)]) -> Vec<u8> {
+    let mut tar = tar::Builder::new(flate2::write::GzEncoder::new(
+        Vec::new(),
+        flate2::Compression::fast(),
+    ));
+    for (path, bytes) in files {
+        let mut header = tar::Header::new_gnu();
+        header.set_mode(0o644);
+        header.set_size(bytes.len() as u64);
+        header.set_cksum();
+        tar.append_data(&mut header, path, bytes.as_slice())
+            .unwrap();
+    }
+    tar.into_inner().unwrap().finish().unwrap()
+}
+struct Assets {
+    base: String,
+    task: JoinHandle<()>,
+}
+impl Assets {
+    async fn new(files: BTreeMap<String, Vec<u8>>) -> Self {
+        use paydirt_server::axum::{self, extract::Path, routing::get};
+        let files = Arc::new(files);
+        let router = axum::Router::new().route(
+            "/{file}",
+            get(move |Path(file): Path<String>| {
+                let files = files.clone();
+                async move {
+                    match files.get(&file) {
+                        Some(bytes) => (http::StatusCode::OK, bytes.clone()),
+                        None => (http::StatusCode::NOT_FOUND, Vec::new()),
+                    }
+                }
+            }),
+        );
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let base = format!("http://{}", listener.local_addr().unwrap());
+        let task = tokio::spawn(async move {
+            axum::serve(listener, router).await.unwrap();
+        });
+        Self { base, task }
+    }
+    fn url(&self, path: &str) -> String {
+        format!("{}/{path}", self.base)
+    }
+}
+impl Drop for Assets {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+fn app(name: &str, artifact: &str) -> TestApp {
+    TestApp {
+        id: paydirt::mint(7),
+        tenant: fixed(1, 1),
+        name: name.into(),
+        guest: guest(artifact),
+        manifest: Manifest {
+            port: 8080,
+            idle_ms: 100,
+            env: [("GREETING".into(), name.into())].into_iter().collect(),
+            ..Default::default()
+        },
+    }
+}
+fn fixed(domain: u8, number: u8) -> [u8; 16] {
+    [
+        0, 0, 0, 0, 0, 0, 0x80, 0, 0x80, domain, 0, 0, 0, 0, 0, number,
+    ]
+}
+fn config() -> Config {
     Config {
         listen: "127.0.0.1:0".parse().unwrap(),
         control: "127.0.0.1:0".parse().unwrap(),
-        apps,
     }
 }
-
 struct Harness {
     runner: Runner,
     address: SocketAddr,
+    ids: BTreeMap<String, [u8; 16]>,
+    _assets: Assets,
     stop: Option<oneshot::Sender<()>>,
     task: JoinHandle<()>,
 }
 impl Harness {
-    async fn new(apps: Vec<App>) -> Self {
-        let runner = Runner::new(&config(apps)).await.unwrap();
+    async fn new(apps: Vec<TestApp>) -> Self {
+        let runner = Runner::new(&config()).await.unwrap();
+        let assets = Assets::new(
+            apps.iter()
+                .map(|app| (app.name.clone(), app.bundle()))
+                .collect(),
+        )
+        .await;
+        let mut ids = BTreeMap::new();
+        for app in &apps {
+            let instance = runner
+                .add(app.request(assets.url(&app.name)))
+                .await
+                .unwrap();
+            ids.insert(app.name.clone(), instance.id.try_into().unwrap());
+        }
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let (stop, end) = oneshot::channel();
@@ -79,9 +205,17 @@ impl Harness {
         Self {
             runner,
             address,
+            ids,
+            _assets: assets,
             stop: Some(stop),
             task,
         }
+    }
+    fn instance(&self, name: &str) -> Arc<Execution> {
+        self.runner.instance(&self.ids[name]).unwrap()
+    }
+    async fn client(&self) -> Client {
+        Client::new(self.address, self.ids.clone()).await
     }
     async fn finish(mut self) {
         let _ = self.stop.take().unwrap().send(());
@@ -92,9 +226,10 @@ impl Harness {
 struct Client {
     sender: hyper::client::conn::http1::SendRequest<Empty<Bytes>>,
     driver: JoinHandle<()>,
+    ids: BTreeMap<String, [u8; 16]>,
 }
 impl Client {
-    async fn new(address: SocketAddr) -> Self {
+    async fn new(address: SocketAddr, ids: BTreeMap<String, [u8; 16]>) -> Self {
         let (sender, connection) = hyper::client::conn::http1::handshake(TokioIo::new(
             TcpStream::connect(address).await.unwrap(),
         ))
@@ -102,16 +237,19 @@ impl Client {
         .unwrap();
         Self {
             sender,
+            ids,
             driver: tokio::spawn(async {
                 let _ = connection.await;
             }),
         }
     }
-    async fn send(&mut self, domain: &str, path: &str) -> hyper::Response<hyper::body::Incoming> {
+    async fn send(&mut self, name: &str, path: &str) -> hyper::Response<hyper::body::Incoming> {
         self.sender.ready().await.unwrap();
+        let id = self.ids.get(name).copied().unwrap_or_else(|| fixed(7, 255));
         let request = hyper::Request::builder()
             .uri(path)
-            .header("host", domain)
+            .header("host", "same.example")
+            .header(proxy::INSTANCE_HEADER, paydirt::format_id(&id).unwrap())
             .body(Empty::new())
             .unwrap();
         tokio::time::timeout(Duration::from_secs(10), self.sender.send_request(request))
@@ -119,8 +257,8 @@ impl Client {
             .unwrap()
             .unwrap()
     }
-    async fn text(&mut self, domain: &str, path: &str) -> String {
-        let response = self.send(domain, path).await;
+    async fn text(&mut self, name: &str, path: &str) -> String {
+        let response = self.send(name, path).await;
         assert_eq!(response.status(), 200);
         String::from_utf8(
             response
@@ -143,18 +281,18 @@ impl Drop for Client {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn sockets_share_a_process_without_sharing_ports_or_state() {
     let h = Harness::new(vec![app("alpha", "socket"), app("beta", "socket")]).await;
-    assert!(h.runner.list().iter().all(|i| i.phase == Phase::Stopped));
-    let mut client = Client::new(h.address).await;
-    assert_eq!(client.text("ALPHA.test:80", "/").await, "alpha:1");
-    assert_eq!(client.text("beta.test", "/").await, "beta:1");
-    assert_eq!(client.text("alpha.test", "/").await, "alpha:2");
-    assert_eq!(client.text("alpha.test", "/denied").await, "denied");
-    let unknown = client.send("unknown.test", "/").await;
+    assert!(h.runner.list().iter().all(|i| i.phase == Phase::Running));
+    let mut client = h.client().await;
+    assert_eq!(client.text("alpha", "/").await, "alpha:1");
+    assert_eq!(client.text("beta", "/").await, "beta:1");
+    assert_eq!(client.text("alpha", "/").await, "alpha:2");
+    assert_eq!(client.text("alpha", "/denied").await, "denied");
+    let unknown = client.send("unknown", "/").await;
     assert_eq!(unknown.status(), 404);
     unknown.into_body().collect().await.unwrap();
-    let alpha = h.runner.app("alpha").unwrap();
+    let alpha = h.instance("alpha");
     assert_eq!(alpha.snapshot().generation, 1);
-    let response = client.send("alpha.test", "/slow").await;
+    let response = client.send("alpha", "/slow").await;
     tokio::time::sleep(Duration::from_millis(180)).await;
     h.runner.reap().await;
     assert_eq!(alpha.snapshot().phase, Phase::Running);
@@ -168,7 +306,7 @@ async fn sockets_share_a_process_without_sharing_ports_or_state() {
     h.runner.reap().await;
     assert_eq!(alpha.snapshot().phase, Phase::Stopped);
     // The client keep-alive socket remains open across scale-to-zero.
-    assert_eq!(client.text("alpha.test", "/").await, "alpha:1");
+    assert_eq!(client.text("alpha", "/").await, "alpha:1");
     assert_eq!(alpha.snapshot().generation, 2);
     drop(client);
     h.finish().await;
@@ -179,7 +317,8 @@ async fn simultaneous_cold_requests_and_cancelled_starters_use_one_instance() {
     let mut spec = app("cold", "socket");
     spec.env.insert("MODE".into(), "delay".into());
     let h = Harness::new(vec![spec]).await;
-    let app = h.runner.app("cold").unwrap();
+    let app = h.instance("cold");
+    app.stop(false, false).await.unwrap();
     let starter = {
         let runner = h.runner.clone();
         let app = app.clone();
@@ -191,14 +330,15 @@ async fn simultaneous_cold_requests_and_cancelled_starters_use_one_instance() {
     let mut requests = tokio::task::JoinSet::new();
     for _ in 0..16 {
         let address = h.address;
-        requests.spawn(async move { Client::new(address).await.text("cold.test", "/").await });
+        let ids = h.ids.clone();
+        requests.spawn(async move { Client::new(address, ids).await.text("cold", "/").await });
     }
     let mut responses = std::collections::BTreeSet::new();
     while let Some(result) = requests.join_next().await {
         responses.insert(result.unwrap());
     }
     assert_eq!(responses.len(), 16);
-    assert_eq!(app.snapshot().generation, 1);
+    assert_eq!(app.snapshot().generation, 2);
     assert_eq!(app.snapshot().active, 0);
     let stopper = {
         let app = app.clone();
@@ -216,59 +356,43 @@ async fn simultaneous_cold_requests_and_cancelled_starters_use_one_instance() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn startup_failures_and_cpu_loops_do_not_block_other_apps() {
-    let mut spin = app("spin", "socket");
-    spin.env.insert("MODE".into(), "spin".into());
-    spin.startup_ms = 120;
-    let mut exit = app("exit", "socket");
-    exit.env.insert("MODE".into(), "exit".into());
-    let mut memory = app("memory", "socket");
-    memory.env.insert("MODE".into(), "memory".into());
-    memory.memory_bytes = 2 * 1024 * 1024;
-    let mut closed = app("closed", "socket");
-    closed.env.insert("MODE".into(), "close".into());
     let mut good = app("good", "socket");
     good.max_active = 1;
-    let h = Harness::new(vec![spin, exit, memory, closed, good]).await;
-    for name in ["spin", "exit", "memory"] {
-        let app = h.runner.app(name).unwrap();
-        assert!(
-            tokio::time::timeout(Duration::from_secs(3), h.runner.acquire(&app))
-                .await
-                .unwrap()
-                .is_err()
-        );
-        assert_eq!(app.snapshot().phase, Phase::Failed);
-        assert_eq!(app.snapshot().active, 0);
-        assert!(!app.snapshot().error.is_empty());
+    let h = Harness::new(vec![good]).await;
+    for mode in ["spin", "exit", "memory", "close"] {
+        let mut bad = app(mode, "socket");
+        bad.env.insert("MODE".into(), mode.into());
+        bad.startup_ms = 120;
+        if mode == "memory" {
+            bad.memory_bytes = 2 * 1024 * 1024;
+        }
+        let files = Assets::new([(mode.into(), bad.bundle())].into()).await;
+        let result = h.runner.add(bad.request(files.url(mode))).await;
+        if let Ok(instance) = result {
+            assert_eq!(mode, "close");
+            tokio::time::sleep(Duration::from_millis(100)).await;
+            assert_eq!(
+                h.runner.instance(&instance.id).unwrap().snapshot().phase,
+                Phase::Failed
+            );
+            h.runner.erase(&instance.id).await.unwrap();
+        }
+        assert!(h.runner.instance(&bad.id).is_none());
     }
-    let good = h.runner.app("good").unwrap();
-    let closed = h.runner.app("closed").unwrap();
-    let _ = h.runner.acquire(&closed).await;
-    tokio::time::sleep(Duration::from_millis(50)).await;
-    assert_eq!(closed.snapshot().phase, Phase::Failed);
+    let good = h.instance("good");
     let lease = h.runner.acquire(&good).await.unwrap();
     assert!(h.runner.acquire(&good).await.is_err());
     drop(lease);
-    assert_eq!(
-        Client::new(h.address).await.text("good.test", "/").await,
-        "good:1"
-    );
+    assert_eq!(h.client().await.text("good", "/").await, "good:1");
     h.finish().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn management_contract_without_authentication_and_lifecycle() {
-    use base64::{Engine, engine::general_purpose::STANDARD};
     use buffa::Message;
     use http_body_util::Full;
     use serde_json::json;
     use tower::ServiceExt;
-    use wafl_runner::config::Id;
-    fn fixed(domain: u8, number: u8) -> Id {
-        Id([
-            0, 0, 0, 0, 0, 0, 0x80, 0, 0x80, domain, 0, 0, 0, 0, 0, number,
-        ])
-    }
     let mut apps = vec![];
     for (name, number, owner) in [
         ("alpha", 1, 1),
@@ -282,7 +406,8 @@ async fn management_contract_without_authentication_and_lifecycle() {
         value.tenant = fixed(1, owner);
         apps.push(value);
     }
-    let runner = Runner::new(&config(apps)).await.unwrap();
+    let h = Harness::new(apps).await;
+    let runner = h.runner.clone();
     let service = connectrpc::ConnectRpcService::new(wafl_runner::control::router(runner.clone()));
     let call = |method: &str, body: serde_json::Value| {
         let service = service.clone();
@@ -302,11 +427,11 @@ async fn management_contract_without_authentication_and_lifecycle() {
             (status, body)
         }
     };
-    let reference = |number| json!({"id":STANDARD.encode(fixed(7,number).0)});
+    let reference = |number| json!({"id":STANDARD.encode(fixed(7,number))});
     for input in [
         json!({}),
         json!({"ref":{"id":"/w=="}}),
-        json!({"ref":{"id":STANDARD.encode(fixed(1,1).0)}}),
+        json!({"ref":{"id":STANDARD.encode(fixed(1,1))}}),
     ] {
         assert_eq!(call("Get", input).await.1["code"], "invalid_argument");
     }
@@ -319,7 +444,7 @@ async fn management_contract_without_authentication_and_lifecycle() {
     for (number, owner) in [(2, 2), (3, 1)] {
         let (status, body) = call("Get", json!({"ref":reference(number)})).await;
         assert_eq!(status, 200);
-        assert_eq!(body["tenant"]["id"], STANDARD.encode(fixed(1, owner).0));
+        assert_eq!(body["tenant"]["id"], STANDARD.encode(fixed(1, owner)));
     }
     assert_eq!(
         call("Start", json!({"ref":reference(2)})).await.1["phase"],
@@ -385,9 +510,9 @@ async fn management_contract_without_authentication_and_lifecycle() {
     assert_eq!(body["id"], reference(3)["id"]);
     assert_eq!(body["name"], "control");
     assert!(body["tenant"].is_null());
-    assert!(body["domain"].as_str().unwrap_or_default().is_empty());
+    assert!(body["manifest"].is_null());
     let (_, body) = call("Get", json!({"ref":reference(3),"select":{"tenant":{}}})).await;
-    assert_eq!(body["tenant"]["id"], STANDARD.encode(fixed(1, 1).0));
+    assert_eq!(body["tenant"]["id"], STANDARD.encode(fixed(1, 1)));
     assert_eq!(
         call(
             "Get",
@@ -402,7 +527,7 @@ async fn management_contract_without_authentication_and_lifecycle() {
     assert_eq!(status, 200);
     assert_eq!(body["phase"], "PHASE_RUNNING");
     assert_eq!(body["id"], reference(3)["id"]);
-    let app = runner.app("control").unwrap();
+    let app = h.instance("control");
     let lease = runner.acquire(&app).await.unwrap();
     assert_eq!(
         call("Stop", json!({"ref":reference(3)})).await.1["code"],
@@ -421,7 +546,7 @@ async fn management_contract_without_authentication_and_lifecycle() {
         .header("te", "trailers")
         .body(Full::new(Bytes::from_static(&[0, 0, 0, 0, 0])))
         .unwrap();
-    let response = service.oneshot(request).await.unwrap();
+    let response = service.clone().oneshot(request).await.unwrap();
     assert_eq!(response.status(), 200);
     let body = response.into_body().collect().await.unwrap();
     assert_eq!(body.trailers().unwrap()["grpc-status"], "0");
@@ -429,46 +554,224 @@ async fn management_contract_without_authentication_and_lifecycle() {
     let list =
         wafl_runner::proto::wafl::InstanceListResponse::decode_from_slice(&bytes[5..]).unwrap();
     assert_eq!(list.items.len(), 5);
-    assert_eq!(list.items[1].tenant.id, fixed(1, 2).0);
-    assert_eq!(list.items[2].id, fixed(7, 3).0);
-    assert_eq!(list.items[2].tenant.id, fixed(1, 1).0);
+    assert_eq!(list.items[1].tenant.id, fixed(1, 2));
+    assert_eq!(list.items[2].id, fixed(7, 3));
+    assert_eq!(list.items[2].tenant.id, fixed(1, 1));
     assert_eq!(list.items[2].phase, Phase::Stopped);
+    assert_eq!(call("Erase", reference(1)).await.1["erased"], true);
+    // A cursor is a position, even if that instance was removed between pages.
+    let (_, page) = call("List", json!({"after":cursor})).await;
+    assert_eq!(page["items"][0]["name"], "beta");
     runner.shutdown().await;
     assert!(runner.acquire(&app).await.is_err());
+    h.finish().await;
+}
+
+async fn rpc(
+    runner: &Runner,
+    method: &str,
+    body: serde_json::Value,
+) -> (http::StatusCode, serde_json::Value) {
+    use http_body_util::Full;
+    use tower::ServiceExt;
+    let service = connectrpc::ConnectRpcService::new(wafl_runner::control::router(runner.clone()));
+    let request = http::Request::builder()
+        .method("POST")
+        .uri(format!("/wafl.InstanceService/{method}"))
+        .header("content-type", "application/json")
+        .header("connect-protocol-version", "1")
+        .body(Full::new(Bytes::from(serde_json::to_vec(&body).unwrap())))
+        .unwrap();
+    let response = service.oneshot(request).await.unwrap();
+    (
+        response.status(),
+        serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap(),
+    )
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn generated_add_runs_bundles_and_erase_releases_the_instance() {
+    use serde_json::json;
+    let mut h = Harness::new(vec![]).await;
+    let spec = app("dynamic", "socket");
+    let assets = Assets::new([("bundle".into(), spec.bundle())].into()).await;
+    let request = serde_json::to_value(spec.request(assets.url("bundle"))).unwrap();
+    let (status, body) = rpc(&h.runner, "Add", request.clone()).await;
+    assert_eq!(status, 200, "{body}");
+    let instance: Instance = serde_json::from_value(body).unwrap();
+    assert_eq!(instance.id, spec.id);
+    assert_eq!(instance.tenant.id, spec.tenant);
+    assert_eq!(instance.phase, Phase::Running);
+    assert_eq!(instance.manifest.runtime, "wasmtime");
+    assert_eq!(instance.manifest.port, 8080);
+    assert_eq!(
+        rpc(&h.runner, "Add", request).await.1["code"],
+        "already_exists"
+    );
+    // The same bundle URL and name can create an independent, server-minted ID.
+    let mut second = spec.request(assets.url("bundle"));
+    second.id = None;
+    let (status, body) = rpc(&h.runner, "Add", serde_json::to_value(second).unwrap()).await;
+    assert_eq!(status, 200, "{body}");
+    let second: Instance = serde_json::from_value(body).unwrap();
+    assert!(paydirt::has_domain(&second.id, 7));
+    assert_ne!(second.id, instance.id);
+    h.ids.insert("dynamic".into(), spec.id);
+    h.ids.insert("second".into(), second.id.try_into().unwrap());
+    let mut client = h.client().await;
+    assert_eq!(client.text("dynamic", "/").await, "dynamic:1");
+    assert_eq!(client.text("second", "/").await, "dynamic:1");
+    assert_eq!(client.text("dynamic", "/data").await, "<h1>dynamic</h1>");
+    assert_eq!(client.text("dynamic", "/headers").await, "preserved");
+    assert_eq!(client.text("dynamic", "/denied").await, "denied");
+    let reference = json!({"id": STANDARD.encode(spec.id)});
+    let (_, selected) = rpc(
+        &h.runner,
+        "Get",
+        json!({"ref":reference,"select":{"manifest":true}}),
+    )
+    .await;
+    assert_eq!(selected["manifest"]["bundle"]["url"], assets.url("bundle"));
+    assert!(selected["tenant"].is_null());
+    // A stopped instance restarts from its retained files, without a download.
+    drop(assets);
+    assert_eq!(
+        rpc(&h.runner, "Stop", json!({"ref":reference})).await.0,
+        200
+    );
+    assert_eq!(client.text("dynamic", "/data").await, "<h1>dynamic</h1>");
+    let execution = h.instance("dynamic");
+    let lease = h.runner.acquire(&execution).await.unwrap();
+    assert_eq!(
+        rpc(&h.runner, "Erase", reference.clone()).await.1["code"],
+        "failed_precondition"
+    );
+    drop(lease);
+    assert_eq!(
+        rpc(&h.runner, "Erase", reference.clone()).await.1["erased"],
+        true
+    );
+    assert_eq!(rpc(&h.runner, "Erase", reference).await.1["erased"], false);
+    assert!(h.runner.acquire(&execution).await.is_err());
+    assert_eq!(client.send("dynamic", "/").await.status(), 404);
+    drop(client);
+    h.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancelled_add_releases_its_id_and_shutdown_interrupts_downloads() {
+    let runner = Runner::new(&config()).await.unwrap();
+    let spec = app("cancelled", "socket");
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}/stalled", listener.local_addr().unwrap());
+    let request = spec.request(url.clone());
+    let task = {
+        let runner = runner.clone();
+        let request = request.clone();
+        tokio::spawn(async move { runner.add(request).await })
+    };
+    let (_connection, _) = tokio::time::timeout(Duration::from_secs(5), listener.accept())
+        .await
+        .unwrap()
+        .unwrap();
+    assert!(runner.list().is_empty());
+    assert_eq!(
+        runner.add(request).await.unwrap_err().code,
+        connectrpc::ErrorCode::AlreadyExists
+    );
+    task.abort();
+    let _ = task.await;
+    let assets = Assets::new([("bundle".into(), spec.bundle())].into()).await;
+    runner
+        .add(spec.request(assets.url("bundle")))
+        .await
+        .unwrap();
+    runner.erase(&spec.id).await.unwrap();
+    let task = {
+        let runner = runner.clone();
+        let request = spec.request(url);
+        tokio::spawn(async move { runner.add(request).await })
+    };
+    let (_connection, _) = tokio::time::timeout(Duration::from_secs(5), listener.accept())
+        .await
+        .unwrap()
+        .unwrap();
+    runner.shutdown().await;
+    let error = tokio::time::timeout(Duration::from_secs(2), task)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap_err();
+    assert_eq!(error.code, connectrpc::ErrorCode::Unavailable);
+    assert!(runner.list().is_empty());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn rejected_downloads_and_bundles_leave_no_instance() {
+    let runner = Runner::new(&config()).await.unwrap();
+    let spec = app("invalid", "socket");
+    let assets = Assets::new(
+        [
+            ("gzip".into(), b"not gzip".to_vec()),
+            (
+                "missing".into(),
+                archive(&[("data/index.html", b"hello".to_vec())]),
+            ),
+            (
+                "component".into(),
+                archive(&[("main.wasm", b"not wasm".to_vec())]),
+            ),
+        ]
+        .into(),
+    )
+    .await;
+    for (path, code) in [
+        ("absent", "unavailable"),
+        ("gzip", "invalid_argument"),
+        ("missing", "invalid_argument"),
+        ("component", "invalid_argument"),
+    ] {
+        let (_, error) = rpc(
+            &runner,
+            "Add",
+            serde_json::to_value(spec.request(assets.url(path))).unwrap(),
+        )
+        .await;
+        assert_eq!(error["code"], code, "{error}");
+        assert!(runner.list().is_empty());
+    }
+    runner.shutdown().await;
 }
 
 #[test]
-fn manifest_resolves_artifacts_and_rejects_ambiguous_configuration() {
-    let directory = tempfile::tempdir().unwrap();
-    std::fs::write(directory.path().join("app.wasm"), []).unwrap();
-    let file = directory.path().join("runner.json");
-    let mut value = serde_json::json!({"listen":"127.0.0.1:8080", "control":"127.0.0.1:8081", "apps":[{
-        "id":"00000000-0000-8000-8007-000000000001", "tenant":"00000000-0000-8000-8001-000000000001",
-        "name":"app", "artifact":"app.wasm", "runtime":"wasmtime", "abi":"wasip2", "domain":"app.test", "port":8080
-    }]});
-    std::fs::write(&file, serde_json::to_vec(&value).unwrap()).unwrap();
-    let parsed = Config::read(&file).unwrap();
-    assert_eq!(parsed.apps[0].artifact, directory.path().join("app.wasm"));
-    value["apps"][0]["abi"] = "wasix".into();
-    assert!(serde_json::from_value::<Config>(value).is_err());
-    let mut bad = parsed.clone();
-    bad.apps.push(bad.apps[0].clone());
-    assert!(bad.validate().is_err());
-    let mut bad = parsed.clone();
-    bad.apps[0].bindings.push(Binding {
-        port: 8080,
-        target: "127.0.0.1:5432".parse().unwrap(),
-    });
-    assert!(bad.validate().is_err());
-    let mut bad = parsed.clone();
-    bad.apps[0].id.0[9] = 1;
-    assert!(bad.validate().is_err());
-    let mut bad = parsed.clone();
-    bad.apps[0].tenant.0[9] = 7;
-    assert!(bad.validate().is_err());
-    let mut bad = parsed;
-    bad.apps[0].domain = "app.test:80".into();
-    assert!(bad.validate().is_err());
+fn process_config_and_manifest_validation() {
+    assert!(config().validate().is_ok());
+    assert!(
+        serde_json::from_value::<Config>(
+            serde_json::json!({"listen":"127.0.0.1:8080","control":"127.0.0.1:8081","apps":[]})
+        )
+        .is_err()
+    );
+    let value = app("test", "socket");
+    let request = value.request("http://127.0.0.1/bundle.tar.gz".into());
+    assert!(wafl_runner::config::Spec::parse(request.clone()).is_ok());
+    for url in [
+        "file:///tmp/a",
+        "ftp://host/a",
+        "http://user:password@host/a",
+        "http://host/a#fragment",
+    ] {
+        assert!(wafl_runner::config::Spec::parse(value.request(url.into())).is_err());
+    }
+    let mut bad = request.clone();
+    bad.phase = Phase::Running.into();
+    assert!(wafl_runner::config::Spec::parse(bad).is_err());
+    let mut bad = request.clone();
+    bad.id = Some(fixed(1, 1).to_vec());
+    assert!(wafl_runner::config::Spec::parse(bad).is_err());
+    let mut bad = request;
+    bad.manifest = Default::default();
+    assert!(wafl_runner::config::Spec::parse(bad).is_err());
 }
 
 async fn backend(reply: &'static [u8]) -> (SocketAddr, JoinHandle<()>) {
@@ -491,17 +794,19 @@ async fn service_bindings_are_private_to_each_app() {
     let mut alpha = app("alpha", "socket");
     alpha.bindings.push(Binding {
         port: 5432,
-        target: a,
+        target: a.to_string(),
+        ..Default::default()
     });
     let mut beta = app("beta", "socket");
     beta.bindings.push(Binding {
         port: 5432,
-        target: b,
+        target: b.to_string(),
+        ..Default::default()
     });
     let h = Harness::new(vec![alpha, beta]).await;
-    let mut client = Client::new(h.address).await;
-    assert_eq!(client.text("alpha.test", "/db").await, "db-a");
-    assert_eq!(client.text("beta.test", "/db").await, "db-b");
+    let mut client = h.client().await;
+    assert_eq!(client.text("alpha", "/db").await, "db-a");
+    assert_eq!(client.text("beta", "/db").await, "db-b");
     a_task.await.unwrap();
     b_task.await.unwrap();
     drop(client);
@@ -511,7 +816,7 @@ async fn service_bindings_are_private_to_each_app() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     let mut spec = app("grpc", "grpc");
-    spec.protocol = Protocol::H2c;
+    spec.protocol = "h2c".into();
     let h = Harness::new(vec![spec]).await;
     let (mut client, connection) =
         h2::client::handshake(TcpStream::connect(h.address).await.unwrap())
@@ -521,6 +826,10 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     let request = http::Request::builder()
         .method("POST")
         .uri("http://grpc.test/echo.Echo/Listen")
+        .header(
+            proxy::INSTANCE_HEADER,
+            paydirt::format_id(&h.ids["grpc"]).unwrap(),
+        )
         .header("content-type", "application/grpc")
         .header("te", "trailers")
         .body(())
@@ -543,7 +852,7 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     input.flow_control().release_capacity(data.len()).unwrap();
     tokio::time::sleep(Duration::from_millis(200)).await;
     h.runner.reap().await;
-    let app = h.runner.app("grpc").unwrap();
+    let app = h.instance("grpc");
     assert_eq!(app.snapshot().phase, Phase::Running);
     assert_eq!(app.snapshot().active, 1);
     output.send_data(payload.clone(), true).unwrap();
@@ -559,6 +868,10 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     let request = http::Request::builder()
         .method("POST")
         .uri("http://grpc.test/echo.Echo/Listen")
+        .header(
+            proxy::INSTANCE_HEADER,
+            paydirt::format_id(&h.ids["grpc"]).unwrap(),
+        )
         .body(())
         .unwrap();
     let (response, mut output) = client.send_request(request, false).unwrap();
