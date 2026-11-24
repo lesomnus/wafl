@@ -1,0 +1,43 @@
+[workspace]
+members = ["examples/hello", "tests/guests"]
+default-members = ["."]
+resolver = "3"
+
+[package]
+name = "wafl-runner"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.100"
+publish = false
+
+[features]
+client = ["connectrpc/client"]
+
+[dependencies]
+anyhow = "1"
+buffa = { version = "=0.8.1", features = ["json"] }
+bytes = "1"
+connectrpc = { version = "=0.8.2", default-features = false, features = ["server", "json"] }
+http = "1"
+http-body = "1"
+http-body-util = "0.1"
+hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
+hyper-util = { version = "0.1", features = ["tokio", "server-auto"] }
+paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "9b315a2513d9e3e9b30d649ea24a8904054f0796", features = ["watch-postgres"] }
+paydirt-server = { git = "https://github.com/lesomnus/paydirt", rev = "9b315a2513d9e3e9b30d649ea24a8904054f0796" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "net", "time", "sync", "io-util"] }
+wasmtime = { version = "=51.0.0", default-features = false, features = ["anyhow", "async", "component-model", "cranelift", "runtime", "std"] }
+wasmtime-wasi = { version = "=51.0.0", default-features = false, features = ["p2"] }
+
+[dev-dependencies]
+h2 = "0.4"
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }
+
+[profile.dev]
+debug = 0
+
+[profile.test]
+debug = 0

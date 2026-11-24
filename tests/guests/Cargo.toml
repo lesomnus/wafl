@@ -1,0 +1,12 @@
+[package]
+name = "wafl-test-guests"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+bytes = "1"
+futures-util = "0.3"
+h2 = "0.4"
+http = "1"
+tokio = { version = "1", features = ["io-util"] }

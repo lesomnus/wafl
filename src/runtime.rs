@@ -1,0 +1,319 @@
+//! WASI socket translation stays in the host; guests use standard WASI APIs.
+use crate::config::App;
+use anyhow::{Context, Result};
+use std::{
+    collections::HashMap,
+    net::{Ipv4Addr, SocketAddr},
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
+use tokio::sync::oneshot;
+use wasmtime::{
+    Config, Engine, Store, StoreContextMut, StoreLimits, StoreLimitsBuilder,
+    component::{Component, Linker, Resource, ResourceTable, ResourceType},
+};
+use wasmtime_wasi::{
+    WasiCtx, WasiCtxBuilder, WasiCtxView, WasiView,
+    p2::{
+        self, SocketResult, TcpSocket,
+        bindings::{
+            Command,
+            sockets::{
+                network::{ErrorCode, IpSocketAddress, Network},
+                tcp::HostTcpSocket,
+            },
+        },
+    },
+    sockets::{SocketAddrUse, WasiSocketsView},
+};
+
+pub(crate) struct Runtime {
+    pub engine: Engine,
+    linker: Linker<State>,
+    ticker: Option<std::thread::JoinHandle<()>>,
+    stopped: Arc<AtomicBool>,
+}
+
+struct State {
+    wasi: WasiCtx,
+    table: ResourceTable,
+    limits: StoreLimits,
+    port: u16,
+    bindings: HashMap<u16, SocketAddr>,
+    remotes: HashMap<u32, SocketAddr>,
+    listener: Option<u32>,
+    address: Option<SocketAddr>,
+    ready: Option<oneshot::Sender<SocketAddr>>,
+}
+
+impl WasiView for State {
+    fn ctx(&mut self) -> WasiCtxView<'_> {
+        WasiCtxView {
+            ctx: &mut self.wasi,
+            table: &mut self.table,
+        }
+    }
+}
+
+// Preserve WASI error codes; malformed resource handles remain traps.
+fn socket_result<T>(
+    result: SocketResult<T>,
+) -> wasmtime::Result<(std::result::Result<T, ErrorCode>,)> {
+    Ok((match result {
+        Ok(v) => Ok(v),
+        Err(e) => Err(e.downcast()?),
+    },))
+}
+
+impl Runtime {
+    pub fn new() -> Result<Self> {
+        let mut config = Config::new();
+        config.wasm_component_model(true).epoch_interruption(true);
+        let engine = Engine::new(&config)?;
+        let mut linker = Linker::<State>::new(&engine);
+        p2::add_to_linker_async(&mut linker)?;
+        linker.allow_shadowing(true);
+        // Match the pinned wasmtime-wasi WIT version. The linker also resolves
+        // compatible earlier 0.2 imports against these definitions.
+        let mut tcp = linker.instance("wasi:sockets/tcp@0.2.12")?;
+        tcp.resource(
+            "tcp-socket",
+            ResourceType::host::<TcpSocket>(),
+            |mut cx, rep| {
+                let state = cx.data_mut();
+                state.remotes.remove(&rep);
+                state.sockets().drop(Resource::new_own(rep))?;
+                // The declared listener is the instance's lifetime boundary. Retiring
+                // it must also retire the route, even if the guest keeps computing.
+                if state.listener == Some(rep) {
+                    return Err(wasmtime::Error::msg("guest closed ingress listener"));
+                }
+                Ok(())
+            },
+        )?;
+        tcp.func_wrap_async(
+            "[method]tcp-socket.start-bind",
+            |mut cx: StoreContextMut<'_, State>,
+             (socket, network, guest): (
+                Resource<TcpSocket>,
+                Resource<Network>,
+                IpSocketAddress,
+            )| {
+                Box::new(async move {
+                    let guest: SocketAddr = guest.into();
+                    let state = cx.data_mut();
+                    // Only one declared listener. Port zero is allowed for explicit
+                    // client-side binds but may never become an ingress listener.
+                    if !guest.is_ipv4()
+                        || !(guest.ip().is_loopback() || guest.ip().is_unspecified())
+                        || (guest.port() != state.port && guest.port() != 0)
+                    {
+                        return Ok((Err(ErrorCode::AccessDenied),));
+                    }
+                    if guest.port() == state.port && state.listener.is_some() {
+                        return Ok((Err(ErrorCode::AddressInUse),));
+                    }
+                    let rep = socket.rep();
+                    let host = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+                    let result = state
+                        .sockets()
+                        .start_bind(socket, network, host.into())
+                        .await;
+                    if result.is_ok() && guest.port() == state.port {
+                        state.listener = Some(rep);
+                    }
+                    socket_result(result)
+                })
+            },
+        )?;
+        tcp.func_wrap_async(
+            "[method]tcp-socket.start-listen",
+            |mut cx: StoreContextMut<'_, State>, (socket,): (Resource<TcpSocket>,)| {
+                Box::new(async move {
+                    let state = cx.data_mut();
+                    if state.listener != Some(socket.rep()) {
+                        return Ok((Err(ErrorCode::AccessDenied),));
+                    }
+                    socket_result(state.sockets().start_listen(socket).await)
+                })
+            },
+        )?;
+        tcp.func_wrap(
+            "[method]tcp-socket.finish-listen",
+            |mut cx: StoreContextMut<'_, State>, (socket,): (Resource<TcpSocket>,)| {
+                let state = cx.data_mut();
+                let rep = socket.rep();
+                let result = state.sockets().finish_listen(socket);
+                if result.is_ok() {
+                    let address = state.sockets().local_address(Resource::new_borrow(rep));
+                    let address = match address {
+                        Ok(a) => SocketAddr::from(a),
+                        Err(e) => return socket_result(Err(e)),
+                    };
+                    state.address = Some(address);
+                    if let Some(ready) = state.ready.take() {
+                        let _ = ready.send(address);
+                    }
+                }
+                socket_result(result)
+            },
+        )?;
+        tcp.func_wrap(
+            "[method]tcp-socket.local-address",
+            |mut cx: StoreContextMut<'_, State>, (socket,): (Resource<TcpSocket>,)| {
+                let state = cx.data_mut();
+                let listener = state.listener == Some(socket.rep());
+                let result = state.sockets().local_address(socket).map(|address| {
+                    let mut address: SocketAddr = address.into();
+                    if listener || Some(address) == state.address {
+                        address.set_port(state.port);
+                    }
+                    IpSocketAddress::from(address)
+                });
+                socket_result(result)
+            },
+        )?;
+        tcp.func_wrap(
+            "[method]tcp-socket.start-connect",
+            |mut cx: StoreContextMut<'_, State>,
+             (socket, network, guest): (
+                Resource<TcpSocket>,
+                Resource<Network>,
+                IpSocketAddress,
+            )| {
+                let guest: SocketAddr = guest.into();
+                let state = cx.data_mut();
+                let target = (guest.is_ipv4() && guest.ip().is_loopback())
+                    .then(|| state.bindings.get(&guest.port()).copied())
+                    .flatten();
+                let Some(target) = target else {
+                    return Ok((Err(ErrorCode::AccessDenied),));
+                };
+                let rep = socket.rep();
+                let result = state
+                    .sockets()
+                    .start_connect(socket, network, target.into());
+                if result.is_ok() {
+                    state.remotes.insert(rep, guest);
+                }
+                socket_result(result)
+            },
+        )?;
+        tcp.func_wrap(
+            "[method]tcp-socket.remote-address",
+            |mut cx: StoreContextMut<'_, State>, (socket,): (Resource<TcpSocket>,)| {
+                let state = cx.data_mut();
+                let guest = state.remotes.get(&socket.rep()).copied();
+                socket_result(
+                    state
+                        .sockets()
+                        .remote_address(socket)
+                        .map(|address| guest.map(IpSocketAddress::from).unwrap_or(address)),
+                )
+            },
+        )?;
+        linker.allow_shadowing(false);
+        let stopped = Arc::new(AtomicBool::new(false));
+        let flag = stopped.clone();
+        let clock = engine.clone();
+        // A dedicated clock still advances when all async executor threads are
+        // executing CPU-bound guests. Epoch yields make cancellation responsive.
+        let ticker = std::thread::Builder::new()
+            .name("wafl-epoch".into())
+            .spawn(move || {
+                while !flag.load(Ordering::Relaxed) {
+                    std::thread::sleep(Duration::from_millis(10));
+                    clock.increment_epoch();
+                }
+            })?;
+        Ok(Self {
+            engine,
+            linker,
+            ticker: Some(ticker),
+            stopped,
+        })
+    }
+
+    pub async fn execute(
+        &self,
+        component: &Component,
+        app: &App,
+        ready: oneshot::Sender<SocketAddr>,
+    ) -> Result<()> {
+        let bindings: HashMap<_, _> = app.bindings.iter().map(|b| (b.port, b.target)).collect();
+        let targets: Vec<_> = bindings.values().copied().collect();
+        let mut wasi = WasiCtxBuilder::new();
+        let stderr = p2::pipe::MemoryOutputPipe::new(16 * 1024);
+        wasi.stderr(stderr.clone());
+        wasi.arg(&app.name)
+            .env("PORT", app.port.to_string())
+            .allow_tcp(true)
+            .allow_udp(false)
+            .allow_ip_name_lookup(false);
+        for (key, value) in &app.env {
+            wasi.env(key, value);
+        }
+        wasi.socket_addr_check(move |addr, reason| {
+            let allowed = match reason {
+                SocketAddrUse::TcpBind => {
+                    (addr.ip().is_loopback() || addr.ip().is_unspecified()) && addr.port() == 0
+                }
+                SocketAddrUse::TcpListen | SocketAddrUse::TcpAccept => addr.ip().is_loopback(),
+                SocketAddrUse::TcpConnect => targets.contains(&addr),
+                _ => false,
+            };
+            Box::pin(async move { allowed })
+        });
+        let mut table = ResourceTable::new();
+        table.set_max_capacity(1024);
+        let state = State {
+            wasi: wasi.build(),
+            table,
+            limits: StoreLimitsBuilder::new()
+                .memory_size(app.memory_bytes)
+                .memories(1)
+                .table_elements(65_536)
+                .tables(8)
+                .instances(32)
+                .build(),
+            port: app.port,
+            bindings,
+            remotes: HashMap::new(),
+            listener: None,
+            address: None,
+            ready: Some(ready),
+        };
+        let mut store = Store::new(&self.engine, state);
+        store.limiter(|state| &mut state.limits);
+        store.set_epoch_deadline(1);
+        store.epoch_deadline_async_yield_and_update(1);
+        let command = Command::instantiate_async(&mut store, component, &self.linker)
+            .await
+            .map_err(anyhow::Error::from)
+            .context("instantiate WASI command")?;
+        command
+            .wasi_cli_run()
+            .call_run(&mut store)
+            .await
+            .map_err(anyhow::Error::from)
+            .context("execute WASI command")?
+            .map_err(|()| {
+                anyhow::anyhow!(
+                    "guest returned failure: {}",
+                    String::from_utf8_lossy(&stderr.contents())
+                )
+            })
+    }
+}
+
+impl Drop for Runtime {
+    fn drop(&mut self) {
+        self.stopped.store(true, Ordering::Relaxed);
+        if let Some(ticker) = self.ticker.take() {
+            let _ = ticker.join();
+        }
+    }
+}
