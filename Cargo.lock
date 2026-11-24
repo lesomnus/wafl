@@ -1593,7 +1593,7 @@ dependencies = [
 [[package]]
 name = "paydirt"
 version = "0.1.0"
-source = "git+https://github.com/lesomnus/paydirt?rev=eef3b80f61b97e2810eb58c3e68ba3243095c18d#eef3b80f61b97e2810eb58c3e68ba3243095c18d"
+source = "git+https://github.com/lesomnus/paydirt?rev=d235c260d2ec5334a94650ab07517c242af2cdff#d235c260d2ec5334a94650ab07517c242af2cdff"
 dependencies = [
  "async-stream",
  "base64 0.22.1",
@@ -1612,7 +1612,7 @@ dependencies = [
 [[package]]
 name = "paydirt-server"
 version = "0.1.0"
-source = "git+https://github.com/lesomnus/paydirt?rev=eef3b80f61b97e2810eb58c3e68ba3243095c18d#eef3b80f61b97e2810eb58c3e68ba3243095c18d"
+source = "git+https://github.com/lesomnus/paydirt?rev=d235c260d2ec5334a94650ab07517c242af2cdff#d235c260d2ec5334a94650ab07517c242af2cdff"
 dependencies = [
  "axum",
  "base64 0.22.1",
