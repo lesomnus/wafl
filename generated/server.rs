@@ -13,6 +13,9 @@ pub trait Server {
     fn wafl_instance(&self) -> impl crate::services::r#wafl::r#InstanceService {
         crate::services::r#wafl::r#InstanceServiceUnimplemented
     }
+    fn wafl_runner(&self) -> impl crate::services::r#wafl::r#RunnerService {
+        crate::services::r#wafl::r#RunnerServiceUnimplemented
+    }
     fn wafl_tenant(&self) -> impl crate::services::r#wafl::r#TenantService {
         crate::services::r#wafl::r#TenantServiceUnimplemented
     }
@@ -44,6 +47,9 @@ pub trait Layer<N: Server + ?Sized> {
     ) -> impl crate::services::r#wafl::r#InstanceService {
         next.wafl_instance()
     }
+    fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::r#RunnerService {
+        next.wafl_runner()
+    }
     fn wafl_tenant(&self, next: &N) -> impl crate::services::r#wafl::r#TenantService {
         next.wafl_tenant()
     }
@@ -66,6 +72,9 @@ impl<N: Server, L: Layer<N>> Server for Overlay<N, L> {
     fn wafl_instance(&self) -> impl crate::services::r#wafl::r#InstanceService {
         self.layer.wafl_instance(&self.next)
     }
+    fn wafl_runner(&self) -> impl crate::services::r#wafl::r#RunnerService {
+        self.layer.wafl_runner(&self.next)
+    }
     fn wafl_tenant(&self) -> impl crate::services::r#wafl::r#TenantService {
         self.layer.wafl_tenant(&self.next)
     }
@@ -82,6 +91,9 @@ impl<T: Server + ?Sized> Server for ::std::sync::Arc<T> {
     }
     fn wafl_instance(&self) -> impl crate::services::r#wafl::r#InstanceService {
         self.as_ref().wafl_instance()
+    }
+    fn wafl_runner(&self) -> impl crate::services::r#wafl::r#RunnerService {
+        self.as_ref().wafl_runner()
     }
     fn wafl_tenant(&self) -> impl crate::services::r#wafl::r#TenantService {
         self.as_ref().wafl_tenant()
@@ -120,6 +132,12 @@ pub fn mount_if(
     if include("wafl.InstanceService") {
         router = crate::services::r#wafl::r#InstanceServiceExt::register(
             ::std::sync::Arc::new(server.wafl_instance()),
+            router,
+        );
+    }
+    if include("wafl.RunnerService") {
+        router = crate::services::r#wafl::r#RunnerServiceExt::register(
+            ::std::sync::Arc::new(server.wafl_runner()),
             router,
         );
     }

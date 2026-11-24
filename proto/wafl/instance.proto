@@ -38,6 +38,11 @@ message Instance {
   reserved 12, 16;
   reserved domain, port;
   Manifest manifest = 17 [(orm.field) = {type: TYPE_JSON, immutable: true}];
+  // Domain-8 Runner ID; changes whenever the runner process restarts.
+  bytes session = 18 [(orm.field) = {type: TYPE_UUID}, (payday.field) = {stamped: true}];
+  // Runner-wide monotonic lifecycle revision; not a request count or CP lease.
+  uint64 revision = 19 [(payday.field) = {stamped: true}];
+  bool draining = 20 [(payday.field) = {stamped: true}];
 }
 
 enum Phase {
@@ -47,4 +52,5 @@ enum Phase {
   PHASE_RUNNING = 3;
   PHASE_FAILED = 4;
   PHASE_STOPPING = 5;
+  PHASE_PREPARING = 6;
 }

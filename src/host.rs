@@ -15,6 +15,8 @@ pub async fn serve(config: Config) -> Result<()> {
     )
     .await
     .map_err(|e| anyhow!("{e}"))?;
+    let control_addr = control.local_addr()?;
+    runner.addresses(ingress.local_addr()?, control_addr);
     let mut workers = Workers::default();
     let reaper = runner.clone();
     workers.add("wafl.reap", Placement::Everywhere, move |stop| {
@@ -27,13 +29,20 @@ pub async fn serve(config: Config) -> Result<()> {
         }
     }).map_err(|e| anyhow!(e))?;
     let telemetry = match config.metrics {
-        Some(metrics) => Some(Telemetry::start(metrics, runner.observe()).await?),
+        Some(metrics) => Some(
+            Telemetry::start(
+                metrics,
+                runner.observe(),
+                paydirt::format_id(&runner.session()).unwrap(),
+            )
+            .await?,
+        ),
         None => None,
     };
     eprintln!(
         "wafl-runner ingress={} control={}",
         ingress.local_addr()?,
-        config.control
+        control_addr
     );
     let traffic = runner.clone();
     let draining = runner.clone();

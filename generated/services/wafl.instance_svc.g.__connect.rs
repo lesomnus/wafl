@@ -34,6 +34,10 @@ pub type OwnedInstanceStartRequestView = ::buffa::view::OwnedView<
 pub type OwnedInstanceStopRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceStopRequestView<'static>,
 >;
+///Shorthand for `OwnedView<InstanceDrainRequestView<'static>>`.
+pub type OwnedInstanceDrainRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceDrainRequestView<'static>,
+>;
 ///Shorthand for `OwnedView<InstanceTailRequestView<'static>>`.
 pub type OwnedInstanceTailRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceTailRequestView<'static>,
@@ -171,6 +175,15 @@ pub const INSTANCE_SERVICE_START_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
 pub const INSTANCE_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/wafl.InstanceService/Stop",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Drain` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_DRAIN_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Drain",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -355,6 +368,29 @@ pub trait InstanceService: Send + Sync + 'static {
         request: ::connectrpc::ServiceRequest<
             '_,
             crate::proto::wafl::InstanceStopRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Close admission, finish current requests, then stop. Start resumes admission.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn drain<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceDrainRequest,
         >,
     ) -> impl ::std::future::Future<
         Output = ::connectrpc::ServiceResult<
@@ -576,6 +612,33 @@ impl<S: InstanceService> InstanceServiceExt for S {
                 },
             )
             .with_spec(INSTANCE_SERVICE_STOP_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Drain",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceDrainRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceDrainRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.drain(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::Instance>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_DRAIN_SPEC)
             .route_view_server_stream::<
                 _,
                 _,
@@ -692,6 +755,12 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
                         .with_spec(INSTANCE_SERVICE_STOP_SPEC),
+                )
+            }
+            "Drain" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_DRAIN_SPEC),
                 )
             }
             "Tail" => {
@@ -823,6 +892,25 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                         crate::proto::wafl::InstanceStopRequest,
                     >::from_parts(&req, &body);
                     svc.stop(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::Instance>(format)
+                })
+            }
+            "Drain" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceDrainRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceDrainRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceDrainRequest,
+                    >::from_parts(&req, &body);
+                    svc.drain(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::Instance>(format)
                 })
@@ -1205,6 +1293,44 @@ where
                 &self.config,
                 INSTANCE_SERVICE_SERVICE_NAME,
                 "Stop",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Drain RPC. Sends a request to /wafl.InstanceService/Drain.
+    pub async fn drain(
+        &self,
+        request: crate::proto::wafl::InstanceDrainRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.drain_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Drain RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn drain_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceDrainRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Drain",
                 request,
                 options,
             )

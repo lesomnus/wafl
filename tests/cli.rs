@@ -201,6 +201,8 @@ impl Server {
 
 #[path = "cli/cache.rs"]
 mod cache;
+#[path = "cli/lifecycle.rs"]
+mod lifecycle;
 #[path = "cli/metrics.rs"]
 mod metrics;
 async fn cli(endpoint: &str, args: &[&str]) -> Output {

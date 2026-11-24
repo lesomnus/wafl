@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use clap::{Args, Parser, Subcommand};
 use connectrpc::client::{ClientConfig, HttpClient};
 use std::{io::Write, net::SocketAddr, path::PathBuf};
@@ -6,7 +6,7 @@ use wafl_runner::{
     config::{Config, INSTANCE_DOMAIN, TENANT_DOMAIN, valid_alias},
     host,
     proto::wafl::*,
-    services::wafl::InstanceServiceClient,
+    services::wafl::{InstanceServiceClient, RunnerServiceClient},
 };
 
 #[derive(Parser)]
@@ -22,11 +22,22 @@ struct Cli {
     /// Print protobuf JSON responses (one record per line for logs).
     #[arg(long, global = true)]
     json: bool,
+    /// Reject a mutation if the runner process has restarted.
+    #[arg(long, global = true)]
+    session: Option<String>,
+    /// Require this lifecycle revision (requires --session).
+    #[arg(long, global = true, requires = "session")]
+    revision: Option<u64>,
     #[command(subcommand)]
     command: Command,
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect the current runner session and capacity.
+    Runner {
+        #[command(subcommand)]
+        action: RunnerCommand,
+    },
     /// Run a server in the foreground until SIGINT or SIGTERM.
     Serve {
         #[command(subcommand)]
@@ -37,6 +48,10 @@ enum Command {
         #[command(subcommand)]
         action: InstanceCommand,
     },
+}
+#[derive(Subcommand)]
+enum RunnerCommand {
+    Get,
 }
 #[derive(Subcommand)]
 enum Serve {
@@ -63,6 +78,7 @@ enum InstanceCommand {
     List,
     Start(Target),
     Stop(Target),
+    Drain(Drain),
     Erase(Target),
     Logs(Logs),
 }
@@ -72,7 +88,19 @@ struct Target {
     reference: String,
 }
 #[derive(Args)]
+struct Drain {
+    #[arg(value_name = "ID|@ALIAS")]
+    reference: String,
+    #[arg(long, default_value_t = 0)]
+    timeout_ms: u64,
+    #[arg(long)]
+    force: bool,
+}
+#[derive(Args)]
 struct Add {
+    /// Caller-chosen domain-7 UUID, for Get/retry after an uncertain response.
+    #[arg(long)]
+    id: Option<String>,
     /// Bundle URL, resolved by the runner (http, https, or file).
     url: String,
     #[arg(long)]
@@ -205,6 +233,15 @@ impl Add {
         let alias = self.alias.unwrap_or_default();
         let alias = alias.strip_prefix('@').unwrap_or(&alias).to_owned();
         Ok(InstanceAddRequest {
+            id: self
+                .id
+                .map(|value| {
+                    paydirt::parse_id(&value)
+                        .filter(|id| paydirt::has_domain(id, INSTANCE_DOMAIN))
+                        .map(|id| id.to_vec())
+                        .context("id must be a domain-7 UUID")
+                })
+                .transpose()?,
             tenant: Some(TenantRef {
                 key: Some(tenant_ref::Key::Id(tenant.to_vec())),
                 ..Default::default()
@@ -234,6 +271,7 @@ async fn main() -> Result<()> {
                     metrics: None,
                     bundle: Default::default(),
                     cache: Default::default(),
+                    capacity: Default::default(),
                 },
             };
             if let Some(path) = args.path.or(args.directory) {
@@ -248,13 +286,43 @@ async fn main() -> Result<()> {
             eprintln!("bundle directory: {}", config.directory()?.display());
             return host::serve(config).await;
         }
+        Command::Runner {
+            action: RunnerCommand::Get,
+        } => {
+            let client = RunnerServiceClient::new(
+                HttpClient::plaintext(),
+                client_config(&cli.endpoint, None, None)?,
+            );
+            let value = client
+                .get(RunnerGetRequest {
+                    r#ref: Some(RunnerRef {
+                        key: Some(runner_ref::Key::Alias("self".into())),
+                        ..Default::default()
+                    })
+                    .into(),
+                    ..Default::default()
+                })
+                .await?
+                .into_owned();
+            if cli.json {
+                println!("{}", serde_json::to_string(&value)?);
+            } else {
+                println!(
+                    "{}\tingress={}\tcontrol={}\taccepting={}",
+                    paydirt::format_id(&value.id).context("invalid runner ID")?,
+                    value.ingress,
+                    value.control,
+                    value.accepting
+                );
+            }
+            return Ok(());
+        }
         Command::Instance { action } => action,
     };
-    let uri: http::Uri = cli.endpoint.parse().context("invalid endpoint")?;
-    if uri.scheme_str() != Some("http") || uri.authority().is_none() {
-        bail!("runner endpoint must be an http:// address");
-    }
-    let client = InstanceServiceClient::new(HttpClient::plaintext(), ClientConfig::new(uri));
+    let client = InstanceServiceClient::new(
+        HttpClient::plaintext(),
+        client_config(&cli.endpoint, cli.session.as_deref(), cli.revision)?,
+    );
     match action {
         InstanceCommand::Add(args) => print_instance(
             &client.add((*args).request()?).await?.into_owned(),
@@ -284,6 +352,18 @@ async fn main() -> Result<()> {
             &client
                 .stop(InstanceStopRequest {
                     r#ref: Some(reference(&args.reference)?).into(),
+                    ..Default::default()
+                })
+                .await?
+                .into_owned(),
+            cli.json,
+        )?,
+        InstanceCommand::Drain(args) => print_instance(
+            &client
+                .drain(InstanceDrainRequest {
+                    r#ref: Some(reference(&args.reference)?).into(),
+                    timeout_ms: args.timeout_ms,
+                    force: args.force,
                     ..Default::default()
                 })
                 .await?
@@ -345,4 +425,28 @@ async fn main() -> Result<()> {
         }
     }
     Ok(())
+}
+
+fn client_config(
+    endpoint: &str,
+    session: Option<&str>,
+    revision: Option<u64>,
+) -> Result<ClientConfig> {
+    let uri: http::Uri = endpoint.parse().context("invalid endpoint")?;
+    ensure!(
+        uri.scheme_str() == Some("http") && uri.authority().is_some(),
+        "runner endpoint must be an http:// address"
+    );
+    let mut headers = http::HeaderMap::new();
+    if let Some(session) = session {
+        ensure!(
+            paydirt::parse_id(session).is_some_and(|id| paydirt::has_domain(&id, 8)),
+            "session must be a domain-8 Runner UUID"
+        );
+        headers.insert("wafl-session", session.parse()?);
+    }
+    if let Some(revision) = revision {
+        headers.insert("wafl-revision", revision.to_string().parse()?);
+    }
+    Ok(ClientConfig::new(uri).with_default_headers(headers))
 }

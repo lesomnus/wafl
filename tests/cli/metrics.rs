@@ -163,10 +163,19 @@ async fn otlp_exports_instances_and_uses_a_new_session_after_restart() {
         &["add", &assets.url, "--alias", "observed"],
     )
     .await;
+    assert_eq!(paydirt::format_id(&app.session).unwrap(), session);
     let id = paydirt::format_id(&app.id).unwrap();
     let active = collector
         .until(|batch| count(batch, "running") == 1.0)
         .await;
+    assert_eq!(number(&points(&active, "wafl.runner.executions")[0]), 1.0);
+    assert_eq!(
+        number(&points(&active, "wafl.runner.memory.reserved")[0]),
+        67108864.0
+    );
+    assert_eq!(number(&points(&active, "wafl.runner.compilations")[0]), 1.0);
+    assert_eq!(number(&points(&active, "wafl.runner.accepting")[0]), 1.0);
+    assert!(metric(&active, "wafl.runner.compilation.requests").is_some());
     assert!(
         points(&active, "wafl.instance.active")
             .iter()

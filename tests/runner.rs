@@ -159,6 +159,7 @@ fn config() -> Config {
         metrics: None,
         bundle: Default::default(),
         cache: Default::default(),
+        capacity: Default::default(),
     }
 }
 struct Harness {
@@ -172,9 +173,13 @@ struct Harness {
 }
 impl Harness {
     async fn new(apps: Vec<TestApp>) -> Self {
+        Self::limits(apps, Default::default()).await
+    }
+    async fn limits(apps: Vec<TestApp>, capacity: wafl_runner::config::Capacity) -> Self {
         let directory = tempfile::tempdir().unwrap();
         let runner = Runner::new(&Config {
             directory: Some(directory.path().to_owned()),
+            capacity,
             ..config()
         })
         .await
@@ -692,7 +697,27 @@ async fn cancelled_add_releases_its_id_and_shutdown_interrupts_downloads() {
         .await
         .unwrap()
         .unwrap();
-    assert!(runner.list().is_empty());
+    assert_eq!(runner.list().len(), 1);
+    assert_eq!(runner.list()[0].phase, Phase::Preparing);
+    let reference = serde_json::json!({"id": STANDARD.encode(spec.id)});
+    assert_eq!(
+        rpc(&runner, "Get", serde_json::json!({"ref":reference}))
+            .await
+            .1["phase"],
+        "PHASE_PREPARING"
+    );
+    for method in ["Start", "Stop", "Drain"] {
+        assert_eq!(
+            rpc(&runner, method, serde_json::json!({"ref":reference}))
+                .await
+                .1["code"],
+            "failed_precondition"
+        );
+    }
+    assert_eq!(
+        rpc(&runner, "Erase", reference).await.1["code"],
+        "failed_precondition"
+    );
     assert_eq!(
         runner.add(request).await.unwrap_err().code,
         connectrpc::ErrorCode::AlreadyExists
@@ -956,6 +981,21 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     let app = h.instance("grpc");
     assert_eq!(app.snapshot().phase, Phase::Running);
     assert_eq!(app.snapshot().active, 1);
+    let drain = {
+        let app = app.clone();
+        tokio::spawn(async move {
+            app.drain(5000, false, wafl_runner::runner::Condition::default())
+                .await
+        })
+    };
+    tokio::time::timeout(Duration::from_secs(5), async {
+        while !app.snapshot().draining {
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(!drain.is_finished());
     output.send_data(payload.clone(), true).unwrap();
     let data = tokio::time::timeout(Duration::from_secs(5), input.data())
         .await
@@ -966,6 +1006,14 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     input.flow_control().release_capacity(data.len()).unwrap();
     assert!(input.data().await.is_none());
     assert_eq!(input.trailers().await.unwrap().unwrap()["grpc-status"], "0");
+    drain.await.unwrap().unwrap();
+    assert_eq!(app.snapshot().phase, Phase::Stopped);
+    drop(
+        h.runner
+            .start(&app, wafl_runner::runner::Condition::default())
+            .await
+            .unwrap(),
+    );
     let request = http::Request::builder()
         .method("POST")
         .uri("http://grpc.test/echo.Echo/Listen")
@@ -989,3 +1037,6 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
     driver.abort();
     h.finish().await;
 }
+
+#[path = "runner/lifecycle.rs"]
+mod lifecycle;

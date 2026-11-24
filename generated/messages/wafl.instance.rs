@@ -10,6 +10,7 @@ pub enum Phase {
     PHASE_RUNNING = 3i32,
     PHASE_FAILED = 4i32,
     PHASE_STOPPING = 5i32,
+    PHASE_PREPARING = 6i32,
 }
 impl Phase {
     ///Idiomatic alias for [`Self::PHASE_UNSPECIFIED`]; `Debug` prints the variant name.
@@ -30,6 +31,9 @@ impl Phase {
     ///Idiomatic alias for [`Self::PHASE_STOPPING`]; `Debug` prints the variant name.
     #[allow(non_upper_case_globals)]
     pub const Stopping: Self = Self::PHASE_STOPPING;
+    ///Idiomatic alias for [`Self::PHASE_PREPARING`]; `Debug` prints the variant name.
+    #[allow(non_upper_case_globals)]
+    pub const Preparing: Self = Self::PHASE_PREPARING;
 }
 impl ::core::default::Default for Phase {
     fn default() -> Self {
@@ -131,6 +135,7 @@ impl ::buffa::Enumeration for Phase {
             3i32 => ::core::option::Option::Some(Self::PHASE_RUNNING),
             4i32 => ::core::option::Option::Some(Self::PHASE_FAILED),
             5i32 => ::core::option::Option::Some(Self::PHASE_STOPPING),
+            6i32 => ::core::option::Option::Some(Self::PHASE_PREPARING),
             _ => ::core::option::Option::None,
         }
     }
@@ -145,6 +150,7 @@ impl ::buffa::Enumeration for Phase {
             Self::PHASE_RUNNING => "PHASE_RUNNING",
             Self::PHASE_FAILED => "PHASE_FAILED",
             Self::PHASE_STOPPING => "PHASE_STOPPING",
+            Self::PHASE_PREPARING => "PHASE_PREPARING",
         }
     }
     fn from_proto_name(name: &str) -> ::core::option::Option<Self> {
@@ -155,6 +161,7 @@ impl ::buffa::Enumeration for Phase {
             "PHASE_RUNNING" => ::core::option::Option::Some(Self::PHASE_RUNNING),
             "PHASE_FAILED" => ::core::option::Option::Some(Self::PHASE_FAILED),
             "PHASE_STOPPING" => ::core::option::Option::Some(Self::PHASE_STOPPING),
+            "PHASE_PREPARING" => ::core::option::Option::Some(Self::PHASE_PREPARING),
             _ => ::core::option::Option::None,
         }
     }
@@ -166,6 +173,7 @@ impl ::buffa::Enumeration for Phase {
             Self::PHASE_RUNNING,
             Self::PHASE_FAILED,
             Self::PHASE_STOPPING,
+            Self::PHASE_PREPARING,
         ]
     }
 }
@@ -240,6 +248,31 @@ pub struct Instance {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub manifest: ::buffa::MessageField<Manifest>,
+    /// Domain-8 Runner ID; changes whenever the runner process restarts.
+    ///
+    /// Field 18: `session`
+    #[serde(
+        rename = "session",
+        with = "::buffa::json_helpers::bytes",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_bytes"
+    )]
+    pub session: ::buffa::alloc::vec::Vec<u8>,
+    /// Runner-wide monotonic lifecycle revision; not a request count or CP lease.
+    ///
+    /// Field 19: `revision`
+    #[serde(
+        rename = "revision",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub revision: u64,
+    /// Field 20: `draining`
+    #[serde(
+        rename = "draining",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub draining: bool,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -256,6 +289,9 @@ impl ::core::fmt::Debug for Instance {
             .field("active", &self.active)
             .field("error", &self.error)
             .field("manifest", &self.manifest)
+            .field("session", &self.session)
+            .field("revision", &self.revision)
+            .field("draining", &self.draining)
             .finish()
     }
 }
@@ -324,6 +360,15 @@ impl ::buffa::Message for Instance {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if !self.session.is_empty() {
+            size += 2u32 + ::buffa::types::bytes_encoded_len(&self.session) as u32;
+        }
+        if self.revision != 0u64 {
+            size += 2u32 + ::buffa::types::uint64_encoded_len(self.revision) as u32;
+        }
+        if self.draining {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -365,6 +410,15 @@ impl ::buffa::Message for Instance {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if !self.session.is_empty() {
+            ::buffa::types::put_bytes_field(18u32, &self.session, buf);
+        }
+        if self.revision != 0u64 {
+            ::buffa::types::put_uint64_field(19u32, self.revision, buf);
+        }
+        if self.draining {
+            ::buffa::types::put_bool_field(20u32, self.draining, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -452,6 +506,27 @@ impl ::buffa::Message for Instance {
                     ctx,
                 )?;
             }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_bytes(&mut self.session, buf)?;
+            }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.revision = ::buffa::types::decode_uint64(buf)?;
+            }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.draining = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -469,6 +544,9 @@ impl ::buffa::Message for Instance {
         self.active = 0u32;
         self.error.clear();
         self.manifest = ::buffa::MessageField::none();
+        self.session.clear();
+        self.revision = 0u64;
+        self.draining = false;
         self.__buffa_unknown_fields.clear();
     }
 }

@@ -565,6 +565,24 @@
           "kind": "JSON",
           "nullable": true,
           "immutable": true
+        },
+        {
+          "name": "session",
+          "json": "session",
+          "number": 18,
+          "kind": "UUID"
+        },
+        {
+          "name": "revision",
+          "json": "revision",
+          "number": 19,
+          "kind": "UINT64"
+        },
+        {
+          "name": "draining",
+          "json": "draining",
+          "number": 20,
+          "kind": "BOOL"
         }
       ],
       "indexes": []
@@ -732,6 +750,87 @@
           "json": "fields",
           "number": 9,
           "kind": "UINT32",
+          "collection": "list"
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "wafl.Runner",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "alias",
+          "json": "alias",
+          "number": 4,
+          "kind": "STRING",
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "version",
+          "json": "version",
+          "number": 8,
+          "kind": "STRING"
+        },
+        {
+          "name": "runtime",
+          "json": "runtime",
+          "number": 9,
+          "kind": "STRING"
+        },
+        {
+          "name": "abi",
+          "json": "abi",
+          "number": 10,
+          "kind": "STRING"
+        },
+        {
+          "name": "ingress",
+          "json": "ingress",
+          "number": 11,
+          "kind": "STRING"
+        },
+        {
+          "name": "control",
+          "json": "control",
+          "number": 12,
+          "kind": "STRING"
+        },
+        {
+          "name": "accepting",
+          "json": "accepting",
+          "number": 16,
+          "kind": "BOOL"
+        },
+        {
+          "name": "capacity",
+          "json": "capacity",
+          "number": 17,
+          "kind": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "usage",
+          "json": "usage",
+          "number": 18,
+          "kind": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "capabilities",
+          "json": "capabilities",
+          "number": 19,
+          "kind": "JSON",
           "collection": "list"
         }
       ],

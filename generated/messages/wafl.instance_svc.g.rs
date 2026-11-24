@@ -62,6 +62,27 @@ pub struct InstanceAddRequest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub manifest: ::buffa::MessageField<Manifest>,
+    /// Field 18: `session`
+    #[serde(
+        rename = "session",
+        with = "::buffa::json_helpers::bytes",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_bytes"
+    )]
+    pub session: ::buffa::alloc::vec::Vec<u8>,
+    /// Field 19: `revision`
+    #[serde(
+        rename = "revision",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub revision: u64,
+    /// Field 20: `draining`
+    #[serde(
+        rename = "draining",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub draining: bool,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -78,6 +99,9 @@ impl ::core::fmt::Debug for InstanceAddRequest {
             .field("active", &self.active)
             .field("error", &self.error)
             .field("manifest", &self.manifest)
+            .field("session", &self.session)
+            .field("revision", &self.revision)
+            .field("draining", &self.draining)
             .finish()
     }
 }
@@ -165,6 +189,15 @@ impl ::buffa::Message for InstanceAddRequest {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if !self.session.is_empty() {
+            size += 2u32 + ::buffa::types::bytes_encoded_len(&self.session) as u32;
+        }
+        if self.revision != 0u64 {
+            size += 2u32 + ::buffa::types::uint64_encoded_len(self.revision) as u32;
+        }
+        if self.draining {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -206,6 +239,15 @@ impl ::buffa::Message for InstanceAddRequest {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if !self.session.is_empty() {
+            ::buffa::types::put_bytes_field(18u32, &self.session, buf);
+        }
+        if self.revision != 0u64 {
+            ::buffa::types::put_uint64_field(19u32, self.revision, buf);
+        }
+        if self.draining {
+            ::buffa::types::put_bool_field(20u32, self.draining, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -299,6 +341,27 @@ impl ::buffa::Message for InstanceAddRequest {
                     ctx,
                 )?;
             }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_bytes(&mut self.session, buf)?;
+            }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.revision = ::buffa::types::decode_uint64(buf)?;
+            }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.draining = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -316,6 +379,9 @@ impl ::buffa::Message for InstanceAddRequest {
         self.active = 0u32;
         self.error.clear();
         self.manifest = ::buffa::MessageField::none();
+        self.session.clear();
+        self.revision = 0u64;
+        self.draining = false;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -796,6 +862,21 @@ pub struct InstanceSelect {
         skip_serializing_if = "::core::option::Option::is_none"
     )]
     pub manifest: ::core::option::Option<bool>,
+    /// Field 18: `session`
+    #[serde(rename = "session", skip_serializing_if = "::core::option::Option::is_none")]
+    pub session: ::core::option::Option<bool>,
+    /// Field 19: `revision`
+    #[serde(
+        rename = "revision",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub revision: ::core::option::Option<bool>,
+    /// Field 20: `draining`
+    #[serde(
+        rename = "draining",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub draining: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -812,6 +893,9 @@ impl ::core::fmt::Debug for InstanceSelect {
             .field("active", &self.active)
             .field("error", &self.error)
             .field("manifest", &self.manifest)
+            .field("session", &self.session)
+            .field("revision", &self.revision)
+            .field("draining", &self.draining)
             .finish()
     }
 }
@@ -879,6 +963,27 @@ impl InstanceSelect {
         self.manifest = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::session`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_session(mut self, value: bool) -> Self {
+        self.session = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::revision`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_revision(mut self, value: bool) -> Self {
+        self.revision = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::draining`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_draining(mut self, value: bool) -> Self {
+        self.draining = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(InstanceSelect);
 impl ::buffa::MessageName for InstanceSelect {
@@ -930,6 +1035,15 @@ impl ::buffa::Message for InstanceSelect {
         if self.manifest.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.session.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.revision.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.draining.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -967,6 +1081,15 @@ impl ::buffa::Message for InstanceSelect {
         }
         if let Some(v) = self.manifest {
             ::buffa::types::put_bool_field(17u32, v, buf);
+        }
+        if let Some(v) = self.session {
+            ::buffa::types::put_bool_field(18u32, v, buf);
+        }
+        if let Some(v) = self.revision {
+            ::buffa::types::put_bool_field(19u32, v, buf);
+        }
+        if let Some(v) = self.draining {
+            ::buffa::types::put_bool_field(20u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1064,6 +1187,33 @@ impl ::buffa::Message for InstanceSelect {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.session = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.revision = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.draining = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1081,6 +1231,9 @@ impl ::buffa::Message for InstanceSelect {
         self.active = ::core::option::Option::None;
         self.error = ::core::option::Option::None;
         self.manifest = ::core::option::Option::None;
+        self.session = ::core::option::Option::None;
+        self.revision = ::core::option::Option::None;
+        self.draining = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -2016,6 +2169,191 @@ pub const __INSTANCE_STOP_REQUEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry
     type_url: "type.googleapis.com/wafl.InstanceStopRequest",
     to_json: ::buffa::type_registry::any_to_json::<InstanceStopRequest>,
     from_json: ::buffa::type_registry::any_from_json::<InstanceStopRequest>,
+    is_wkt: false,
+};
+/// Mutations accept optional wafl-session (Runner UUID) and wafl-revision
+/// (decimal Instance.revision) RPC metadata. Add only accepts wafl-session.
+/// Revision requires session; check and mutation are atomic in the runner.
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct InstanceDrainRequest {
+    /// Field 1: `ref`
+    #[serde(
+        rename = "ref",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub r#ref: ::buffa::MessageField<InstanceRef>,
+    /// Zero uses the runner default. Maximum 600000 ms.
+    ///
+    /// Field 2: `timeout_ms`
+    #[serde(
+        rename = "timeoutMs",
+        alias = "timeout_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub timeout_ms: u64,
+    /// On expiry, terminate the guest and interrupt remaining requests.
+    ///
+    /// Field 3: `force`
+    #[serde(
+        rename = "force",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub force: bool,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for InstanceDrainRequest {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("InstanceDrainRequest")
+            .field("ref", &self.r#ref)
+            .field("timeout_ms", &self.timeout_ms)
+            .field("force", &self.force)
+            .finish()
+    }
+}
+impl InstanceDrainRequest {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceDrainRequest";
+}
+::buffa::impl_default_instance!(InstanceDrainRequest);
+impl ::buffa::MessageName for InstanceDrainRequest {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "InstanceDrainRequest";
+    const FULL_NAME: &'static str = "wafl.InstanceDrainRequest";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.InstanceDrainRequest";
+}
+impl ::buffa::Message for InstanceDrainRequest {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, __cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.r#ref.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.r#ref.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.timeout_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.timeout_ms) as u32;
+        }
+        if self.force {
+            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        __cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if self.r#ref.is_set() {
+            ::buffa::types::put_len_delimited_header(1u32, __cache.consume_next(), buf);
+            self.r#ref.write_to(__cache, buf);
+        }
+        if self.timeout_ms != 0u64 {
+            ::buffa::types::put_uint64_field(2u32, self.timeout_ms, buf);
+        }
+        if self.force {
+            ::buffa::types::put_bool_field(3u32, self.force, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.r#ref.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.timeout_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.force = ::buffa::types::decode_bool(buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.r#ref = ::buffa::MessageField::none();
+        self.timeout_ms = 0u64;
+        self.force = false;
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for InstanceDrainRequest {
+    const PROTO_FQN: &'static str = "wafl.InstanceDrainRequest";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for InstanceDrainRequest {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __INSTANCE_DRAIN_REQUEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.InstanceDrainRequest",
+    to_json: ::buffa::type_registry::any_to_json::<InstanceDrainRequest>,
+    from_json: ::buffa::type_registry::any_from_json::<InstanceDrainRequest>,
     is_wkt: false,
 };
 #[derive(Clone, PartialEq, Default)]

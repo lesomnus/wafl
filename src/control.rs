@@ -1,9 +1,12 @@
 use crate::{
     config::INSTANCE_DOMAIN,
     proto::wafl::*,
-    runner::{Execution, Runner},
+    runner::{Condition, Execution, Runner},
     server::{self, Server},
-    services::wafl::{InstanceService, InstanceServiceLayer, InstanceServiceOverlay},
+    services::wafl::{
+        InstanceService, InstanceServiceLayer, InstanceServiceOverlay, RunnerService,
+        RunnerServiceLayer, RunnerServiceOverlay,
+    },
 };
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
 use connectrpc::{ConnectError, RequestContext, Response, ServiceRequest, ServiceResult};
@@ -15,13 +18,19 @@ pub fn router(runner: Runner) -> connectrpc::Router {
     // The runner supplies storage; this process does not select the DB Sink.
     let stack = server::Unimplemented.layer(Instances(runner));
     server::mount_if(connectrpc::Router::new(), &stack, |service| {
-        service == "wafl.InstanceService"
+        matches!(service, "wafl.InstanceService" | "wafl.RunnerService")
     })
 }
 
 #[derive(Clone)]
 struct Instances(Runner);
 impl<N: Server> server::Layer<N> for Instances {
+    fn wafl_runner(&self, next: &N) -> impl RunnerService {
+        RunnerServiceOverlay {
+            next: next.wafl_runner(),
+            layer: self.clone(),
+        }
+    }
     fn wafl_instance(&self, next: &N) -> impl InstanceService {
         InstanceServiceOverlay {
             next: next.wafl_instance(),
@@ -31,10 +40,17 @@ impl<N: Server> server::Layer<N> for Instances {
 }
 impl Instances {
     fn app(&self, reference: &InstanceRef) -> Result<Arc<Execution>, ConnectError> {
-        self.0
+        let id = self
+            .0
             .resolve(reference)?
-            .and_then(|id| self.0.instance(&id))
-            .ok_or_else(|| ConnectError::not_found("instance not found"))
+            .ok_or_else(|| ConnectError::not_found("instance not found"))?;
+        self.0.instance(&id).ok_or_else(|| {
+            if self.0.snapshot(&id).is_some() {
+                ConnectError::failed_precondition("instance is still being added")
+            } else {
+                ConnectError::not_found("instance not found")
+            }
+        })
     }
 }
 
@@ -50,20 +66,29 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
     async fn add(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceAddRequest>,
     ) -> ServiceResult<Instance> {
+        let condition = condition(&ctx)?;
+        if condition.revision.is_some() {
+            return Err(ConnectError::invalid_argument(
+                "Add accepts session, not revision",
+            ));
+        }
+        self.0.check_session(condition.session)?;
         Response::ok(self.0.add(req.to_owned_message()).await?)
     }
     async fn erase(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceRef>,
     ) -> ServiceResult<InstanceEraseResponse> {
         let req = req.to_owned_message();
+        let condition = condition(&ctx)?;
+        self.0.check_session(condition.session)?;
         let erased = match self.0.resolve(&req)? {
-            Some(id) => self.0.erase(&id).await?,
+            Some(id) => self.0.erase_condition(&id, condition).await?,
             None => false,
         };
         Response::ok(InstanceEraseResponse {
@@ -78,7 +103,11 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
         req: ServiceRequest<'_, InstanceGetRequest>,
     ) -> ServiceResult<Instance> {
         let req = req.to_owned_message();
-        let mut value = self.app(&req.r#ref)?.snapshot();
+        let mut value = self
+            .0
+            .resolve(&req.r#ref)?
+            .and_then(|id| self.0.snapshot(&id))
+            .ok_or_else(|| ConnectError::not_found("instance not found"))?;
         if let Some(select) = req.select.as_option() {
             if let Some(related) = select.tenant.as_option()
                 && (related.all.unwrap_or(false)
@@ -114,6 +143,15 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
                 }
                 if !select.error.unwrap_or(false) {
                     value.error.clear();
+                }
+                if !select.session.unwrap_or(false) {
+                    value.session.clear();
+                }
+                if !select.revision.unwrap_or(false) {
+                    value.revision = 0;
+                }
+                if !select.draining.unwrap_or(false) {
+                    value.draining = false;
                 }
                 if !select.manifest.unwrap_or(false) {
                     value.manifest = Default::default();
@@ -196,28 +234,36 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
     async fn start(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceStartRequest>,
     ) -> ServiceResult<Instance> {
         let app = self.app(&req.to_owned_message().r#ref)?;
-        let lease = self
-            .0
-            .acquire(&app)
-            .await
-            .map_err(|e| ConnectError::unavailable(e.to_string()))?;
+        let lease = self.0.start(&app, condition(&ctx)?).await?;
         drop(lease);
         Response::ok(app.snapshot())
     }
     async fn stop(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceStopRequest>,
     ) -> ServiceResult<Instance> {
         let app = self.app(&req.to_owned_message().r#ref)?;
-        app.stop(false, false)
-            .await
-            .map_err(|e| ConnectError::failed_precondition(e.to_string()))?;
+        app.stop_condition(false, false, condition(&ctx)?, false)
+            .await?;
+        Response::ok(app.snapshot())
+    }
+
+    async fn drain(
+        &self,
+        _: &N,
+        ctx: RequestContext,
+        req: ServiceRequest<'_, InstanceDrainRequest>,
+    ) -> ServiceResult<Instance> {
+        let req = req.to_owned_message();
+        let app = self.app(&req.r#ref)?;
+        app.drain(req.timeout_ms, req.force, condition(&ctx)?)
+            .await?;
         Response::ok(app.snapshot())
     }
 
@@ -232,5 +278,150 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
             self.app(&req.r#ref)?
                 .tail(req.cursor, req.limit, req.follow)?,
         )
+    }
+}
+
+// Shared by all management mutations, including generated Add and Erase.
+pub(crate) fn condition(ctx: &RequestContext) -> Result<Condition, ConnectError> {
+    fn single<'a>(ctx: &'a RequestContext, name: &str) -> Result<Option<&'a str>, ConnectError> {
+        let mut values = ctx.headers().get_all(name).iter();
+        let value = values
+            .next()
+            .map(|v| {
+                v.to_str()
+                    .map_err(|_| ConnectError::invalid_argument("invalid command condition"))
+            })
+            .transpose()?;
+        if values.next().is_some() {
+            return Err(ConnectError::invalid_argument(
+                "duplicate command condition",
+            ));
+        }
+        Ok(value)
+    }
+    let session = single(ctx, "wafl-session")?
+        .map(|value| {
+            paydirt::parse_id(value)
+                .filter(|id| paydirt::has_domain(id, 8))
+                .ok_or_else(|| {
+                    ConnectError::invalid_argument("wafl-session must be a domain-8 Runner UUID")
+                })
+        })
+        .transpose()?;
+    let revision = single(ctx, "wafl-revision")?
+        .map(|value| {
+            if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
+                return Err(ConnectError::invalid_argument(
+                    "wafl-revision must be decimal uint64",
+                ));
+            }
+            value
+                .parse::<u64>()
+                .map_err(|_| ConnectError::invalid_argument("wafl-revision must be decimal uint64"))
+        })
+        .transpose()?;
+    if revision.is_some() && session.is_none() {
+        return Err(ConnectError::invalid_argument(
+            "wafl-revision requires wafl-session",
+        ));
+    }
+    Ok(Condition { session, revision })
+}
+impl Instances {
+    fn runner_match(&self, reference: &RunnerRef) -> Result<bool, ConnectError> {
+        match &reference.key {
+            Some(runner_ref::Key::Id(id)) if paydirt::has_domain(id, 8) => {
+                Ok(id.as_slice() == self.0.session())
+            }
+            Some(runner_ref::Key::Alias(alias)) if crate::config::valid_alias(alias) => {
+                Ok(alias == "self")
+            }
+            _ => Err(ConnectError::invalid_argument(
+                "runner ref must contain a domain-8 ID or alias",
+            )),
+        }
+    }
+}
+#[allow(refining_impl_trait)]
+impl<N: RunnerService> RunnerServiceLayer<N> for Instances {
+    async fn get(
+        &self,
+        _: &N,
+        _: RequestContext,
+        req: ServiceRequest<'_, RunnerGetRequest>,
+    ) -> ServiceResult<crate::proto::wafl::Runner> {
+        let req = req.to_owned_message();
+        if !self.runner_match(&req.r#ref)? {
+            return Err(ConnectError::not_found("runner session not found"));
+        }
+        let mut value = self.0.status();
+        if let Some(select) = req.select.as_option()
+            && !select.all.unwrap_or(false)
+        {
+            if !select.alias.unwrap_or(false) {
+                value.alias.clear();
+            }
+            if !select.version.unwrap_or(false) {
+                value.version.clear();
+            }
+            if !select.runtime.unwrap_or(false) {
+                value.runtime.clear();
+            }
+            if !select.abi.unwrap_or(false) {
+                value.abi.clear();
+            }
+            if !select.ingress.unwrap_or(false) {
+                value.ingress.clear();
+            }
+            if !select.control.unwrap_or(false) {
+                value.control.clear();
+            }
+            if !select.accepting.unwrap_or(false) {
+                value.accepting = false;
+            }
+            if !select.capacity.unwrap_or(false) {
+                value.capacity = Default::default();
+            }
+            if !select.usage.unwrap_or(false) {
+                value.usage = Default::default();
+            }
+            if !select.capabilities.unwrap_or(false) {
+                value.capabilities.clear();
+            }
+        }
+        Response::ok(value)
+    }
+    async fn list(
+        &self,
+        _: &N,
+        _: RequestContext,
+        req: ServiceRequest<'_, RunnerListRequest>,
+    ) -> ServiceResult<RunnerListResponse> {
+        let req = req.to_owned_message();
+        if req.filters.len() > 64 {
+            return Err(ConnectError::invalid_argument(
+                "at most 64 filters are allowed",
+            ));
+        }
+        let filters = req
+            .filters
+            .iter()
+            .map(|f| self.runner_match(&f.r#ref))
+            .collect::<Result<Vec<_>, _>>()?;
+        // There is at most one row, so this service never emits a next cursor.
+        if !req.after.is_empty() {
+            return Err(ConnectError::invalid_argument(
+                "RunnerService has no continuation cursor",
+            ));
+        }
+        let items = if filters.is_empty() || filters.contains(&true) {
+            vec![self.0.status()]
+        } else {
+            Vec::new()
+        };
+        Response::ok(RunnerListResponse {
+            items,
+            ..Default::default()
+        })
     }
 }
