@@ -86,7 +86,7 @@ CLI는 생성된 `InstanceServiceClient`로 `InstanceAddRequest`를 제출합니
 | `--tenant` / `WAFL_TENANT` | domain 1 Tenant UUID. 기본은 로컬 개발용 `00000000-0000-8000-8001-000000000001` |
 | `--port`, `--protocol` | 게스트 포트와 `http` 또는 `h2c` |
 | `--env KEY=VALUE` | 반복 가능. `PORT`는 runner가 설정 |
-| `--binding PORT=IP:PORT` | 반복 가능. 게스트 loopback 포트 매핑 |
+| `--binding PORT=IP:PORT` | 반복 가능. 선택적인 IPv4 loopback 포트 매핑 |
 | `--idle-ms`, `--startup-ms` | 유휴 회수·시작 제한 |
 | `--memory-bytes`, `--max-active` | 실행 메모리·동시 요청 제한 |
 | `--digest sha256:…` | 압축된 번들의 SHA-256 고정·검증 |
@@ -99,13 +99,15 @@ CLI는 생성된 `InstanceServiceClient`로 `InstanceAddRequest`를 제출합니
 ```sh
 wafl instance add https://files.example.com/jobs-v2.tar.gz \
   --alias jobs --port 8080 --protocol h2c \
-  --binding 5432=10.0.0.20:5432
+  --env DATABASE_URL=postgresql://app@postgres.default.svc.cluster.local:5432/app
 
 wafl --json instance get @jobs
 wafl instance erase @jobs
 ```
 
 `--json`은 protobuf JSON을 출력하므로 bytes ID는 base64, uint64는 문자열입니다. List는 인스턴스마다 한 줄을 출력하고 다음 페이지를 자동 조회합니다. 기본 출력은 UUID와 `@alias`입니다. 실패하면 0이 아닌 종료 코드를 반환합니다.
+
+앱이 `DATABASE_URL`을 읽고 해당 DB의 WASI 호환 클라이언트로 연결해야 합니다. runner는 connection string을 해석하지 않습니다. DNS와 직접 발신 TCP를 지원하므로 일반 DB 연결에는 `--binding`이 필요하지 않습니다. 실행 가능한 Redis 예제, 로컬 개발과 Kubernetes 주소 사용법은 [외부 연결과 DB 튜토리얼](network.md)에 있습니다.
 
 ## 로그
 
