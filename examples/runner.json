@@ -1,0 +1,26 @@
+{
+  "listen": "127.0.0.1:8080",
+  "control": "127.0.0.1:8081",
+  "apps": [
+    {
+      "name": "hello",
+      "artifact": "../target/wasm32-wasip2/debug/wafl-example-hello.wasm",
+      "runtime": "wasmtime",
+      "abi": "wasip2",
+      "domain": "hello.localhost",
+      "port": 8080,
+      "idle_ms": 5000,
+      "env": {"GREETING": "Hello"}
+    },
+    {
+      "name": "bye",
+      "artifact": "../target/wasm32-wasip2/debug/wafl-example-hello.wasm",
+      "runtime": "wasmtime",
+      "abi": "wasip2",
+      "domain": "bye.localhost",
+      "port": 8080,
+      "idle_ms": 5000,
+      "env": {"GREETING": "Goodbye"}
+    }
+  ]
+}
