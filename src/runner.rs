@@ -4,6 +4,7 @@ use crate::{
     proto::wafl::{Instance, InstanceAddRequest, InstanceRef, Phase, Tenant, instance_ref},
     runtime::Runtime,
     store::{Bundle, Store},
+    telemetry::{InstanceSample, Observe, Snapshot},
 };
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use connectrpc::ConnectError;
@@ -240,6 +241,42 @@ impl Runner {
             .iter()
             .map(|instance| instance.snapshot())
             .collect()
+    }
+    pub(crate) fn observe(&self) -> Observe {
+        let registry = Arc::downgrade(&self.0);
+        Arc::new(move || {
+            let registry = registry.upgrade()?;
+            let (instances, pending) = {
+                let entries = registry.entries.lock().unwrap();
+                (
+                    entries.instances.values().cloned().collect::<Vec<_>>(),
+                    entries.pending.len(),
+                )
+            };
+            let instances = instances
+                .iter()
+                .map(|instance| {
+                    let state = instance.state.lock().unwrap();
+                    InstanceSample {
+                        id: paydirt::format_id(&instance.spec.id).unwrap(),
+                        phase: match state.phase {
+                            Phase::Stopped => "stopped",
+                            Phase::Starting => "starting",
+                            Phase::Running => "running",
+                            Phase::Failed => "failed",
+                            Phase::Stopping => "stopping",
+                            _ => "unspecified",
+                        },
+                        active: state.active as u64,
+                    }
+                })
+                .collect();
+            Some(Snapshot {
+                instances,
+                pending: pending as u64,
+                preparing: (4 - registry.slots.available_permits()) as u64,
+            })
+        })
     }
     fn executions(&self) -> Vec<Arc<Execution>> {
         self.0

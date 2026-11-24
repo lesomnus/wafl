@@ -39,6 +39,8 @@ Bundle URL은 HTTP·HTTPS·file을 지원합니다. tar.gz 루트의 `main.wasm`
 
 앱은 DNS와 IPv4·IPv6 TCP로 외부 서비스에 직접 연결할 수 있습니다. 플랫폼이 `DATABASE_URL` 등의 환경변수를 전달하면 앱의 DB 클라이언트가 연결하며, 별도 DB 포트 매핑은 선택 사항입니다. 발신 연결은 runner 호스트·Pod의 네트워크 범위를 공유합니다.
 
+runner 설정의 `metrics.endpoint`를 지정하면 실행 상태·활성 lease와 Linux 프로세스 CPU/RSS를 OTLP/HTTP protobuf로 전송합니다. 설정을 생략하면 비활성화됩니다. [메트릭 튜토리얼](docs/metrics.md)에 Collector와 함께 실행하는 예제가 있습니다.
+
 앱·도메인·배치는 플랫폼이 관리하고 gateway가 `wafl-instance` 헤더로 인스턴스를 선택합니다. runner 관리 API는 인증 없이 동작하며 tenant는 소속 메타데이터입니다. Kubernetes 제어평면, credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
 
 [CLI 튜토리얼](docs/cli.md) · [외부 연결과 DB](docs/network.md) · [RPC와 시나리오](docs/runner.md) · [번들 규격](docs/bundle.md) · [공유 저장소 계약과 원격 읽기 확장](docs/store.md) · [Instance](proto/wafl/instance.proto) · [생성된 RPC](generated/proto/wafl/instance_svc.g.proto)

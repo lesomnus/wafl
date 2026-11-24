@@ -19,6 +19,49 @@ pub struct Config {
     pub control: SocketAddr,
     #[serde(default)]
     pub directory: Option<PathBuf>,
+    #[serde(default)]
+    pub metrics: Option<Metrics>,
+}
+
+/// Runner-owned OTLP/HTTP protobuf export; never passed to a guest manifest.
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Metrics {
+    /// Complete metrics URL, including /v1/metrics when using a Collector.
+    pub endpoint: String,
+    #[serde(default = "metrics_interval")]
+    pub interval_ms: u64,
+    #[serde(default = "metrics_timeout")]
+    pub timeout_ms: u64,
+}
+fn metrics_interval() -> u64 {
+    10_000
+}
+fn metrics_timeout() -> u64 {
+    3_000
+}
+
+impl Metrics {
+    fn validate(&self) -> Result<()> {
+        let endpoint = reqwest::Url::parse(&self.endpoint).context("invalid metrics endpoint")?;
+        ensure!(
+            matches!(endpoint.scheme(), "http" | "https")
+                && endpoint.host_str().is_some()
+                && endpoint.username().is_empty()
+                && endpoint.password().is_none()
+                && endpoint.fragment().is_none(),
+            "metrics.endpoint must be an HTTP(S) URL without userinfo or fragment"
+        );
+        ensure!(
+            (100..=86_400_000).contains(&self.interval_ms),
+            "metrics.interval_ms must be 100..86400000"
+        );
+        ensure!(
+            (1..=5_000).contains(&self.timeout_ms),
+            "metrics.timeout_ms must be 1..5000"
+        );
+        Ok(())
+    }
 }
 impl Config {
     pub fn read(path: &Path) -> Result<Self> {
@@ -32,6 +75,9 @@ impl Config {
             self.listen != self.control || self.listen.port() == 0,
             "ingress and control require separate listeners"
         );
+        if let Some(metrics) = &self.metrics {
+            metrics.validate()?;
+        }
         Ok(())
     }
 

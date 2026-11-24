@@ -156,6 +156,7 @@ fn config() -> Config {
         listen: "127.0.0.1:0".parse().unwrap(),
         control: "127.0.0.1:0".parse().unwrap(),
         directory: None,
+        metrics: None,
     }
 }
 struct Harness {

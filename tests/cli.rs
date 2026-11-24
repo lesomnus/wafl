@@ -105,6 +105,9 @@ struct Server {
 }
 impl Server {
     async fn new(directory: &Path, flag: bool) -> Self {
+        Self::configured(directory, flag, None).await
+    }
+    async fn configured(directory: &Path, flag: bool, metrics: Option<serde_json::Value>) -> Self {
         for _ in 0..5 {
             // Hold both reservations so the kernel cannot return the same port
             // twice. Another process can still win the handoff below; retry only
@@ -115,6 +118,18 @@ impl Server {
             let control = control_socket.local_addr().unwrap();
             let mut command = command();
             command.args(["serve", "runner"]);
+            if let Some(metrics) = &metrics {
+                let path = directory.join("runner-metrics.json");
+                std::fs::write(
+                    &path,
+                    serde_json::to_vec(&serde_json::json!({
+                        "listen": ingress, "control": control, "metrics": metrics,
+                    }))
+                    .unwrap(),
+                )
+                .unwrap();
+                command.arg("--config").arg(path);
+            }
             if flag {
                 command.arg("--directory");
             }
@@ -179,6 +194,9 @@ impl Server {
         }
     }
 }
+
+#[path = "cli/metrics.rs"]
+mod metrics;
 async fn cli(endpoint: &str, args: &[&str]) -> Output {
     tokio::time::timeout(
         Duration::from_secs(120),
