@@ -1,0 +1,43 @@
+edition = "2023";
+
+package payday;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option features.field_presence = IMPLICIT;
+option go_package = "github.com/lesomnus/payday/pdpb";
+
+message WatchRequest {
+  // Boolean CEL expression with variable `event`. Empty means true. Evaluation
+  // sees only the authorized public representation that the stream delivers.
+  string filter = 1;
+}
+
+enum ChangeKind {
+  CHANGE_KIND_UNSPECIFIED = 0;
+  CHANGE_KIND_CREATED = 1;
+  CHANGE_KIND_UPDATED = 2;
+  CHANGE_KIND_DELETED = 3;
+}
+
+// One resource mutation. Multiple mutations of one resource remain separate.
+// IDs, payloads and timestamps remain stable on redelivery; delivery is neither
+// exactly once nor durable subscriber replay.
+message WatchEvent {
+  // Event ID. The resource ID is inside value or previous.
+  bytes id = 1;
+  // Mutation postimage, absent on deletion. Any identifies the resource type.
+  google.protobuf.Any value = 2;
+  // Originating operation: the RPC the write was served under.
+  string method = 3;
+  ChangeKind kind = 5;
+  // Outermost operation: what a custom transaction was named, and otherwise
+  // the same as method.
+  string call_method = 7;
+  // Mutation preimage. Present on deletion; on updates only when the application's
+  // recorder enables it. Absent on creation. Guard presence in CEL filters.
+  google.protobuf.Any previous = 8;
+  // Time recorded in the write transaction, not delivery or database commit time.
+  google.protobuf.Timestamp date_created = 15;
+}

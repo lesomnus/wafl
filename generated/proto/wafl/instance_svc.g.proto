@@ -1,0 +1,43 @@
+edition = "2023";
+package wafl;
+
+import "wafl/instance.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+
+service InstanceService {
+  rpc Get(InstanceGetRequest) returns (.wafl.Instance);
+  rpc List(InstanceListRequest) returns (InstanceListResponse);
+  // Reuse a running instance or wait for the shared startup attempt.
+  rpc Start(InstanceStartRequest) returns (Instance);
+  // Refuse active requests. A later request starts the instance again.
+  rpc Stop(InstanceStopRequest) returns (Instance);
+}
+
+message InstanceGetRequest {
+  InstanceRef ref = 1;
+}
+
+message InstanceRef {
+  bytes id = 1 [features.field_presence = IMPLICIT];
+}
+
+message InstanceListRequest {
+  repeated .wafl.InstanceFilter filters = 1;
+  int32 size = 2 [features.field_presence = IMPLICIT];
+  string after = 3 [features.field_presence = IMPLICIT];
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message InstanceListResponse {
+  repeated .wafl.Instance items = 1;
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message InstanceStartRequest {
+  InstanceRef ref = 1;
+}
+
+message InstanceStopRequest {
+  InstanceRef ref = 1;
+}

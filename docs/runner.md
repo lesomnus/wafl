@@ -78,22 +78,26 @@ Rust 1.100.0과 Wasmtime 51.0.0을 고정했습니다. `wasm32-wasip2` 빌드는
 
 ## 관리 API
 
-paydirt의 코드 생성으로 만든 protobuf 계약과 `paydirt-server`의 Connect/gRPC transport를 사용합니다. 실행 상태는 runner 메모리에 있는 일시적인 정보이므로 ORM entity나 DB 테이블로 저장하지 않습니다. `paydirt::spin::Workers`가 유휴 회수와 종료 수명을 관리합니다.
+[`Instance`](../proto/wafl/instance.proto)를 `(payday.resource)`로 선언합니다. paydirt가 이 선언에서 `InstanceService.Get/List`, `InstanceRef`, 필터·페이지 요청과 응답을 생성합니다. 실행 상태는 runner 메모리를 조회하는 computed resource이며 DB 테이블을 만들지 않습니다. 앱 고유 동작인 `Start/Stop`만 [확장 proto](../proto/ext/wafl/instance_svc.ext.proto)에 추가합니다.
 
-RPC는 `List`, `Get`, `Start`, `Stop`입니다.
+Rust provider가 생성된 `InstanceService` trait을 구현하고 `storage::Layers`로 공급하면, 생성된 `storage::mount`가 서비스를 등록합니다. provider는 runner token 인증과 조회·기동·종료를 담당합니다. `paydirt-server`가 Connect/gRPC transport를, `paydirt::spin::Workers`가 유휴 회수와 종료 수명을 관리합니다.
+
+RPC는 `List`, `Get`, `Start`, `Stop`입니다. `id`는 앱 이름의 UTF-8 바이트이며 JSON에서는 base64로 표현합니다. 예를 들어 `hello`의 ID는 `aGVsbG8=`입니다. `List`로 받은 ID를 `ref.id`에 넣어 해당 인스턴스를 지정합니다.
 
 ```sh
 curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
-  -d '{"name":"hello"}' http://127.0.0.1:8081/wafl.RunnerService/Start
+  -d '{"ref":{"id":"aGVsbG8="}}' http://127.0.0.1:8081/wafl.InstanceService/Start
 
 curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
-  -d '{"name":"hello"}' http://127.0.0.1:8081/wafl.RunnerService/Get
+  -d '{"ref":{"id":"aGVsbG8="}}' http://127.0.0.1:8081/wafl.InstanceService/Get
 
 curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
-  -d '{"name":"hello"}' http://127.0.0.1:8081/wafl.RunnerService/Stop
+  -d '{"ref":{"id":"aGVsbG8="}}' http://127.0.0.1:8081/wafl.InstanceService/Stop
 ```
 
-`Start`는 이미 실행 중이면 재사용합니다. `Stop`은 활성 요청이 있으면 `FAILED_PRECONDITION`으로 거절합니다. `Stop`은 앱 등록 해제가 아니므로 다음 요청이 다시 기동합니다. `generation`은 runner 프로세스 내의 시작 시도 횟수이며 재시작 시 초기화됩니다. API 응답의 `active`에는 시작을 기다리는 요청도 포함됩니다.
+이 리소스는 이 runner에 등록된 앱별 실행 상태를 나타내며, 중지 상태에서도 조회할 수 있습니다. `id`는 시작·종료 사이에 유지됩니다. `Start`는 이미 실행 중이면 재사용합니다. `Stop`은 활성 요청이 있으면 `FAILED_PRECONDITION`으로 거절합니다. `Stop`은 앱 등록 해제가 아니므로 다음 요청이 다시 기동합니다. `generation`은 runner 프로세스 내의 시작 시도 횟수이며 재시작 시 초기화됩니다. API 응답의 `active`에는 시작을 기다리는 요청도 포함됩니다.
+
+`List`는 앱 이름순입니다. `filters: [{"name":"hello"}]`로 이름을 선택하며 여러 필터는 OR로 결합합니다. 필터가 없거나 빈 이름이면 전체를 선택합니다. `size`는 기본 100, 최대 1,000이고 `reverse: true`는 역순입니다. 응답의 `next`가 있으면 같은 필터와 정렬을 유지하고 다음 요청의 `after`에 전달합니다. 현재 선택 결과에 없는 cursor는 `INVALID_ARGUMENT`입니다.
 
 로컬 control listener는 token 없이 사용할 수 있습니다. `WAFL_TOKEN`을 설정하면 모든 관리 RPC에 `Authorization: Bearer ...`가 필요합니다. loopback 외의 control 주소를 설정할 때는 `WAFL_TOKEN`이 필수입니다. 외부 노출 환경에서는 gateway/서비스 메시가 TLS를 종료하고 control 포트 접근을 제한해야 합니다. 이 token은 runner 관리용이며 앱 사용자의 인증 정책을 대신하지 않습니다.
 
@@ -124,6 +128,8 @@ Traefik/Envoy의 upstream을 runner의 `listen`에 연결하고 원래 Host/`:au
 ## 개발과 코드 생성
 
 `generated/`는 직접 수정하지 않습니다. paydirt와 codegen 도구 버전을 고정한 설치·생성 스크립트를 사용합니다.
+
+`paydirt.schema.json`의 `entities: false`는 기본 저장 entity를 설치하지 않고 computed resource의 표준 계약·서비스 조합을 생성하도록 지정합니다. 따라서 DB나 ORM runtime 없이도 리소스 기반 생성 경로를 사용합니다. 이 모드에 ORM entity를 섞으면 생성 오류가 납니다. 필드는 `proto/wafl/instance.proto`에서, 추가 동작은 `proto/ext/wafl/instance_svc.ext.proto`에서 수정합니다. 생성된 `Get/List` 선언을 손으로 작성하지 않습니다.
 
 ```sh
 bash scripts/codegen.sh

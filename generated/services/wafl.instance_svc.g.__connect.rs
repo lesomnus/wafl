@@ -1,47 +1,27 @@
-///Shorthand for `OwnedView<ListRequestView<'static>>`.
-pub type OwnedListRequestView = ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::ListRequestView<'static>,
->;
-///Shorthand for `OwnedView<ListResponseView<'static>>`.
-pub type OwnedListResponseView = ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::ListResponseView<'static>,
->;
-///Shorthand for `OwnedView<GetRequestView<'static>>`.
-pub type OwnedGetRequestView = ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::GetRequestView<'static>,
+///Shorthand for `OwnedView<InstanceGetRequestView<'static>>`.
+pub type OwnedInstanceGetRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceGetRequestView<'static>,
 >;
 ///Shorthand for `OwnedView<InstanceView<'static>>`.
 pub type OwnedInstanceView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceView<'static>,
 >;
-///Shorthand for `OwnedView<StartRequestView<'static>>`.
-pub type OwnedStartRequestView = ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::StartRequestView<'static>,
+///Shorthand for `OwnedView<InstanceListRequestView<'static>>`.
+pub type OwnedInstanceListRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceListRequestView<'static>,
 >;
-///Shorthand for `OwnedView<StopRequestView<'static>>`.
-pub type OwnedStopRequestView = ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::StopRequestView<'static>,
+///Shorthand for `OwnedView<InstanceListResponseView<'static>>`.
+pub type OwnedInstanceListResponseView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceListResponseView<'static>,
 >;
-impl ::connectrpc::Encodable<crate::proto::wafl::ListResponse>
-for crate::proto::wafl::__buffa::view::ListResponseView<'_> {
-    fn encode(
-        &self,
-        codec: ::connectrpc::CodecFormat,
-    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
-        ::connectrpc::__codegen::encode_view_body(self, codec)
-    }
-}
-impl ::connectrpc::Encodable<crate::proto::wafl::ListResponse>
-for ::buffa::view::OwnedView<
-    crate::proto::wafl::__buffa::view::ListResponseView<'static>,
-> {
-    fn encode(
-        &self,
-        codec: ::connectrpc::CodecFormat,
-    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
-        ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
-    }
-}
+///Shorthand for `OwnedView<InstanceStartRequestView<'static>>`.
+pub type OwnedInstanceStartRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceStartRequestView<'static>,
+>;
+///Shorthand for `OwnedView<InstanceStopRequestView<'static>>`.
+pub type OwnedInstanceStopRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceStopRequestView<'static>,
+>;
 impl ::connectrpc::Encodable<crate::proto::wafl::Instance>
 for crate::proto::wafl::__buffa::view::InstanceView<'_> {
     fn encode(
@@ -60,23 +40,43 @@ for ::buffa::view::OwnedView<crate::proto::wafl::__buffa::view::InstanceView<'st
         ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
     }
 }
+impl ::connectrpc::Encodable<crate::proto::wafl::InstanceListResponse>
+for crate::proto::wafl::__buffa::view::InstanceListResponseView<'_> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self, codec)
+    }
+}
+impl ::connectrpc::Encodable<crate::proto::wafl::InstanceListResponse>
+for ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceListResponseView<'static>,
+> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
+    }
+}
 /// Full service name for this service.
-pub const RUNNER_SERVICE_SERVICE_NAME: &str = "wafl.RunnerService";
-/// Static [`Spec`](::connectrpc::Spec) for the server-side `List` RPC.
-///
-/// The dispatcher surfaces this on
-/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
-pub const RUNNER_SERVICE_LIST_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
-        "/wafl.RunnerService/List",
-        ::connectrpc::StreamType::Unary,
-    )
-    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+pub const INSTANCE_SERVICE_SERVICE_NAME: &str = "wafl.InstanceService";
 /// Static [`Spec`](::connectrpc::Spec) for the server-side `Get` RPC.
 ///
 /// The dispatcher surfaces this on
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
-pub const RUNNER_SERVICE_GET_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
-        "/wafl.RunnerService/Get",
+pub const INSTANCE_SERVICE_GET_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Get",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `List` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_LIST_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/List",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -84,8 +84,8 @@ pub const RUNNER_SERVICE_GET_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::serv
 ///
 /// The dispatcher surfaces this on
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
-pub const RUNNER_SERVICE_START_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
-        "/wafl.RunnerService/Start",
+pub const INSTANCE_SERVICE_START_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Start",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -93,13 +93,12 @@ pub const RUNNER_SERVICE_START_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::se
 ///
 /// The dispatcher surfaces this on
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
-pub const RUNNER_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
-        "/wafl.RunnerService/Stop",
+pub const INSTANCE_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Stop",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
-/// Runner-local operations. A deployment controller owns artifact distribution and
-/// manifest registration; this service observes and manages the configured apps.
+/// Server trait for InstanceService.
 ///
 /// # Implementing handlers
 ///
@@ -149,27 +148,7 @@ pub const RUNNER_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::ser
 /// [`PreEncoded`](::connectrpc::PreEncoded) — see its `# Streaming
 /// example` doc.
 #[allow(clippy::type_complexity)]
-pub trait RunnerService: Send + Sync + 'static {
-    /// Handle the List RPC.
-    ///
-    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
-    ///
-    /// `request` is borrowed from the request body and is valid for the
-    /// duration of the call; message fields are read directly on it
-    /// (zero-copy). The response cannot borrow from `request` — use
-    /// `.to_owned_message()` (or copy the specific fields) for anything
-    /// returned, stored, or moved into `tokio::spawn`.
-    fn list<'a>(
-        &'a self,
-        ctx: ::connectrpc::RequestContext,
-        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::ListRequest>,
-    ) -> impl ::std::future::Future<
-        Output = ::connectrpc::ServiceResult<
-            impl ::connectrpc::Encodable<
-                crate::proto::wafl::ListResponse,
-            > + Send + use<'a, Self>,
-        >,
-    > + Send;
+pub trait InstanceService: Send + Sync + 'static {
     /// Handle the Get RPC.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
@@ -182,7 +161,7 @@ pub trait RunnerService: Send + Sync + 'static {
     fn get<'a>(
         &'a self,
         ctx: ::connectrpc::RequestContext,
-        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::GetRequest>,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::InstanceGetRequest>,
     ) -> impl ::std::future::Future<
         Output = ::connectrpc::ServiceResult<
             impl ::connectrpc::Encodable<
@@ -190,7 +169,30 @@ pub trait RunnerService: Send + Sync + 'static {
             > + Send + use<'a, Self>,
         >,
     > + Send;
-    /// Idempotently prepare an instance; requests also start it automatically.
+    /// Handle the List RPC.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn list<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceListRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::InstanceListResponse,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Reuse a running instance or wait for the shared startup attempt.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///
@@ -202,7 +204,10 @@ pub trait RunnerService: Send + Sync + 'static {
     fn start<'a>(
         &'a self,
         ctx: ::connectrpc::RequestContext,
-        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::StartRequest>,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceStartRequest,
+        >,
     ) -> impl ::std::future::Future<
         Output = ::connectrpc::ServiceResult<
             impl ::connectrpc::Encodable<
@@ -210,8 +215,7 @@ pub trait RunnerService: Send + Sync + 'static {
             > + Send + use<'a, Self>,
         >,
     > + Send;
-    /// Stop an idle instance. Active requests cause FAILED_PRECONDITION.
-    /// A later request starts a fresh instance; this does not disable the app.
+    /// Refuse active requests. A later request starts the instance again.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///
@@ -223,7 +227,10 @@ pub trait RunnerService: Send + Sync + 'static {
     fn stop<'a>(
         &'a self,
         ctx: ::connectrpc::RequestContext,
-        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::StopRequest>,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceStopRequest,
+        >,
     ) -> impl ::std::future::Future<
         Output = ::connectrpc::ServiceResult<
             impl ::connectrpc::Encodable<
@@ -247,7 +254,7 @@ pub trait RunnerService: Send + Sync + 'static {
 /// let service = Arc::new(MyServiceImpl);
 /// let router = service.register(Router::new());
 /// ```
-pub trait RunnerServiceExt: RunnerService {
+pub trait InstanceServiceExt: InstanceService {
     /// Register this service implementation with a Router.
     ///
     /// Takes ownership of the `Arc<Self>` and returns a new Router with
@@ -257,53 +264,30 @@ pub trait RunnerServiceExt: RunnerService {
         router: ::connectrpc::Router,
     ) -> ::connectrpc::Router;
 }
-impl<S: RunnerService> RunnerServiceExt for S {
+impl<S: InstanceService> InstanceServiceExt for S {
     fn register(
         self: ::std::sync::Arc<Self>,
         router: ::connectrpc::Router,
     ) -> ::connectrpc::Router {
         router
             .route_view(
-                RUNNER_SERVICE_SERVICE_NAME,
-                "List",
-                {
-                    let svc = ::std::sync::Arc::clone(&self);
-                    ::connectrpc::view_handler_fn(move |
-                        ctx,
-                        req: ::buffa::view::OwnedView<
-                            crate::proto::wafl::__buffa::view::ListRequestView<'static>,
-                        >,
-                        format|
-                    {
-                        let svc = ::std::sync::Arc::clone(&svc);
-                        async move {
-                            let sreq = ::connectrpc::ServiceRequest::<
-                                crate::proto::wafl::ListRequest,
-                            >::from_parts(req.reborrow(), req.bytes());
-                            svc.list(ctx, sreq)
-                                .await?
-                                .encode::<crate::proto::wafl::ListResponse>(format)
-                        }
-                    })
-                },
-            )
-            .with_spec(RUNNER_SERVICE_LIST_SPEC)
-            .route_view(
-                RUNNER_SERVICE_SERVICE_NAME,
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Get",
                 {
                     let svc = ::std::sync::Arc::clone(&self);
                     ::connectrpc::view_handler_fn(move |
                         ctx,
                         req: ::buffa::view::OwnedView<
-                            crate::proto::wafl::__buffa::view::GetRequestView<'static>,
+                            crate::proto::wafl::__buffa::view::InstanceGetRequestView<
+                                'static,
+                            >,
                         >,
                         format|
                     {
                         let svc = ::std::sync::Arc::clone(&svc);
                         async move {
                             let sreq = ::connectrpc::ServiceRequest::<
-                                crate::proto::wafl::GetRequest,
+                                crate::proto::wafl::InstanceGetRequest,
                             >::from_parts(req.reborrow(), req.bytes());
                             svc.get(ctx, sreq)
                                 .await?
@@ -312,23 +296,52 @@ impl<S: RunnerService> RunnerServiceExt for S {
                     })
                 },
             )
-            .with_spec(RUNNER_SERVICE_GET_SPEC)
+            .with_spec(INSTANCE_SERVICE_GET_SPEC)
             .route_view(
-                RUNNER_SERVICE_SERVICE_NAME,
-                "Start",
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "List",
                 {
                     let svc = ::std::sync::Arc::clone(&self);
                     ::connectrpc::view_handler_fn(move |
                         ctx,
                         req: ::buffa::view::OwnedView<
-                            crate::proto::wafl::__buffa::view::StartRequestView<'static>,
+                            crate::proto::wafl::__buffa::view::InstanceListRequestView<
+                                'static,
+                            >,
                         >,
                         format|
                     {
                         let svc = ::std::sync::Arc::clone(&svc);
                         async move {
                             let sreq = ::connectrpc::ServiceRequest::<
-                                crate::proto::wafl::StartRequest,
+                                crate::proto::wafl::InstanceListRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.list(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::InstanceListResponse>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_LIST_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Start",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceStartRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceStartRequest,
                             >::from_parts(req.reborrow(), req.bytes());
                             svc.start(ctx, sreq)
                                 .await?
@@ -337,23 +350,25 @@ impl<S: RunnerService> RunnerServiceExt for S {
                     })
                 },
             )
-            .with_spec(RUNNER_SERVICE_START_SPEC)
+            .with_spec(INSTANCE_SERVICE_START_SPEC)
             .route_view(
-                RUNNER_SERVICE_SERVICE_NAME,
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Stop",
                 {
                     let svc = ::std::sync::Arc::clone(&self);
                     ::connectrpc::view_handler_fn(move |
                         ctx,
                         req: ::buffa::view::OwnedView<
-                            crate::proto::wafl::__buffa::view::StopRequestView<'static>,
+                            crate::proto::wafl::__buffa::view::InstanceStopRequestView<
+                                'static,
+                            >,
                         >,
                         format|
                     {
                         let svc = ::std::sync::Arc::clone(&svc);
                         async move {
                             let sreq = ::connectrpc::ServiceRequest::<
-                                crate::proto::wafl::StopRequest,
+                                crate::proto::wafl::InstanceStopRequest,
                             >::from_parts(req.reborrow(), req.bytes());
                             svc.stop(ctx, sreq)
                                 .await?
@@ -362,19 +377,19 @@ impl<S: RunnerService> RunnerServiceExt for S {
                     })
                 },
             )
-            .with_spec(RUNNER_SERVICE_STOP_SPEC)
+            .with_spec(INSTANCE_SERVICE_STOP_SPEC)
     }
 }
 /// Type-inference marker used by [`Router::add_service`](::connectrpc::Router::add_service).
 #[doc(hidden)]
-pub struct RunnerServiceRegisterMarker;
-impl<S: RunnerService> ::connectrpc::ServiceRegister<RunnerServiceRegisterMarker>
+pub struct InstanceServiceRegisterMarker;
+impl<S: InstanceService> ::connectrpc::ServiceRegister<InstanceServiceRegisterMarker>
 for ::std::sync::Arc<S> {
     fn register_service(self, router: ::connectrpc::Router) -> ::connectrpc::Router {
-        <S as RunnerServiceExt>::register(self, router)
+        <S as InstanceServiceExt>::register(self, router)
     }
 }
-/// Monomorphic dispatcher for `RunnerService`.
+/// Monomorphic dispatcher for `InstanceService`.
 ///
 /// Unlike `.register(Router)` which type-erases each method into an `Arc<dyn ErasedHandler>` stored in a `HashMap`, this struct dispatches via a compile-time `match` on method name: no vtable, no hash lookup.
 ///
@@ -383,14 +398,14 @@ for ::std::sync::Arc<S> {
 /// ```rust,ignore
 /// use connectrpc::ConnectRpcService;
 ///
-/// let server = RunnerServiceServer::new(MyImpl);
+/// let server = InstanceServiceServer::new(MyImpl);
 /// let service = ConnectRpcService::new(server);
 /// // hand `service` to axum/hyper as a fallback_service
 /// ```
-pub struct RunnerServiceServer<T> {
+pub struct InstanceServiceServer<T> {
     inner: ::std::sync::Arc<T>,
 }
-impl<T: RunnerService> RunnerServiceServer<T> {
+impl<T: InstanceService> InstanceServiceServer<T> {
     /// Wrap a service implementation in a monomorphic dispatcher.
     pub fn new(service: T) -> Self {
         Self {
@@ -402,43 +417,43 @@ impl<T: RunnerService> RunnerServiceServer<T> {
         Self { inner }
     }
 }
-impl<T> Clone for RunnerServiceServer<T> {
+impl<T> Clone for InstanceServiceServer<T> {
     fn clone(&self) -> Self {
         Self {
             inner: ::std::sync::Arc::clone(&self.inner),
         }
     }
 }
-impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
+impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
     #[inline]
     fn lookup(
         &self,
         path: &str,
     ) -> Option<::connectrpc::dispatcher::codegen::MethodDescriptor> {
-        let method = path.strip_prefix("wafl.RunnerService/")?;
+        let method = path.strip_prefix("wafl.InstanceService/")?;
         match method {
-            "List" => {
-                Some(
-                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
-                        .with_spec(RUNNER_SERVICE_LIST_SPEC),
-                )
-            }
             "Get" => {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
-                        .with_spec(RUNNER_SERVICE_GET_SPEC),
+                        .with_spec(INSTANCE_SERVICE_GET_SPEC),
+                )
+            }
+            "List" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_LIST_SPEC),
                 )
             }
             "Start" => {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
-                        .with_spec(RUNNER_SERVICE_START_SPEC),
+                        .with_spec(INSTANCE_SERVICE_START_SPEC),
                 )
             }
             "Stop" => {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
-                        .with_spec(RUNNER_SERVICE_STOP_SPEC),
+                        .with_spec(INSTANCE_SERVICE_STOP_SPEC),
                 )
             }
             _ => None,
@@ -451,56 +466,62 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
         request: ::connectrpc::Payload,
         format: ::connectrpc::CodecFormat,
     ) -> ::connectrpc::dispatcher::codegen::UnaryResult {
-        let Some(method) = path.strip_prefix("wafl.RunnerService/") else {
+        let Some(method) = path.strip_prefix("wafl.InstanceService/") else {
             return ::connectrpc::dispatcher::codegen::unimplemented_unary(path);
         };
         let _ = (&ctx, &request, &format);
         match method {
-            "List" => {
-                let svc = ::std::sync::Arc::clone(&self.inner);
-                Box::pin(async move {
-                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
-                        crate::proto::wafl::ListRequest,
-                    >(request.encoded()?, format)?;
-                    let req: crate::proto::wafl::__buffa::view::ListRequestView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
-                        &body,
-                    )?;
-                    let req = ::connectrpc::ServiceRequest::<
-                        crate::proto::wafl::ListRequest,
-                    >::from_parts(&req, &body);
-                    svc.list(ctx, req)
-                        .await?
-                        .encode::<crate::proto::wafl::ListResponse>(format)
-                })
-            }
             "Get" => {
                 let svc = ::std::sync::Arc::clone(&self.inner);
                 Box::pin(async move {
                     let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
-                        crate::proto::wafl::GetRequest,
+                        crate::proto::wafl::InstanceGetRequest,
                     >(request.encoded()?, format)?;
-                    let req: crate::proto::wafl::__buffa::view::GetRequestView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                    let req: crate::proto::wafl::__buffa::view::InstanceGetRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
                         &body,
                     )?;
                     let req = ::connectrpc::ServiceRequest::<
-                        crate::proto::wafl::GetRequest,
+                        crate::proto::wafl::InstanceGetRequest,
                     >::from_parts(&req, &body);
                     svc.get(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::Instance>(format)
                 })
             }
+            "List" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceListRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceListRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceListRequest,
+                    >::from_parts(&req, &body);
+                    svc.list(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::InstanceListResponse>(format)
+                })
+            }
             "Start" => {
                 let svc = ::std::sync::Arc::clone(&self.inner);
                 Box::pin(async move {
                     let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
-                        crate::proto::wafl::StartRequest,
+                        crate::proto::wafl::InstanceStartRequest,
                     >(request.encoded()?, format)?;
-                    let req: crate::proto::wafl::__buffa::view::StartRequestView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                    let req: crate::proto::wafl::__buffa::view::InstanceStartRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
                         &body,
                     )?;
                     let req = ::connectrpc::ServiceRequest::<
-                        crate::proto::wafl::StartRequest,
+                        crate::proto::wafl::InstanceStartRequest,
                     >::from_parts(&req, &body);
                     svc.start(ctx, req)
                         .await?
@@ -511,13 +532,15 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
                 let svc = ::std::sync::Arc::clone(&self.inner);
                 Box::pin(async move {
                     let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
-                        crate::proto::wafl::StopRequest,
+                        crate::proto::wafl::InstanceStopRequest,
                     >(request.encoded()?, format)?;
-                    let req: crate::proto::wafl::__buffa::view::StopRequestView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                    let req: crate::proto::wafl::__buffa::view::InstanceStopRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
                         &body,
                     )?;
                     let req = ::connectrpc::ServiceRequest::<
-                        crate::proto::wafl::StopRequest,
+                        crate::proto::wafl::InstanceStopRequest,
                     >::from_parts(&req, &body);
                     svc.stop(ctx, req)
                         .await?
@@ -534,7 +557,7 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
         request: ::buffa::bytes::Bytes,
         format: ::connectrpc::CodecFormat,
     ) -> ::connectrpc::dispatcher::codegen::StreamingResult {
-        let Some(method) = path.strip_prefix("wafl.RunnerService/") else {
+        let Some(method) = path.strip_prefix("wafl.InstanceService/") else {
             return ::connectrpc::dispatcher::codegen::unimplemented_streaming(path);
         };
         let _ = (&ctx, &request, &format);
@@ -549,7 +572,7 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
         requests: ::connectrpc::dispatcher::codegen::RequestStream,
         format: ::connectrpc::CodecFormat,
     ) -> ::connectrpc::dispatcher::codegen::UnaryResult {
-        let Some(method) = path.strip_prefix("wafl.RunnerService/") else {
+        let Some(method) = path.strip_prefix("wafl.InstanceService/") else {
             return ::connectrpc::dispatcher::codegen::unimplemented_unary(path);
         };
         let _ = (&ctx, &requests, &format);
@@ -564,7 +587,7 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
         requests: ::connectrpc::dispatcher::codegen::RequestStream,
         format: ::connectrpc::CodecFormat,
     ) -> ::connectrpc::dispatcher::codegen::StreamingResult {
-        let Some(method) = path.strip_prefix("wafl.RunnerService/") else {
+        let Some(method) = path.strip_prefix("wafl.InstanceService/") else {
             return ::connectrpc::dispatcher::codegen::unimplemented_streaming(path);
         };
         let _ = (&ctx, &requests, &format);
@@ -590,8 +613,8 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
 /// let conn = Http2Connection::connect_plaintext(uri.clone()).await?.shared(1024);
 /// let config = ClientConfig::new(uri).with_protocol(Protocol::Grpc);
 ///
-/// let client = RunnerServiceClient::new(conn, config);
-/// let response = client.list(request).await?;
+/// let client = InstanceServiceClient::new(conn, config);
+/// let response = client.get(request).await?;
 /// ```
 ///
 /// # Example (Connect / HTTP/1.1 or ALPN)
@@ -602,8 +625,8 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
 /// let http = HttpClient::plaintext();  // cleartext http:// only
 /// let config = ClientConfig::new("http://localhost:8080".parse()?);
 ///
-/// let client = RunnerServiceClient::new(http, config);
-/// let response = client.list(request).await?;
+/// let client = InstanceServiceClient::new(http, config);
+/// let response = client.get(request).await?;
 /// ```
 ///
 /// # Working with the response
@@ -613,7 +636,7 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
 /// message, so field access is zero-copy:
 ///
 /// ```rust,ignore
-/// let resp = client.list(request).await?;
+/// let resp = client.get(request).await?;
 /// let name: &str = resp.view().name;  // borrow into the response buffer
 /// ```
 ///
@@ -621,7 +644,7 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
 /// [`into_owned()`](::connectrpc::client::UnaryResponse::into_owned):
 ///
 /// ```rust,ignore
-/// let owned = client.list(request).await?.into_owned();
+/// let owned = client.get(request).await?.into_owned();
 /// ```
 ///
 /// [`into_view()`](::connectrpc::client::UnaryResponse::into_view) keeps the
@@ -632,12 +655,12 @@ impl<T: RunnerService> ::connectrpc::Dispatcher for RunnerServiceServer<T> {
 /// methods (`msg.name()`) or `.view()`, or convert with `.to_owned_message()`.
 #[cfg(feature = "client")]
 #[derive(Clone)]
-pub struct RunnerServiceClient<T> {
+pub struct InstanceServiceClient<T> {
     transport: T,
     config: ::connectrpc::client::ClientConfig,
 }
 #[cfg(feature = "client")]
-impl<T> RunnerServiceClient<T>
+impl<T> InstanceServiceClient<T>
 where
     T: ::connectrpc::client::ClientTransport,
     <T::ResponseBody as ::connectrpc::http_body::Body>::Error: ::std::fmt::Display,
@@ -654,48 +677,10 @@ where
     pub fn config_mut(&mut self) -> &mut ::connectrpc::client::ClientConfig {
         &mut self.config
     }
-    /// Call the List RPC. Sends a request to /wafl.RunnerService/List.
-    pub async fn list(
-        &self,
-        request: crate::proto::wafl::ListRequest,
-    ) -> Result<
-        ::connectrpc::client::UnaryResponse<
-            ::buffa::view::OwnedView<
-                crate::proto::wafl::__buffa::view::ListResponseView<'static>,
-            >,
-        >,
-        ::connectrpc::ConnectError,
-    > {
-        self.list_with_options(request, ::connectrpc::client::CallOptions::default())
-            .await
-    }
-    /// Call the List RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
-    pub async fn list_with_options(
-        &self,
-        request: crate::proto::wafl::ListRequest,
-        options: ::connectrpc::client::CallOptions,
-    ) -> Result<
-        ::connectrpc::client::UnaryResponse<
-            ::buffa::view::OwnedView<
-                crate::proto::wafl::__buffa::view::ListResponseView<'static>,
-            >,
-        >,
-        ::connectrpc::ConnectError,
-    > {
-        ::connectrpc::client::call_unary(
-                &self.transport,
-                &self.config,
-                RUNNER_SERVICE_SERVICE_NAME,
-                "List",
-                request,
-                options,
-            )
-            .await
-    }
-    /// Call the Get RPC. Sends a request to /wafl.RunnerService/Get.
+    /// Call the Get RPC. Sends a request to /wafl.InstanceService/Get.
     pub async fn get(
         &self,
-        request: crate::proto::wafl::GetRequest,
+        request: crate::proto::wafl::InstanceGetRequest,
     ) -> Result<
         ::connectrpc::client::UnaryResponse<
             ::buffa::view::OwnedView<
@@ -710,7 +695,7 @@ where
     /// Call the Get RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
     pub async fn get_with_options(
         &self,
-        request: crate::proto::wafl::GetRequest,
+        request: crate::proto::wafl::InstanceGetRequest,
         options: ::connectrpc::client::CallOptions,
     ) -> Result<
         ::connectrpc::client::UnaryResponse<
@@ -723,17 +708,55 @@ where
         ::connectrpc::client::call_unary(
                 &self.transport,
                 &self.config,
-                RUNNER_SERVICE_SERVICE_NAME,
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Get",
                 request,
                 options,
             )
             .await
     }
-    /// Call the Start RPC. Sends a request to /wafl.RunnerService/Start.
+    /// Call the List RPC. Sends a request to /wafl.InstanceService/List.
+    pub async fn list(
+        &self,
+        request: crate::proto::wafl::InstanceListRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceListResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.list_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the List RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn list_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceListRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceListResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "List",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Start RPC. Sends a request to /wafl.InstanceService/Start.
     pub async fn start(
         &self,
-        request: crate::proto::wafl::StartRequest,
+        request: crate::proto::wafl::InstanceStartRequest,
     ) -> Result<
         ::connectrpc::client::UnaryResponse<
             ::buffa::view::OwnedView<
@@ -748,7 +771,7 @@ where
     /// Call the Start RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
     pub async fn start_with_options(
         &self,
-        request: crate::proto::wafl::StartRequest,
+        request: crate::proto::wafl::InstanceStartRequest,
         options: ::connectrpc::client::CallOptions,
     ) -> Result<
         ::connectrpc::client::UnaryResponse<
@@ -761,17 +784,17 @@ where
         ::connectrpc::client::call_unary(
                 &self.transport,
                 &self.config,
-                RUNNER_SERVICE_SERVICE_NAME,
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Start",
                 request,
                 options,
             )
             .await
     }
-    /// Call the Stop RPC. Sends a request to /wafl.RunnerService/Stop.
+    /// Call the Stop RPC. Sends a request to /wafl.InstanceService/Stop.
     pub async fn stop(
         &self,
-        request: crate::proto::wafl::StopRequest,
+        request: crate::proto::wafl::InstanceStopRequest,
     ) -> Result<
         ::connectrpc::client::UnaryResponse<
             ::buffa::view::OwnedView<
@@ -786,7 +809,7 @@ where
     /// Call the Stop RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
     pub async fn stop_with_options(
         &self,
-        request: crate::proto::wafl::StopRequest,
+        request: crate::proto::wafl::InstanceStopRequest,
         options: ::connectrpc::client::CallOptions,
     ) -> Result<
         ::connectrpc::client::UnaryResponse<
@@ -799,7 +822,7 @@ where
         ::connectrpc::client::call_unary(
                 &self.transport,
                 &self.config,
-                RUNNER_SERVICE_SERVICE_NAME,
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Stop",
                 request,
                 options,
@@ -807,3 +830,4 @@ where
             .await
     }
 }
+include!("wafl.instance_svc.g.__layers.rs");

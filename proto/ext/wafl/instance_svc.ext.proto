@@ -1,0 +1,17 @@
+edition = "2023";
+package wafl;
+
+import "wafl/instance.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+
+// Only application-specific actions extend the generated read service.
+service InstanceService {
+  // Reuse a running instance or wait for the shared startup attempt.
+  rpc Start(InstanceStartRequest) returns (Instance);
+  // Refuse active requests. A later request starts the instance again.
+  rpc Stop(InstanceStopRequest) returns (Instance);
+}
+
+message InstanceStartRequest { InstanceRef ref = 1; }
+message InstanceStopRequest { InstanceRef ref = 1; }

@@ -1,0 +1,14 @@
+edition = "2023";
+
+package payday;
+
+import "payday/watch.proto";
+
+option go_package = "github.com/lesomnus/payday/pdpb";
+
+// ResourceService provides operations across the application's resource types.
+service ResourceService {
+  // Subscribes to committed changes. Response headers signal that the live
+  // subscription is ready. There is no initial snapshot or replay on reconnect.
+  rpc Watch(WatchRequest) returns (stream WatchEvent);
+}
