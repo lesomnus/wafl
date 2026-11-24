@@ -12,7 +12,7 @@ use std::{
 };
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
-    net::{TcpListener, TcpStream},
+    net::TcpListener,
     process::{Child, Command},
     sync::Notify,
 };
@@ -98,12 +98,6 @@ impl Drop for Assets {
         self.task.abort();
     }
 }
-fn address() -> SocketAddr {
-    std::net::TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-}
 struct Server {
     child: Child,
     endpoint: String,
@@ -111,43 +105,65 @@ struct Server {
 }
 impl Server {
     async fn new(directory: &Path, flag: bool) -> Self {
-        let ingress = address();
-        let control = address();
-        let mut command = command();
-        command.args(["serve", "runner"]);
-        if flag {
-            command.arg("--directory");
-        }
-        command.arg(directory).args([
-            "--listen",
-            &ingress.to_string(),
-            "--control",
-            &control.to_string(),
-        ]);
-        command
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .kill_on_drop(true);
-        let mut child = command.spawn().unwrap();
-        tokio::time::timeout(Duration::from_secs(10), async {
-            loop {
-                assert!(
-                    child.try_wait().unwrap().is_none(),
-                    "runner exited during startup"
-                );
-                if TcpStream::connect(control).await.is_ok() {
-                    break;
-                }
-                tokio::time::sleep(Duration::from_millis(25)).await;
+        for _ in 0..5 {
+            // Hold both reservations so the kernel cannot return the same port
+            // twice. Another process can still win the handoff below; retry only
+            // that bind failure and wait for this child's own readiness message.
+            let ingress_socket = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let control_socket = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
+            let ingress = ingress_socket.local_addr().unwrap();
+            let control = control_socket.local_addr().unwrap();
+            let mut command = command();
+            command.args(["serve", "runner"]);
+            if flag {
+                command.arg("--directory");
             }
-        })
-        .await
-        .unwrap();
-        Self {
-            child,
-            endpoint: format!("http://{control}"),
-            ingress,
+            command.arg(directory).args([
+                "--listen",
+                &ingress.to_string(),
+                "--control",
+                &control.to_string(),
+            ]);
+            command
+                .stdout(Stdio::null())
+                .stderr(Stdio::piped())
+                .kill_on_drop(true);
+            drop((ingress_socket, control_socket));
+            let mut child = command.spawn().unwrap();
+            let mut stderr = BufReader::new(child.stderr.take().unwrap()).lines();
+            let mut diagnostics = String::new();
+            let expected = format!("wafl-runner ingress={ingress} control={control}");
+            let ready = tokio::time::timeout(Duration::from_secs(10), async {
+                while let Some(line) = stderr.next_line().await.unwrap() {
+                    diagnostics.push_str(&line);
+                    diagnostics.push('\n');
+                    if line == expected {
+                        return true;
+                    }
+                }
+                false
+            })
+            .await
+            .expect("runner readiness timeout");
+            if ready {
+                tokio::spawn(async move {
+                    while let Ok(Some(line)) = stderr.next_line().await {
+                        eprintln!("runner: {line}");
+                    }
+                });
+                return Self {
+                    child,
+                    endpoint: format!("http://{control}"),
+                    ingress,
+                };
+            }
+            let status = child.wait().await.unwrap();
+            assert!(
+                diagnostics.contains("Address already in use"),
+                "runner exited during startup ({status}): {diagnostics}"
+            );
         }
+        panic!("could not reserve runner ports after five attempts")
     }
     async fn get(&self, instance: &Instance, path: &str) -> reqwest::Response {
         reqwest::Client::new()
