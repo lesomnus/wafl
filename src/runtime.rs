@@ -108,9 +108,9 @@ impl Runtime {
                     let state = cx.data_mut();
                     // Only one declared listener. Port zero is allowed for explicit
                     // client-side binds but may never become an ingress listener.
-                    if !guest.is_ipv4()
-                        || !(guest.ip().is_loopback() || guest.ip().is_unspecified())
+                    if !(guest.ip().is_loopback() || guest.ip().is_unspecified())
                         || (guest.port() != state.port && guest.port() != 0)
+                        || (guest.port() == state.port && !guest.is_ipv4())
                     {
                         return Ok((Err(ErrorCode::AccessDenied),));
                     }
@@ -118,7 +118,13 @@ impl Runtime {
                         return Ok((Err(ErrorCode::AddressInUse),));
                     }
                     let rep = socket.rep();
-                    let host = SocketAddr::from((Ipv4Addr::LOCALHOST, 0));
+                    // Keep client binds in their original address family and do
+                    // not force wildcard clients onto the host loopback route.
+                    let host = if guest.port() == state.port {
+                        SocketAddr::from((Ipv4Addr::LOCALHOST, 0))
+                    } else {
+                        guest
+                    };
                     let result = state
                         .sockets()
                         .start_bind(socket, network, host.into())
@@ -189,15 +195,13 @@ impl Runtime {
                 let state = cx.data_mut();
                 let target = (guest.is_ipv4() && guest.ip().is_loopback())
                     .then(|| state.bindings.get(&guest.port()).copied())
-                    .flatten();
-                let Some(target) = target else {
-                    return Ok((Err(ErrorCode::AccessDenied),));
-                };
+                    .flatten()
+                    .unwrap_or(guest);
                 let rep = socket.rep();
                 let result = state
                     .sockets()
                     .start_connect(socket, network, target.into());
-                if result.is_ok() {
+                if result.is_ok() && target != guest {
                     state.remotes.insert(rep, guest);
                 }
                 socket_result(result)
@@ -248,7 +252,6 @@ impl Runtime {
         ready: oneshot::Sender<SocketAddr>,
     ) -> Result<()> {
         let bindings: HashMap<_, _> = app.bindings.iter().map(|b| (b.port, b.target)).collect();
-        let targets: Vec<_> = bindings.values().copied().collect();
         let mut wasi = WasiCtxBuilder::new();
         wasi.stdout(logs.sink(generation, Channel::Stdout));
         wasi.stderr(logs.sink(generation, Channel::Stderr));
@@ -257,7 +260,7 @@ impl Runtime {
             .env("PORT", app.port.to_string())
             .allow_tcp(true)
             .allow_udp(false)
-            .allow_ip_name_lookup(false);
+            .allow_ip_name_lookup(true);
         for (key, value) in &app.manifest.env {
             wasi.env(key, value);
         }
@@ -267,7 +270,9 @@ impl Runtime {
                     (addr.ip().is_loopback() || addr.ip().is_unspecified()) && addr.port() == 0
                 }
                 SocketAddrUse::TcpListen | SocketAddrUse::TcpAccept => addr.ip().is_loopback(),
-                SocketAddrUse::TcpConnect => targets.contains(&addr),
+                // Outbound TCP uses the runner's network reachability. Ingress
+                // remains restricted to the one virtualized listener above.
+                SocketAddrUse::TcpConnect => true,
                 _ => false,
             };
             Box::pin(async move { allowed })

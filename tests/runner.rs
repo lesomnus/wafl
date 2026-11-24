@@ -809,7 +809,7 @@ async fn backend(reply: &'static [u8]) -> (SocketAddr, JoinHandle<()>) {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn service_bindings_are_private_to_each_app() {
+async fn service_bindings_map_the_same_guest_port_for_each_app() {
     let (a, a_task) = backend(b"db-a").await;
     let (b, b_task) = backend(b"db-b").await;
     let mut alpha = app("alpha", "socket");
@@ -830,6 +830,83 @@ async fn service_bindings_are_private_to_each_app() {
     assert_eq!(client.text("beta", "/db").await, "db-b");
     a_task.await.unwrap();
     b_task.await.unwrap();
+    drop(client);
+    h.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn outbound_tcp_resolves_names_and_connects_without_bindings() {
+    // Local endpoints make this independent of public DNS and Internet access.
+    let (ipv4, ipv4_task) = backend(b"ipv4").await;
+    let (dns, dns_task) = backend(b"dns!").await;
+    let listener = TcpListener::bind("[::1]:0").await.unwrap();
+    let ipv6 = listener.local_addr().unwrap();
+    let ipv6_task = tokio::spawn(async move {
+        for _ in 0..2 {
+            let (mut socket, _) = listener.accept().await.unwrap();
+            let mut bytes = [0; 4];
+            socket.read_exact(&mut bytes).await.unwrap();
+            assert_eq!(&bytes, b"ping");
+            socket.write_all(b"ipv6").await.unwrap();
+        }
+    });
+    let (bound, bound_task) = backend(b"bind").await;
+    let apps = [
+        ("ipv4", ipv4.to_string()),
+        ("dns", format!("localhost:{}", dns.port())),
+        ("ipv6", ipv6.to_string()),
+        ("bound", bound.to_string()),
+    ]
+    .into_iter()
+    .map(|(name, address)| {
+        let mut spec = app(name, "socket");
+        spec.env.insert("BACKEND".into(), address);
+        assert!(spec.bindings.is_empty());
+        spec
+    })
+    .collect();
+    let h = Harness::new(apps).await;
+    let mut client = h.client().await;
+    assert_eq!(client.text("ipv4", "/outbound").await, "ipv4");
+    assert_eq!(client.text("dns", "/outbound").await, "dns!");
+    assert_eq!(client.text("ipv6", "/outbound").await, "ipv6");
+    assert_eq!(client.text("bound", "/bound").await, "bind");
+    assert_eq!(client.text("ipv6", "/bound").await, "ipv6");
+    ipv4_task.await.unwrap();
+    dns_task.await.unwrap();
+    ipv6_task.await.unwrap();
+    bound_task.await.unwrap();
+    drop(client);
+    h.finish().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[ignore = "requires Redis; set WAFL_TEST_DATABASE_URL and run with --ignored"]
+async fn redis_connection_string_keeps_state_across_instances_and_restarts() {
+    let database = std::env::var("WAFL_TEST_DATABASE_URL").expect("Redis connection string");
+    let key = format!(
+        "wafl:test:{}",
+        paydirt::format_id(&paydirt::mint(7)).unwrap()
+    );
+    let apps = ["alpha", "beta"]
+        .into_iter()
+        .map(|name| {
+            let mut spec = app(name, "wafl-example-redis");
+            spec.env.insert("DATABASE_URL".into(), database.clone());
+            spec.env.insert("COUNTER_KEY".into(), key.clone());
+            assert!(spec.bindings.is_empty());
+            spec
+        })
+        .collect();
+    let h = Harness::new(apps).await;
+    let mut client = h.client().await;
+    assert_eq!(client.text("alpha", "/").await, "visits: 1\n");
+    let alpha = h.instance("alpha");
+    alpha.stop(false, false).await.unwrap();
+    assert_eq!(alpha.snapshot().phase, Phase::Stopped);
+    assert_eq!(client.text("alpha", "/").await, "visits: 2\n");
+    assert_eq!(alpha.snapshot().generation, 2);
+    assert_eq!(client.text("beta", "/").await, "visits: 3\n");
     drop(client);
     h.finish().await;
 }
