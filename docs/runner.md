@@ -43,6 +43,8 @@ cargo run --locked -- serve runner --config examples/runner.json
 
 이 파일은 프로세스 설정입니다. `listen`은 HTTP/1.1·HTTP/2 cleartext 앱 트래픽, `control`은 Connect/gRPC 관리 RPC 주소입니다. 선택적인 `directory`로 공유 번들 저장소를 지정할 수 있습니다. 아직 인스턴스는 없습니다. 기존 `apps`, `artifact`, `domain` 설정은 사용하지 않습니다.
 
+선택적인 `metrics`로 runner의 OTLP/HTTP 전송을 설정할 수 있습니다. 목적지와 주기를 지정하는 방법, 각 지표의 의미는 [메트릭 계약과 튜토리얼](metrics.md)에 있습니다.
+
 ## 4. 생성된 Add RPC 호출하기
 
 [`examples/instance.json`](../examples/instance.json)은 생성된 `InstanceAddRequest`의 protobuf JSON입니다.

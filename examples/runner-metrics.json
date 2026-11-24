@@ -1,0 +1,9 @@
+{
+  "listen": "127.0.0.1:8080",
+  "control": "127.0.0.1:8081",
+  "metrics": {
+    "endpoint": "http://127.0.0.1:4318/v1/metrics",
+    "interval_ms": 1000,
+    "timeout_ms": 1000
+  }
+}

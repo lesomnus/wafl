@@ -75,6 +75,8 @@ wafl serve runner --config examples/runner.json
 cargo run --locked --bin wafl-runner -- examples/runner.json
 ```
 
+OTLP 전송은 JSON의 `metrics.endpoint`로 켭니다. `wafl serve runner --config examples/runner-metrics.json`과 수집기를 함께 실행하는 방법은 [메트릭 튜토리얼](metrics.md)을 참고하세요.
+
 ## Add 옵션
 
 CLI는 생성된 `InstanceServiceClient`로 `InstanceAddRequest`를 제출합니다. 별도 등록·Deploy RPC는 없습니다.
