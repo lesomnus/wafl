@@ -3,6 +3,7 @@ package wafl;
 
 import "orm.proto";
 import "wafl/instance.proto";
+import "wafl/log.proto";
 import "wafl/manifest.proto";
 import "wafl/payday/tenant_svc.g.proto";
 
@@ -21,11 +22,14 @@ service InstanceService {
   rpc Start(InstanceStartRequest) returns (Instance);
   // Refuse active requests. A later request starts the instance again.
   rpc Stop(InstanceStopRequest) returns (Instance);
+  // Read retained stdout/stderr, optionally following across Stop/Start.
+  rpc Tail(InstanceTailRequest) returns (stream Log);
 }
 
 message InstanceAddRequest {
   bytes id = 1 [(orm.field) = {type: TYPE_UUID}];
   TenantRef tenant = 2;
+  string alias = 4;
   string name = 5 [features.field_presence = IMPLICIT];
   Phase phase = 8 [features.field_presence = IMPLICIT];
   uint64 generation = 9 [features.field_presence = IMPLICIT];
@@ -42,12 +46,14 @@ message InstanceGetRequest {
 message InstanceRef {
   oneof key {
     bytes id = 1 [(orm.field) = {type: TYPE_UUID}];
+    string alias = 4;
   }
 }
 
 message InstanceSelect {
   bool all = 1;
   TenantSelect tenant = 2;
+  bool alias = 4;
   bool name = 5;
   bool phase = 8;
   bool generation = 9;
@@ -111,4 +117,13 @@ message InstanceStartRequest {
 
 message InstanceStopRequest {
   InstanceRef ref = 1;
+}
+
+message InstanceTailRequest {
+  InstanceRef ref = 1;
+  bool follow = 2 [features.field_presence = IMPLICIT];
+  // Resume strictly beyond this sequence. Zero starts with retained history.
+  uint64 cursor = 3 [features.field_presence = IMPLICIT];
+  // Initial history records, not lines. Zero returns all retained records.
+  uint32 limit = 4 [features.field_presence = IMPLICIT];
 }

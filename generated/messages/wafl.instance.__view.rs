@@ -9,6 +9,10 @@ pub struct InstanceView<'a> {
     pub id: &'a [u8],
     /// Field 2: `tenant`
     pub tenant: ::buffa::MessageFieldView<super::super::__buffa::view::TenantView<'a>>,
+    /// Runner-local name. API values omit @; the CLI uses @alias references.
+    ///
+    /// Field 4: `alias`
+    pub alias: &'a str,
     /// Field 5: `name`
     pub name: &'a str,
     /// Field 8: `phase`
@@ -81,6 +85,13 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                         );
                     }
                 }
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.alias = ::buffa::types::borrow_str(&mut cur)?;
             }
             5u32 => {
                 ::buffa::encoding::check_wire_type(
@@ -171,6 +182,7 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            alias: self.alias.to_string(),
             name: self.name.to_string(),
             phase: self.phase,
             generation: self.generation,
@@ -205,6 +217,9 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
             size
                 += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
+        }
+        if !self.alias.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.alias) as u32;
         }
         if !self.name.is_empty() {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
@@ -249,6 +264,9 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
         if self.tenant.is_set() {
             ::buffa::types::put_len_delimited_header(2u32, __cache.consume_next(), buf);
             self.tenant.write_to(__cache, buf);
+        }
+        if !self.alias.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.alias, buf);
         }
         if !self.name.is_empty() {
             ::buffa::types::put_string_field(5u32, &self.name, buf);
@@ -300,6 +318,9 @@ impl<'__a> ::serde::Serialize for InstanceView<'__a> {
             if let ::core::option::Option::Some(__v) = self.tenant.as_option() {
                 __map.serialize_entry("tenant", __v)?;
             }
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.alias) {
+            __map.serialize_entry("alias", self.alias)?;
         }
         if !::buffa::json_helpers::skip_if::is_empty_str(self.name) {
             __map.serialize_entry("name", self.name)?;
@@ -427,6 +448,13 @@ impl InstanceOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::TenantView<'_>> {
         &self.0.reborrow().tenant
+    }
+    /// Runner-local name. API values omit @; the CLI uses @alias references.
+    ///
+    /// Field 4: `alias`
+    #[must_use]
+    pub fn alias(&self) -> &'_ str {
+        self.0.reborrow().alias
     }
     /// Field 5: `name`
     #[must_use]

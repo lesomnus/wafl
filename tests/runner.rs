@@ -155,6 +155,7 @@ fn config() -> Config {
     Config {
         listen: "127.0.0.1:0".parse().unwrap(),
         control: "127.0.0.1:0".parse().unwrap(),
+        directory: None,
     }
 }
 struct Harness {
@@ -162,12 +163,19 @@ struct Harness {
     address: SocketAddr,
     ids: BTreeMap<String, [u8; 16]>,
     _assets: Assets,
+    _directory: tempfile::TempDir,
     stop: Option<oneshot::Sender<()>>,
     task: JoinHandle<()>,
 }
 impl Harness {
     async fn new(apps: Vec<TestApp>) -> Self {
-        let runner = Runner::new(&config()).await.unwrap();
+        let directory = tempfile::tempdir().unwrap();
+        let runner = Runner::new(&Config {
+            directory: Some(directory.path().to_owned()),
+            ..config()
+        })
+        .await
+        .unwrap();
         let assets = Assets::new(
             apps.iter()
                 .map(|app| (app.name.clone(), app.bundle()))
@@ -207,6 +215,7 @@ impl Harness {
             address,
             ids,
             _assets: assets,
+            _directory: directory,
             stop: Some(stop),
             task,
         }
@@ -660,7 +669,13 @@ async fn generated_add_runs_bundles_and_erase_releases_the_instance() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn cancelled_add_releases_its_id_and_shutdown_interrupts_downloads() {
-    let runner = Runner::new(&config()).await.unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let runner = Runner::new(&Config {
+        directory: Some(directory.path().to_owned()),
+        ..config()
+    })
+    .await
+    .unwrap();
     let spec = app("cancelled", "socket");
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}/stalled", listener.local_addr().unwrap());
@@ -708,7 +723,13 @@ async fn cancelled_add_releases_its_id_and_shutdown_interrupts_downloads() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn rejected_downloads_and_bundles_leave_no_instance() {
-    let runner = Runner::new(&config()).await.unwrap();
+    let directory = tempfile::tempdir().unwrap();
+    let runner = Runner::new(&Config {
+        directory: Some(directory.path().to_owned()),
+        ..config()
+    })
+    .await
+    .unwrap();
     let spec = app("invalid", "socket");
     let assets = Assets::new(
         [
@@ -756,7 +777,7 @@ fn process_config_and_manifest_validation() {
     let request = value.request("http://127.0.0.1/bundle.tar.gz".into());
     assert!(wafl_runner::config::Spec::parse(request.clone()).is_ok());
     for url in [
-        "file:///tmp/a",
+        "file://remote-host/tmp/a",
         "ftp://host/a",
         "http://user:password@host/a",
         "http://host/a#fragment",

@@ -7,6 +7,7 @@ pub mod instance_ref {
     #[derive(Clone, PartialEq, Debug)]
     pub enum Key {
         Id(::buffa::alloc::vec::Vec<u8>),
+        Alias(::buffa::alloc::string::String),
     }
     impl ::buffa::Oneof for Key {}
     impl serde::Serialize for Key {
@@ -19,6 +20,9 @@ pub mod instance_ref {
             match self {
                 Self::Id(v) => {
                     map.serialize_entry("id", &::buffa::json_helpers::ProtoJson(v))?;
+                }
+                Self::Alias(v) => {
+                    map.serialize_entry("alias", v)?;
                 }
             }
             map.end()

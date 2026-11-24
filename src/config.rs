@@ -2,17 +2,23 @@ use crate::proto::wafl::{InstanceAddRequest, Manifest, Phase, asset, tenant_ref}
 use anyhow::{Context, Result, ensure};
 use connectrpc::ConnectError;
 use serde::Deserialize;
-use std::{collections::BTreeSet, net::SocketAddr, path::Path};
+use std::{
+    collections::BTreeSet,
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 pub const INSTANCE_DOMAIN: u8 = 7;
 pub const TENANT_DOMAIN: u8 = 1;
 
-/// Process listeners only. Instances arrive through InstanceService.Add.
+/// Process configuration. Instances arrive through InstanceService.Add.
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     pub listen: SocketAddr,
     pub control: SocketAddr,
+    #[serde(default)]
+    pub directory: Option<PathBuf>,
 }
 impl Config {
     pub fn read(path: &Path) -> Result<Self> {
@@ -27,6 +33,23 @@ impl Config {
             "ingress and control require separate listeners"
         );
         Ok(())
+    }
+
+    pub fn directory(&self) -> Result<PathBuf> {
+        if let Some(path) = &self.directory {
+            return Ok(path.clone());
+        }
+        if let Some(path) = std::env::var_os("XDG_CACHE_HOME")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+        {
+            return Ok(path.join("wafl"));
+        }
+        let home = std::env::var_os("HOME")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .ok_or_else(|| anyhow::anyhow!("set a cache directory, XDG_CACHE_HOME, or HOME"))?;
+        Ok(home.join(".cache/wafl"))
     }
 }
 
@@ -47,6 +70,7 @@ pub struct Binding {
 pub struct Spec {
     pub id: [u8; 16],
     pub tenant: [u8; 16],
+    pub alias: String,
     pub name: String,
     pub manifest: Manifest,
     pub url: reqwest::Url,
@@ -81,6 +105,17 @@ impl Spec {
             }
             _ => return Err(invalid("tenant.id must be a domain-1 Payday ID")),
         };
+        let alias = req.alias.unwrap_or_default();
+        let alias = if alias.is_empty() {
+            format!("i-{}", paydirt::format_id(&id).unwrap())
+        } else {
+            alias
+        };
+        if !valid_alias(&alias) {
+            return Err(invalid(
+                "alias must be 1..63 lowercase letters, digits or hyphens, starting with a letter",
+            ));
+        }
         if req.name.len() > 256 || req.name.contains('\0') {
             return Err(invalid("name must be at most 256 bytes with no NUL"));
         }
@@ -116,14 +151,25 @@ impl Spec {
             }
             _ => return Err(invalid("manifest.bundle.url is required")),
         };
-        if !matches!(url.scheme(), "http" | "https")
-            || url.host_str().is_none()
+        let source_valid = match url.scheme() {
+            "http" | "https" => url.host_str().is_some(),
+            "file" => url.to_file_path().is_ok_and(|p| p.is_absolute()) && url.query().is_none(),
+            _ => false,
+        };
+        if !source_valid
             || !url.username().is_empty()
             || url.password().is_some()
             || url.fragment().is_some()
         {
             return Err(invalid(
-                "bundle URL must be HTTP(S), without userinfo or fragment",
+                "bundle URL must be HTTP(S) or a local absolute file URL, without userinfo or fragment",
+            ));
+        }
+        if !manifest.bundle.digest.is_empty()
+            && !crate::store::valid_digest(&manifest.bundle.digest)
+        {
+            return Err(invalid(
+                "bundle.digest must be sha256:<64 lowercase hexadecimal digits>",
             ));
         }
         if manifest.idle_ms == 0 {
@@ -183,6 +229,7 @@ impl Spec {
         Ok(Self {
             id,
             tenant,
+            alias,
             name: req.name,
             port,
             protocol,
@@ -195,4 +242,12 @@ impl Spec {
             manifest,
         })
     }
+}
+
+pub fn valid_alias(value: &str) -> bool {
+    (1..=63).contains(&value.len())
+        && value.as_bytes()[0].is_ascii_lowercase()
+        && value
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
 }

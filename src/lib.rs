@@ -1,9 +1,12 @@
 mod bundle;
 pub mod config;
 pub mod control;
+pub mod host;
+mod logs;
 pub mod proxy;
 pub mod runner;
 mod runtime;
+mod store;
 
 #[path = "../generated/messages/mod.rs"]
 #[rustfmt::skip]

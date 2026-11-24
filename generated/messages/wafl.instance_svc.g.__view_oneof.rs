@@ -7,5 +7,6 @@ pub mod instance_ref {
     #[derive(Clone, Debug)]
     pub enum Key<'a> {
         Id(&'a [u8]),
+        Alias(&'a str),
     }
 }

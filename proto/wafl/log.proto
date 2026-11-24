@@ -1,0 +1,21 @@
+edition = "2023";
+package wafl;
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// A bounded stdout/stderr chunk, not a persisted entity or a complete line.
+message Log {
+  uint64 sequence = 1;
+  uint64 generation = 2;
+  Channel channel = 3;
+  bytes data = 4;
+  // Unix epoch milliseconds.
+  uint64 date_ms = 5;
+}
+
+enum Channel {
+  CHANNEL_UNSPECIFIED = 0;
+  CHANNEL_STDOUT = 1;
+  CHANNEL_STDERR = 2;
+}

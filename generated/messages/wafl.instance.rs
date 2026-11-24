@@ -188,6 +188,15 @@ pub struct Instance {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub tenant: ::buffa::MessageField<Tenant>,
+    /// Runner-local name. API values omit @; the CLI uses @alias references.
+    ///
+    /// Field 4: `alias`
+    #[serde(
+        rename = "alias",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub alias: ::buffa::alloc::string::String,
     /// Field 5: `name`
     #[serde(
         rename = "name",
@@ -240,6 +249,7 @@ impl ::core::fmt::Debug for Instance {
         f.debug_struct("Instance")
             .field("id", &self.id)
             .field("tenant", &self.tenant)
+            .field("alias", &self.alias)
             .field("name", &self.name)
             .field("phase", &self.phase)
             .field("generation", &self.generation)
@@ -285,6 +295,9 @@ impl ::buffa::Message for Instance {
                 += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if !self.alias.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.alias) as u32;
+        }
         if !self.name.is_empty() {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
         }
@@ -327,6 +340,9 @@ impl ::buffa::Message for Instance {
         if self.tenant.is_set() {
             ::buffa::types::put_len_delimited_header(2u32, __cache.consume_next(), buf);
             self.tenant.write_to(__cache, buf);
+        }
+        if !self.alias.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.alias, buf);
         }
         if !self.name.is_empty() {
             ::buffa::types::put_string_field(5u32, &self.name, buf);
@@ -380,6 +396,13 @@ impl ::buffa::Message for Instance {
                     buf,
                     ctx,
                 )?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.alias, buf)?;
             }
             5u32 => {
                 ::buffa::encoding::check_wire_type(
@@ -439,6 +462,7 @@ impl ::buffa::Message for Instance {
     fn clear(&mut self) {
         self.id.clear();
         self.tenant = ::buffa::MessageField::none();
+        self.alias.clear();
         self.name.clear();
         self.phase = ::buffa::EnumValue::from(0);
         self.generation = 0u64;

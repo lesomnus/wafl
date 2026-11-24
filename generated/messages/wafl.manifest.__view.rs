@@ -9,7 +9,7 @@ pub struct ManifestView<'a> {
     ///
     /// Field 1: `runtime`
     pub runtime: &'a str,
-    /// HTTP(S) tar.gz: main.wasm at the root, optional data/ mounted as /data.
+    /// HTTP(S) or local file tar.gz: main.wasm and optional data/ mounted as /data.
     ///
     /// Field 2: `bundle`
     pub bundle: ::buffa::MessageFieldView<super::super::__buffa::view::AssetView<'a>>,
@@ -550,7 +550,7 @@ impl ManifestOwnedView {
     pub fn runtime(&self) -> &'_ str {
         self.0.reborrow().runtime
     }
-    /// HTTP(S) tar.gz: main.wasm at the root, optional data/ mounted as /data.
+    /// HTTP(S) or local file tar.gz: main.wasm and optional data/ mounted as /data.
     ///
     /// Field 2: `bundle`
     #[must_use]
@@ -647,6 +647,11 @@ impl ::serde::Serialize for ManifestOwnedView {
 }
 #[derive(Clone, Debug, Default)]
 pub struct AssetView<'a> {
+    /// Optional expected digest of the compressed bundle: sha256:\<64 lowercase hex\>.
+    /// A digest selects immutable cached content independently of its source URL.
+    ///
+    /// Field 2: `digest`
+    pub digest: &'a str,
     pub kind: ::core::option::Option<
         super::super::__buffa::view::oneof::asset::Kind<'a>,
     >,
@@ -679,6 +684,13 @@ impl<'a> ::buffa::MessageView<'a> for AssetView<'a> {
         let view = self;
         let mut cur = cur;
         match tag.field_number() {
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.digest = ::buffa::types::borrow_str(&mut cur)?;
+            }
             1u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -712,6 +724,7 @@ impl<'a> ::buffa::MessageView<'a> for AssetView<'a> {
         use ::buffa::alloc::string::ToString as _;
         let _ = __buffa_src;
         ::core::result::Result::Ok(super::super::Asset {
+            digest: self.digest.to_string(),
             kind: self
                 .kind
                 .as_ref()
@@ -738,6 +751,9 @@ impl<'a> ::buffa::ViewEncode<'a> for AssetView<'a> {
                 }
             }
         }
+        if !self.digest.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.digest) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -755,6 +771,9 @@ impl<'a> ::buffa::ViewEncode<'a> for AssetView<'a> {
                     ::buffa::types::put_string_field(1u32, x, buf);
                 }
             }
+        }
+        if !self.digest.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.digest, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -777,6 +796,9 @@ impl<'__a> ::serde::Serialize for AssetView<'__a> {
     ) -> ::core::result::Result<__S::Ok, __S::Error> {
         use ::serde::ser::SerializeMap as _;
         let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.digest) {
+            __map.serialize_entry("digest", self.digest)?;
+        }
         if let ::core::option::Option::Some(ref __ov) = self.kind {
             match __ov {
                 super::super::__buffa::view::oneof::asset::Kind::Url(v) => {
@@ -868,6 +890,14 @@ impl AssetOwnedView {
     #[must_use]
     pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
         self.0.into_bytes()
+    }
+    /// Optional expected digest of the compressed bundle: sha256:\<64 lowercase hex\>.
+    /// A digest selects immutable cached content independently of its source URL.
+    ///
+    /// Field 2: `digest`
+    #[must_use]
+    pub fn digest(&self) -> &'_ str {
+        self.0.reborrow().digest
     }
     /// Oneof `kind`.
     #[must_use]

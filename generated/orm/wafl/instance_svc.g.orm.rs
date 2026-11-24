@@ -4,6 +4,9 @@ impl crate::proto::wafl::InstanceRef {
     pub fn by_id(value: Vec<u8>) -> Self {
         Self { key: Some(crate::proto::wafl::instance_ref::Key::Id(value)), ..Default::default() }
     }
+    pub fn by_alias(value: String) -> Self {
+        Self { key: Some(crate::proto::wafl::instance_ref::Key::Alias(value)), ..Default::default() }
+    }
     pub fn pick(self) -> crate::proto::wafl::InstanceGetRequest {
         crate::proto::wafl::InstanceGetRequest { r#ref: self.into(), ..Default::default() }
     }

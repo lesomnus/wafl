@@ -16,7 +16,7 @@ pub struct Manifest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
     )]
     pub runtime: ::buffa::alloc::string::String,
-    /// HTTP(S) tar.gz: main.wasm at the root, optional data/ mounted as /data.
+    /// HTTP(S) or local file tar.gz: main.wasm and optional data/ mounted as /data.
     ///
     /// Field 2: `bundle`
     #[serde(
@@ -396,6 +396,16 @@ pub const __MANIFEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::t
 #[derive(::serde::Serialize)]
 #[serde(default)]
 pub struct Asset {
+    /// Optional expected digest of the compressed bundle: sha256:\<64 lowercase hex\>.
+    /// A digest selects immutable cached content independently of its source URL.
+    ///
+    /// Field 2: `digest`
+    #[serde(
+        rename = "digest",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub digest: ::buffa::alloc::string::String,
     #[serde(flatten)]
     pub kind: ::core::option::Option<__buffa::oneof::asset::Kind>,
     #[serde(skip)]
@@ -404,7 +414,10 @@ pub struct Asset {
 }
 impl ::core::fmt::Debug for Asset {
     fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
-        f.debug_struct("Asset").field("kind", &self.kind).finish()
+        f.debug_struct("Asset")
+            .field("digest", &self.digest)
+            .field("kind", &self.kind)
+            .finish()
     }
 }
 impl Asset {
@@ -439,6 +452,9 @@ impl ::buffa::Message for Asset {
                 }
             }
         }
+        if !self.digest.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.digest) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -455,6 +471,9 @@ impl ::buffa::Message for Asset {
                     ::buffa::types::put_string_field(1u32, x, buf);
                 }
             }
+        }
+        if !self.digest.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.digest, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -478,6 +497,13 @@ impl ::buffa::Message for Asset {
                     __buffa::oneof::asset::Kind::Url(::buffa::types::decode_string(buf)?),
                 );
             }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.digest, buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -487,6 +513,7 @@ impl ::buffa::Message for Asset {
     }
     fn clear(&mut self) {
         self.kind = ::core::option::Option::None;
+        self.digest.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -514,11 +541,32 @@ impl<'de> serde::Deserialize<'de> for Asset {
                 self,
                 mut map: A,
             ) -> ::core::result::Result<Asset, A::Error> {
+                let mut __f_digest: ::core::option::Option<
+                    ::buffa::alloc::string::String,
+                > = None;
                 let mut __oneof_kind: ::core::option::Option<
                     __buffa::oneof::asset::Kind,
                 > = None;
                 while let Some(key) = map.next_key::<::buffa::alloc::string::String>()? {
                     match key.as_str() {
+                        "digest" => {
+                            __f_digest = Some({
+                                struct _S;
+                                impl<'de> serde::de::DeserializeSeed<'de> for _S {
+                                    type Value = ::buffa::alloc::string::String;
+                                    fn deserialize<D: serde::Deserializer<'de>>(
+                                        self,
+                                        d: D,
+                                    ) -> ::core::result::Result<
+                                        ::buffa::alloc::string::String,
+                                        D::Error,
+                                    > {
+                                        ::buffa::json_helpers::proto_string::deserialize(d)
+                                    }
+                                }
+                                map.next_value_seed(_S)?
+                            });
+                        }
                         "url" => {
                             let v: ::core::option::Option<
                                 ::buffa::alloc::string::String,
@@ -547,6 +595,9 @@ impl<'de> serde::Deserialize<'de> for Asset {
                     }
                 }
                 let mut __r = <Asset as ::core::default::Default>::default();
+                if let ::core::option::Option::Some(v) = __f_digest {
+                    __r.digest = v;
+                }
                 __r.kind = __oneof_kind;
                 Ok(__r)
             }
