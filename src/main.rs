@@ -12,17 +12,13 @@ async fn main() -> Result<()> {
     );
     ensure!(args.next().is_none(), "usage: wafl-runner <manifest.json>");
     let config = Config::read(&path)?;
-    let tokens = control::tokens(
-        &std::env::var("WAFL_TOKENS")
-            .map_err(|_| anyhow!("WAFL_TOKENS must map control bearer tokens to Tenant IDs"))?,
-    )?;
     let runner = Runner::new(&config).await?;
     let ingress = tokio::net::TcpListener::bind(config.listen).await?;
     let control = paydirt_server::Host::bind(
         config.control,
         paydirt_server::Serving::default(),
         "wafl-runner",
-        control::router(runner.clone(), tokens),
+        control::router(runner.clone()),
     )
     .await
     .map_err(|e| anyhow!("{e}"))?;

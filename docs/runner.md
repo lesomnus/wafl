@@ -13,15 +13,16 @@ curl http://127.0.0.1:9000/
 
 ```sh
 cargo build --locked -p wafl-example-hello --target wasm32-wasip2
-WAFL_TOKENS='{"local-dev":"00000000-0000-8000-8001-000000000001"}' \
-  cargo run --locked -- examples/runner.json
+cargo run --locked -- examples/runner.json
 ```
 
 Rust 1.100.0과 Wasmtime 51.0.0을 고정했습니다. `wasm32-wasip2` 빌드는 실행 가능한 component를 생성합니다. 일반 core WASM 파일, WASI Preview 1, WASIX, `wasi:http/incoming-handler` 전용 component는 이 runner의 앱 계약이 아닙니다. 다른 언어나 서버 라이브러리를 사용하려면 WASIp2 CLI와 sockets 지원을 확인해야 합니다. 모든 기존 HTTP/gRPC 프레임워크가 수정 없이 빌드된다는 의미는 아닙니다.
 
 `CARGO_TARGET_DIR`을 변경한 경우 manifest의 `artifact` 경로도 해당 빌드 경로로 변경합니다. 상대 경로는 manifest 파일의 디렉터리를 기준으로 해석합니다.
 
-## Manifest
+## 현재 runner 설정 파일
+
+현재의 `runner.json`은 `listen`·`control`·`apps`를 가진 프로세스 시작 설정입니다. 아래 예시는 지금 구현된 실행 방법을 보여줍니다. 목표로 하는 runner는 실행 manifest·WASM 바이너리·HTML 같은 리소스 파일을 담은 번들을 받아 인스턴스를 생성합니다. 앱·배포·도메인의 관리는 플랫폼의 역할입니다. 현재 정적 설정을 읽는 구현에는 번들 제출 API나 번들 리소스를 게스트 파일시스템에 제공하는 기능이 아직 없습니다.
 
 ```json
 {
@@ -63,6 +64,14 @@ Rust 1.100.0과 Wasmtime 51.0.0을 고정했습니다. `wasm32-wasip2` 빌드는
 | `env` | 명시적으로 전달할 환경 변수. 호스트 환경은 상속하지 않음 |
 | `bindings` | 게스트의 IPv4 loopback TCP 포트를 운영자가 지정한 실제 IPv4 주소에 매핑 |
 
+### WASM 파일 전달과 로딩
+
+현재 `artifact`는 runner가 접근할 수 있는 로컬 파일 경로입니다. 위 예시를 `/srv/wafl/runner.json`에 저장하면 `jobs.wasm`은 `/srv/wafl/jobs.wasm`으로 해석됩니다. 절대 경로도 사용할 수 있습니다.
+
+저장소의 hello 예제는 `cargo build --locked -p wafl-example-hello --target wasm32-wasip2`로 빌드하면 `target/wasm32-wasip2/debug/wafl-example-hello.wasm`이 만들어집니다. `examples/runner.json`의 `../target/...` 경로는 이 파일을 가리킵니다. 다른 호스트나 Pod에서 실행할 때는 빌드한 파일을 복사하거나 볼륨으로 제공하고 `artifact`를 해당 경로로 지정합니다.
+
+runner는 시작할 때 파일을 읽고 Wasmtime component를 컴파일합니다. 실제 인스턴스는 첫 앱 요청이나 `InstanceService.Start` 호출에서 생성됩니다. 같은 파일 경로를 사용하는 설정은 컴파일 결과를 공유합니다. 실행 중 파일 교체를 감지하지 않으므로 새 파일을 적용하려면 runner를 다시 시작해야 합니다. 현재 URL·OCI registry·object storage에서 다운로드하는 기능과 파일 업로드 API는 없습니다.
+
 앱은 `0.0.0.0:port` 또는 IPv4 loopback에 bind할 수 있습니다. 실제 소켓은 인스턴스마다 별도 host loopback 포트를 사용합니다. 소켓 가상화는 WASI 호출 수준에서 이루어지며 OS 네트워크 namespace를 만들지는 않습니다. 같은 runner Pod의 네이티브 프로세스는 신뢰하는 운영 구성요소여야 합니다.
 
 파일시스템 preopen, 호스트 환경 상속, UDP, DNS, 선언되지 않은 outbound 연결은 허용하지 않습니다. WASI resource table은 인스턴스당 1,024개로 제한합니다. 하나의 epoch clock이 CPU를 계속 사용하는 게스트도 주기적으로 yield하도록 하여 시작 제한과 취소가 동작합니다. 이는 CPU 사용량 quota는 아닙니다. stdout은 버리고, stderr는 최대 16 KiB를 저장하여 게스트 실패 진단에 사용합니다. 별도 로그 조회·스트리밍 API는 아직 없습니다.
@@ -84,39 +93,38 @@ Rust 1.100.0과 Wasmtime 51.0.0을 고정했습니다. `wasm32-wasip2` 빌드는
 
 [`Instance`](../proto/wafl/instance.proto)는 `(orm.message)`와 `(payday.entity)`를 가진 일반 entity입니다. `id = 1`, `tenant = 2`, `name = 5`를 사용하며 실행 상태는 8–12, 16번에 있습니다. 도메인 7의 ID와 tenant 소속은 manifest에서 주어지고, `InstanceService.Get/List`, 참조와 선택·페이지 계약은 paydirt가 생성합니다. 앱 고유 동작인 `Start/Stop`은 [확장 proto](../proto/ext/wafl/instance_svc.ext.proto)에 추가합니다.
 
-서버 구성은 `Unimplemented → Instances → Authentication`입니다. 요청은 마지막에 붙인 Authentication부터 들어오고, 검증한 tenant scope를 Instances에 전달합니다. Instances는 생성된 service layer를 구현해 메모리의 실행 상태를 조회·제어합니다. DB Sink를 조합하지 않으므로 DB 연결이나 마이그레이션을 실행하지 않습니다. entity 선언과 서버의 저장 구현은 독립적입니다.
+서버 구성은 `Unimplemented → Instances`입니다. Instances는 생성된 service layer를 구현해 메모리의 실행 상태를 조회·제어합니다. DB Sink를 조합하지 않으므로 DB 연결이나 마이그레이션을 실행하지 않습니다. entity 선언과 서버의 저장 구현은 독립적입니다.
 
 `paydirt-server`는 Connect/gRPC transport를, `paydirt::spin::Workers`는 유휴 회수와 종료 수명을 관리합니다.
 
-### 토큰과 tenant
+### 제공하는 API
 
-`WAFL_TOKENS`는 관리용 bearer token을 Tenant ID에 연결하는 JSON 객체이며 loopback에서도 필수입니다. 예제의 `local-dev`는 로컬 실행을 위한 예시 값입니다. 운영에서는 비밀 저장소 등에서 토큰을 주입합니다.
+| listener | API | 동작 |
+| --- | --- | --- |
+| `control` | `InstanceService.List` | 이 runner의 전체 인스턴스 목록과 상태를 페이지로 조회 |
+| `control` | `InstanceService.Get` | ID로 특정 인스턴스의 상태·활성 요청 수·오류 등을 조회 |
+| `control` | `InstanceService.Start` | 인스턴스를 시작하고, 이미 실행 중이면 재사용 |
+| `control` | `InstanceService.Stop` | 활성 요청이 없을 때 인스턴스 종료 |
+| `listen` | 앱의 HTTP/gRPC 요청 | `Host` 또는 `:authority`로 찾아 앱 소켓으로 전달; 필요하면 인스턴스 생성 |
 
-```sh
-export WAFL_TOKENS='{
-  "tenant-a-token":"00000000-0000-8000-8001-000000000001",
-  "tenant-b-token":"00000000-0000-8000-8001-000000000002"
-}'
-```
+`control`에서는 Connect와 gRPC를 지원합니다. HTTP 경로는 `/wafl.InstanceService/<메서드>`입니다. 현재 이 네 RPC는 인증이나 권한 검사 없이 호출할 수 있으며, 요청자의 tenant에 따라 범위를 제한하지 않습니다. `tenant`는 인스턴스의 소속 정보로 응답에 유지됩니다. `WAFL_TOKENS`와 bearer token 설정은 제거됐습니다.
 
-관리 요청은 인증된 tenant의 Instance만 조회·시작·종료할 수 있습니다. 다른 tenant의 ID를 지정하면 없는 ID와 동일한 `NOT_FOUND`입니다. 클라이언트가 보낸 tenant 헤더는 scope를 바꾸지 않습니다. `List`는 tenant로 먼저 좁힌 뒤 필터와 페이지를 적용하므로 다른 tenant의 Instance가 페이지 크기나 cursor에 영향을 주지 않습니다.
-
-이 토큰은 runner 관리용이며 앱 사용자의 인증은 해당 앱이 담당합니다. 외부 노출 시 gateway/서비스 메시에서 TLS를 종료하고 control 포트 접근을 제한합니다.
+현재 앱 등록·번들 제출·WASM 업로드 API는 없습니다. 실행 대상과 파일 경로는 시작 설정에서 읽습니다.
 
 ### 호출과 페이지 조회
 
 RPC는 `List`, `Get`, `Start`, `Stop`입니다. `id`는 앱 이름이 아닌 Payday UUIDv8의 16바이트 값이며, protobuf JSON에서는 base64로 표현합니다. 예제 hello의 `00000000-0000-8000-8007-000000000001`은 `AAAAAAAAgACABwAAAAAAAQ==`입니다. `List`에서 받은 ID를 `ref.id`에 넣으면 됩니다.
 
 ```sh
-curl -H 'Authorization: Bearer local-dev' -H 'Content-Type: application/json' \
+curl -H 'Content-Type: application/json' \
   -H 'Connect-Protocol-Version: 1' -d '{}' \
   http://127.0.0.1:8081/wafl.InstanceService/List
 
-curl -H 'Authorization: Bearer local-dev' -H 'Content-Type: application/json' \
+curl -H 'Content-Type: application/json' \
   -H 'Connect-Protocol-Version: 1' -d '{"ref":{"id":"AAAAAAAAgACABwAAAAAAAQ=="}}' \
   http://127.0.0.1:8081/wafl.InstanceService/Start
 
-curl -H 'Authorization: Bearer local-dev' -H 'Content-Type: application/json' \
+curl -H 'Content-Type: application/json' \
   -H 'Connect-Protocol-Version: 1' \
   -d '{"ref":{"id":"AAAAAAAAgACABwAAAAAAAQ=="},"select":{"name":true,"phase":true}}' \
   http://127.0.0.1:8081/wafl.InstanceService/Get
@@ -126,9 +134,9 @@ curl -H 'Authorization: Bearer local-dev' -H 'Content-Type: application/json' \
 
 `Get`에서 `select`를 생략하거나 `all: true`로 지정하면 상태 전체를 반환합니다. 명시적 select는 선택한 필드와 ID만 반환합니다. tenant 관계는 ID만 보유합니다. `tenant: {}`는 이 참조를 선택하고, tenant 이름·alias 등 메타데이터 확장은 `UNIMPLEMENTED`입니다.
 
-`List`는 ID순입니다. `filters: [{"ref":{"id":"..."}}]`로 선택하며 여러 필터는 OR로 결합합니다. 빈 필터 메시지와 64개를 초과하는 필터는 거절합니다. size가 0 이하이면 기본 100, 1,000보다 크면 1,000으로 제한합니다. `reverse: true`는 역순입니다. 응답의 `next`가 있으면 같은 필터와 방향으로 다음 요청의 `after`에 전달합니다. cursor를 다른 tenant나 방향에서 사용하면 `INVALID_ARGUMENT`입니다.
+`List`는 ID순입니다. `filters: [{"ref":{"id":"..."}}]`로 선택하며 여러 필터는 OR로 결합합니다. 빈 필터 메시지와 64개를 초과하는 필터는 거절합니다. size가 0 이하이면 기본 100, 1,000보다 크면 1,000으로 제한합니다. `reverse: true`는 역순입니다. 응답의 `next`가 있으면 같은 필터와 방향으로 다음 요청의 `after`에 전달합니다. 반대 방향이나 현재 선택 결과에 없는 ID의 cursor는 `INVALID_ARGUMENT`입니다.
 
-이전 prototype의 앱 이름 바이트 ID, `filters.name`, `WAFL_TOKEN`은 교체됐습니다. manifest에 Instance/Tenant ID를 명시하고 `WAFL_TOKENS`를 설정한 뒤 새 `List` 결과로 참조와 cursor를 갱신합니다.
+manifest에 Instance/Tenant ID를 명시합니다. 이전 토큰 설정은 제거하고 새 `List` 결과의 cursor를 사용합니다. tenant 범위를 포함하던 이전 cursor는 더 이상 사용하지 않습니다.
 
 ## 시나리오
 

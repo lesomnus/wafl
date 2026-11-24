@@ -9,8 +9,7 @@
 ```sh
 # rustup이 rust-toolchain.toml에 지정된 도구와 타깃을 설치합니다.
 cargo build --locked -p wafl-example-hello --target wasm32-wasip2
-WAFL_TOKENS='{"local-dev":"00000000-0000-8000-8001-000000000001"}' \
-  cargo run --locked -- examples/runner.json
+cargo run --locked -- examples/runner.json
 ```
 
 다른 터미널에서:
@@ -18,12 +17,15 @@ WAFL_TOKENS='{"local-dev":"00000000-0000-8000-8001-000000000001"}' \
 ```sh
 curl -H 'Host: hello.localhost' http://127.0.0.1:8080/
 curl -H 'Host: bye.localhost' http://127.0.0.1:8080/
-curl -H 'Authorization: Bearer local-dev' -H 'Content-Type: application/json' \
-  -H 'Connect-Protocol-Version: 1' \
+curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
   -d '{}' http://127.0.0.1:8081/wafl.InstanceService/List
 ```
 
 두 앱 모두 내부 포트 `8080`을 사용하지만 메모리, 환경 변수, 소켓은 각각 독립적입니다. 예제의 유휴 시간은 5초이며 회수 후 다음 호출에서 요청 카운터가 다시 1이 됩니다.
+
+현재 runner는 시작 시 `runner.json`의 `apps` 목록과 로컬 `artifact` 파일을 읽습니다. `artifact` 상대 경로는 설정 파일의 디렉터리 기준입니다. `control`의 `InstanceService.Get/List/Start/Stop`은 인증 없이 이 runner의 인스턴스를 조회·제어합니다. `tenant`는 entity의 소속 정보로 유지합니다.
+
+목표로 하는 runner의 입력은 실행 manifest·WASM·HTML 같은 리소스 파일을 담은 번들입니다. 현재의 정적 `apps` 설정은 이 번들 제출 계약을 구현한 것이 아니며, 번들 접수와 게스트 파일시스템에 리소스를 제공하는 기능은 후속 작업입니다.
 
 [사용법과 시나리오](docs/runner.md) · [Instance 리소스](proto/wafl/instance.proto) · [생성된 관리 계약](generated/proto/wafl/instance_svc.g.proto)
 
