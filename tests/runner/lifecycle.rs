@@ -379,6 +379,17 @@ async fn grpc_deadline_includes_cold_start_and_open_stream_lifetime() {
     );
     assert_eq!(body.trailers().await.unwrap().unwrap()["grpc-status"], "4");
     until(|| h.runner.status().usage.requests == 0).await;
+    // Do not consume a response larger than the downstream HTTP/2 window.
+    // Deadline cleanup must work even when ResponseBody stops being polled.
+    let (response, mut blocked) = client.send_request(request("100m"), false).unwrap();
+    blocked
+        .send_data(Bytes::from(vec![0u8; 2 * 1024 * 1024]), false)
+        .unwrap();
+    let unread = response.await.unwrap();
+    tokio::time::sleep(Duration::from_millis(250)).await;
+    until(|| h.runner.status().usage.requests == 0).await;
+    drop(unread);
+    drop(blocked);
     let (response, _) = client.send_request(request("123456789S"), true).unwrap();
     assert_eq!(response.await.unwrap().status(), 400);
     driver.abort();

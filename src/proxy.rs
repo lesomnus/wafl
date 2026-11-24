@@ -14,6 +14,7 @@ use std::{
     error::Error,
     future::Future,
     pin::Pin,
+    sync::{Arc, Mutex},
     task::{Context, Poll},
     time::Duration,
 };
@@ -29,7 +30,8 @@ pub const INSTANCE_HEADER: &str = "wafl-instance";
 
 struct ResponseBody {
     inner: Incoming,
-    lease: Option<Lease>,
+    lease: Arc<Mutex<Option<Lease>>>,
+    expiry: Option<AbortHandle>,
     connection: AbortHandle,
     deadline: Option<Pin<Box<tokio::time::Sleep>>>,
     expired: bool,
@@ -51,7 +53,7 @@ impl Body for ResponseBody {
         {
             self.expired = true;
             self.connection.abort();
-            self.lease.take();
+            self.lease.lock().unwrap().take();
             let mut trailers = HeaderMap::new();
             trailers.insert("grpc-status", http::HeaderValue::from_static("4"));
             trailers.insert(
@@ -62,11 +64,11 @@ impl Body for ResponseBody {
         }
         match Pin::new(&mut self.inner).poll_frame(cx) {
             Poll::Ready(None) => {
-                self.lease.take();
+                self.lease.lock().unwrap().take();
                 Poll::Ready(None)
             }
             Poll::Ready(Some(Err(e))) => {
-                self.lease.take();
+                self.lease.lock().unwrap().take();
                 Poll::Ready(Some(Err(Box::new(e))))
             }
             Poll::Ready(Some(Ok(mut frame))) => {
@@ -74,7 +76,7 @@ impl Body for ResponseBody {
                     trailers.remove("wafl-error");
                 }
                 if self.inner.is_end_stream() {
-                    self.lease.take();
+                    self.lease.lock().unwrap().take();
                 }
                 Poll::Ready(Some(Ok(frame)))
             }
@@ -95,6 +97,10 @@ impl Body for ResponseBody {
 impl Drop for ResponseBody {
     fn drop(&mut self) {
         self.connection.abort();
+        if let Some(expiry) = &self.expiry {
+            expiry.abort();
+        }
+        self.lease.lock().unwrap().take();
     }
 }
 
@@ -376,12 +382,27 @@ async fn forward_inner(
         if deadline.is_some() {
             parts.headers.remove(header::CONTENT_LENGTH);
         }
+        let connection = driver.0.take().unwrap();
+        let lease = Arc::new(Mutex::new(Some(lease)));
+        let expiry = deadline.map(|deadline| {
+            let connection = connection.clone();
+            let lease = lease.clone();
+            // ResponseBody may not be polled while downstream flow control is
+            // blocked. The deadline must still release admission and upstream.
+            tokio::spawn(async move {
+                tokio::time::sleep_until(deadline).await;
+                connection.abort();
+                lease.lock().unwrap().take();
+            })
+            .abort_handle()
+        });
         Ok(Response::from_parts(
             parts,
             ResponseBody {
                 inner: body,
-                lease: Some(lease),
-                connection: driver.0.take().unwrap(),
+                lease,
+                expiry,
+                connection,
                 deadline: deadline.map(|deadline| Box::pin(tokio::time::sleep_until(deadline))),
                 expired: false,
             }

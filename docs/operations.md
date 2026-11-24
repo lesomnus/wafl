@@ -123,4 +123,4 @@ Gateway는 Host로 runner 내부 라우트를 결정하지 않습니다. `wafl-i
 
 [`grpc-timeout` 규격](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md#requests)의 최대 8자리와 H/M/S/m/u/n 단위를 지원합니다. cold start·queue·upstream 응답·열린 스트림에 걸쳐 **하나의 절대 기한**을 적용하고, 게스트에 전달할 때 이미 기다린 시간을 차감합니다. 헤더가 없으면 요청 전체의 임의 기한을 추가하지 않습니다. startup/queue/연결 한도는 별도로 적용합니다.
 
-요청 기한이 response 시작 전에 끝나면 gRPC trailers-only 응답(`HTTP 200`, `grpc-status: 4`, `wafl-error: deadline`)을 반환합니다. 응답 시작 후에는 deadline trailer를 내보내고 upstream과 lease를 정리합니다. 클라이언트 취소도 upstream을 끊고 lease를 반환합니다. 공유 기동은 다른 호출자와 독립적으로 계속될 수 있으며 그 요청의 body를 나중에 다시 전달하지 않습니다. HTTP 요청 자체의 전체 기한은 클라이언트 취소로 제어하며 장기 스트림에 임의의 전체 timeout을 강제하지 않습니다.
+요청 기한이 response 시작 전에 끝나면 gRPC trailers-only 응답(`HTTP 200`, `grpc-status: 4`, `wafl-error: deadline`)을 반환합니다. 응답 시작 후에는 deadline trailer를 내보내고 upstream과 lease를 정리합니다. 클라이언트가 응답을 읽지 않아 flow control로 전송이 멈춰도 별도 기한 작업이 upstream과 lease를 해제합니다. 클라이언트 취소도 upstream을 끊고 lease를 반환합니다. 공유 기동은 다른 호출자와 독립적으로 계속될 수 있으며 그 요청의 body를 나중에 다시 전달하지 않습니다. HTTP 요청 자체의 전체 기한은 클라이언트 취소로 제어하며 장기 스트림에 임의의 전체 timeout을 강제하지 않습니다.

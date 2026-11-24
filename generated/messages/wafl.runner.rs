@@ -392,6 +392,8 @@ pub struct Capacity {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub startups: u64,
+    /// Reserved executions, including startup queue and starting guests.
+    ///
     /// Field 4: `running`
     #[serde(
         rename = "running",
@@ -437,6 +439,8 @@ pub struct Capacity {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub drain_ms: u64,
+    /// Retained entries without Instance references; referenced code stays pinned.
+    ///
     /// Field 10: `compilations`
     #[serde(
         rename = "compilations",
@@ -717,6 +721,8 @@ pub struct Usage {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub startups: u64,
+    /// Reserved executions, including startup queue and starting guests.
+    ///
     /// Field 4: `running`
     #[serde(
         rename = "running",
@@ -748,6 +754,8 @@ pub struct Usage {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub waiting: u64,
+    /// All code entries: referenced, retained, or currently compiling.
+    ///
     /// Field 8: `compilations`
     #[serde(
         rename = "compilations",

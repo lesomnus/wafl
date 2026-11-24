@@ -553,6 +553,8 @@ pub struct CapacityView<'a> {
     pub preparations: u64,
     /// Field 3: `startups`
     pub startups: u64,
+    /// Reserved executions, including startup queue and starting guests.
+    ///
     /// Field 4: `running`
     pub running: u64,
     /// Field 5: `memory_bytes`
@@ -565,6 +567,8 @@ pub struct CapacityView<'a> {
     pub queue_ms: u64,
     /// Field 9: `drain_ms`
     pub drain_ms: u64,
+    /// Retained entries without Instance references; referenced code stays pinned.
+    ///
     /// Field 10: `compilations`
     pub compilations: u64,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
@@ -973,6 +977,8 @@ impl CapacityOwnedView {
     pub fn startups(&self) -> u64 {
         self.0.reborrow().startups
     }
+    /// Reserved executions, including startup queue and starting guests.
+    ///
     /// Field 4: `running`
     #[must_use]
     pub fn running(&self) -> u64 {
@@ -1003,6 +1009,8 @@ impl CapacityOwnedView {
     pub fn drain_ms(&self) -> u64 {
         self.0.reborrow().drain_ms
     }
+    /// Retained entries without Instance references; referenced code stays pinned.
+    ///
     /// Field 10: `compilations`
     #[must_use]
     pub fn compilations(&self) -> u64 {
@@ -1047,6 +1055,8 @@ pub struct UsageView<'a> {
     pub preparations: u64,
     /// Field 3: `startups`
     pub startups: u64,
+    /// Reserved executions, including startup queue and starting guests.
+    ///
     /// Field 4: `running`
     pub running: u64,
     /// Sum of declared linear-memory limits, not process RSS or measured usage.
@@ -1057,6 +1067,8 @@ pub struct UsageView<'a> {
     pub requests: u64,
     /// Field 7: `waiting`
     pub waiting: u64,
+    /// All code entries: referenced, retained, or currently compiling.
+    ///
     /// Field 8: `compilations`
     pub compilations: u64,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
@@ -1421,6 +1433,8 @@ impl UsageOwnedView {
     pub fn startups(&self) -> u64 {
         self.0.reborrow().startups
     }
+    /// Reserved executions, including startup queue and starting guests.
+    ///
     /// Field 4: `running`
     #[must_use]
     pub fn running(&self) -> u64 {
@@ -1443,6 +1457,8 @@ impl UsageOwnedView {
     pub fn waiting(&self) -> u64 {
         self.0.reborrow().waiting
     }
+    /// All code entries: referenced, retained, or currently compiling.
+    ///
     /// Field 8: `compilations`
     #[must_use]
     pub fn compilations(&self) -> u64 {
