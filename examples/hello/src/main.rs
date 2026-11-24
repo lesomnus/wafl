@@ -26,10 +26,26 @@ fn main() -> std::io::Result<()> {
             continue;
         }
         count += 1;
-        let body = format!("{name}; request {count}\n");
+        let path = String::from_utf8_lossy(&request)
+            .split_whitespace()
+            .nth(1)
+            .unwrap_or("/")
+            .to_owned();
+        let (content_type, body) = if path == "/index.html" {
+            let data = std::env::var("DATA").unwrap_or_else(|_| "/data".into());
+            (
+                "text/html; charset=utf-8",
+                std::fs::read_to_string(std::path::Path::new(&data).join("index.html"))?,
+            )
+        } else {
+            (
+                "text/plain; charset=utf-8",
+                format!("{name}; request {count}\n"),
+            )
+        };
         write!(
             stream,
-            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: text/plain\r\nConnection: close\r\n\r\n{body}",
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: {content_type}\r\nConnection: close\r\n\r\n{body}",
             body.len()
         )?;
     }
