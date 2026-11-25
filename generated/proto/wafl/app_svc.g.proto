@@ -1,0 +1,128 @@
+edition = "2023";
+package wafl;
+
+import "orm.proto";
+import "patch/patch.proto";
+import "wafl/app.proto";
+import "wafl/manifest.proto";
+import "wafl/payday/tenant_svc.g.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+
+service AppService {
+  // Add creates a new App
+  rpc Add(AppAddRequest) returns (App);
+  // Get retrieves a App
+  rpc Get(AppGetRequest) returns (App);
+  // Patch updates an existing App
+  rpc Patch(AppPatchRequest) returns (App);
+  // Apply applies a patch document to an existing App
+  rpc Apply(AppApplyRequest) returns (App);
+  // Erase deletes a App
+  rpc Erase(AppRef) returns (AppEraseResponse);
+  // List reads Apps a page at a time.
+  rpc List(AppListRequest) returns (AppListResponse);
+}
+
+message AppAddRequest {
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID}];
+  TenantRef tenant = 2;
+  string alias = 4;
+  string name = 5 [features.field_presence = IMPLICIT];
+  string domain = 8 [features.field_presence = IMPLICIT];
+  uint32 replicas = 9 [features.field_presence = IMPLICIT];
+  uint64 revision = 10 [features.field_presence = IMPLICIT];
+  Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
+}
+
+message AppGetRequest {
+  AppRef ref = 1;
+  AppSelect select = 2;
+}
+
+message AppRef {
+  oneof key {
+    bytes id = 1 [(orm.field) = {type: TYPE_UUID}];
+    string alias = 4;
+    string domain = 8;
+  }
+}
+
+message AppSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  bool alias = 4;
+  bool name = 5;
+  bool domain = 8;
+  bool replicas = 9;
+  bool revision = 10;
+  bool manifest = 16;
+}
+
+message AppPatchRequest {
+  AppRef ref = 1;
+  string alias = 8;
+  string name = 10;
+  uint32 replicas = 18;
+  uint64 revision = 20;
+  Manifest manifest = 32 [(orm.field) = {type: TYPE_JSON}];
+  // Clear manifest instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and manifest clears.
+  bool manifest_null = 33;
+}
+
+message AppApplyRequest {
+  AppRef ref = 1;
+  patch.Patch patch = 2;
+}
+
+message AppEraseResponse {
+  // Erased is whether this call is the one that erased the row.
+  //
+  // False for a row that was already gone, was never there, or is out
+  // of this caller's reach -- which are one answer on purpose, and the
+  // reason the RPC does not fail instead.
+  bool erased = 1;
+}
+
+message AppListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated AppFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message AppListResponse {
+  repeated App items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message AppFilter {
+  AppRef ref = 1;
+}

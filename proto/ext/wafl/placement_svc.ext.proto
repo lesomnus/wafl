@@ -1,0 +1,13 @@
+edition = "2023";
+package wafl;
+import "wafl/placement.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+service PlacementService {
+  // Record withdrawal acknowledgement for an already retiring placement.
+  // Reconciliation then completes the session/generation-specific release.
+  rpc Release(PlacementReleaseRequest) returns (Placement);
+}
+message PlacementReleaseRequest {
+  PlacementRef ref = 1;
+  bool withdrawn = 2 [features.field_presence = IMPLICIT];
+}

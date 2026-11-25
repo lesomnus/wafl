@@ -1,0 +1,48 @@
+edition = "2023";
+package wafl;
+import "payday.proto";
+import "orm.proto";
+import "wafl/app.proto";
+import "wafl/instance.proto";
+import "wafl/manifest.proto";
+import "wafl/payday/tenant.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// Durable intent for exactly one runner session and one Instance ID. Never
+// reuse a Placement or its Instance ID for another execution incarnation.
+message Placement {
+  option (orm.message) = {rpc: {get: {}}};
+  option (payday.entity) = {
+    domain: 11 erase: {hard: {}}
+    trail: {off: {why: "Controller reconciliation journal; lifecycle retained until app removal."}}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}, {name: "app"}] size: 100 max: 1000 filters: 64}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+  reserved 3, 4, 5, 6, 7;
+  App app = 8 [(orm.edge) = {immutable: true}];
+  uint64 revision = 9 [(orm.field) = {immutable: true}];
+  string runner = 10 [(orm.field) = {immutable: true}];
+  bytes session = 11 [(orm.field) = {type: TYPE_UUID, immutable: true}];
+  bytes instance = 12 [(orm.field) = {type: TYPE_UUID, immutable: true}];
+  PlacementPhase phase = 16;
+  Manifest manifest = 17 [(orm.field) = {type: TYPE_JSON, immutable: true}];
+  Instance execution = 18 [(orm.field) = {type: TYPE_JSON}];
+  bool withdrawn = 19;
+  string error = 20;
+  // Last verified owner/execution observation; Unix milliseconds. This is route
+  // freshness, never evidence that a runner died or its port can be reused.
+  uint64 date_seen = 21;
+  // Consecutive failed operations while creating this intent. Add failures can
+  // leave no Instance on the runner; retries keep the same ID and back off.
+  uint32 failures = 22;
+  uint64 date_retry = 23;
+}
+enum PlacementPhase {
+  PLACEMENT_PHASE_UNSPECIFIED = 0;
+  PLACEMENT_PHASE_PENDING = 1;
+  PLACEMENT_PHASE_READY = 2;
+  PLACEMENT_PHASE_RETIRING = 3;
+  PLACEMENT_PHASE_RELEASED = 4;
+}

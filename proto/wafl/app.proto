@@ -1,0 +1,27 @@
+edition = "2023";
+package wafl;
+import "payday.proto";
+import "orm.proto";
+import "wafl/manifest.proto";
+import "wafl/payday/tenant.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// Controller-owned desired state. Each manifest change creates a new revision;
+// placements retain that revision's manifest until explicitly released.
+message App {
+  option (orm.message) = {rpc: {add: {}, get: {}, patch: {}, erase: {}}};
+  option (payday.entity) = {
+    domain: 10 erase: {hard: {}}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}] size: 100 max: 1000 filters: 64}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+  string alias = 4 [(orm.field) = {unique: true, default: ""}];
+  string name = 5;
+  // One exact DNS hostname, lowercase ASCII. No wildcards, ports or rule syntax.
+  string domain = 8 [(orm.field) = {unique: true, immutable: true}];
+  uint32 replicas = 9;
+  uint64 revision = 10 [(payday.field) = {stamped: true}];
+  Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
+}

@@ -1,0 +1,21 @@
+edition = "2023";
+package wafl;
+import "payday.proto";
+import "orm.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// One durable coordination row per controller database, shared by replicas.
+// This is the installation's scheduling configuration, not a process session.
+message Controller {
+  option (orm.message) = {rpc: {get: {}}};
+  option (payday.entity) = {
+    domain: 12 global: {} erase: {hard: {}}
+    trail: {off: {why: "Controller bootstrap configuration and short transaction serialization."}}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  reserved 2, 3;
+  string alias = 4 [(orm.field) = {unique: true, default: ""}];
+  // Hash of shared scheduling/routing configuration. Replica disagreement fails startup.
+  string configuration = 8;
+}

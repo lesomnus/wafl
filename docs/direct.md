@@ -7,7 +7,7 @@
 제어평면  → runner 관리 API → 실행·조회·Drain·Release
 ```
 
-`direct`를 생략한 기본 proxy 모드는 기존 `wafl-instance` 라우팅·요청 계측·유휴 재기동을 유지합니다. 아래 기능은 runner의 직결 계약입니다. 자동 배치, gateway 설정 배포, scale-to-zero 뒤 첫 요청을 받는 activator는 [제어평면 #10](https://github.com/lesomnus/wafl/issues/10)에서 이어서 구현합니다.
+`direct`를 생략한 기본 proxy 모드는 기존 `wafl-instance` 라우팅·요청 계측·유휴 재기동을 유지합니다. 아래 기능은 runner의 직결 계약입니다. 고정 replica의 자동 배치와 Traefik 설정 배포는 [Controller 튜토리얼](controller.md)에서 사용합니다. 부하 기반 확장과 scale-to-zero 뒤 첫 요청을 받는 activator는 [제어평면 #10](https://github.com/lesomnus/wafl/issues/10)의 후속 범위입니다.
 
 ## 로컬에서 두 인스턴스 실행
 
@@ -140,7 +140,7 @@ gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합
 
 공개된 예약은 시간 경과, 죽은 PID, runner 재시작, bundle GC로 회수하지 않습니다. IP가 재사용될 수 있는 Pod 교체도 이전 IP의 예약 상태를 잃으면 안 됩니다. Kubernetes에서는 IP 재사용과 gateway 철회를 제어평면이 조정하고 상태 볼륨의 수명을 그에 맞춰야 합니다. 단순 `emptyDir`만으로 재생성된 Pod까지 보호하지 못합니다.
 
-충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 이전 저널의 업그레이드 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. 자동 조정 루프와 gateway 확인 프로토콜은 #10의 후속 범위입니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
+충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 이전 저널의 업그레이드 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. controller가 만든 실행은 `wafl placement release --withdrawn`으로 철회를 확인하면 조정 루프가 해당 예약의 회수를 시도합니다. gateway의 자동 철회 확인 프로토콜은 #10의 후속 범위입니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
 
 ## 제한과 메트릭
 
@@ -171,4 +171,4 @@ cargo test --locked --lib endpoint::
 - runner를 강제 종료·재시작해도 이전 주소를 새 앱에 재사용하지 않습니다.
 - 이전 세션의 예약을 조건부 회수한 뒤 같은 포트를 재사용하고, 오래된 token의 재시도가 새 앱을 건드리지 않는지 검증합니다.
 
-Traefik 예제는 실제 file provider와 두 backend로 수동 검증합니다. CI는 외부 프록시 다운로드 없이 runner/CLI와 실제 WASM 소켓 계약을 검증합니다.
+위 file provider 예제 외에, CI는 실제 Traefik의 HTTP provider를 controller에 연결해 두 runner의 HTTP·gRPC 라우팅과 장애 복구를 검증합니다. 실행 방법은 [Controller 튜토리얼](controller.md)에 있습니다.

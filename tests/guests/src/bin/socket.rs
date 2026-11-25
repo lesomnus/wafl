@@ -54,6 +54,7 @@ fn main() -> std::io::Result<()> {
             .unwrap_or("/")
             .to_owned();
         let body = match path.as_str() {
+            "/exit" => return Ok(()),
             "/logs" => {
                 println!("request stdout");
                 eprintln!("request stderr");

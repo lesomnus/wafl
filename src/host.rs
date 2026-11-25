@@ -93,7 +93,7 @@ pub async fn serve(config: Config) -> Result<()> {
     result.map_err(|e| anyhow!(e))
 }
 
-async fn shutdown() {
+pub(crate) async fn shutdown() {
     #[cfg(unix)]
     {
         use tokio::signal::unix::{SignalKind, signal};

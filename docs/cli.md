@@ -1,5 +1,7 @@
 # wafl CLI
 
+플랫폼 수준의 앱 실행은 `wafl serve controller --config examples/controller.json`, `wafl --endpoint http://127.0.0.1:8082 app add <URL> --domain hello.localhost`를 사용합니다. `app get/list/patch/erase`, `placement get/list/release`와 Traefik을 함께 실행하는 과정은 [Controller 튜토리얼](controller.md)에 있습니다. 아래 Instance 명령은 개별 runner에 직접 연결합니다.
+
 이 문서의 기본 예제는 proxy 모드입니다. L7에서 WASM 소켓에 직접 연결하는 설정, endpoint 출력과 `release` 명령은 [직결 튜토리얼](direct.md)을 참고하세요. 직결 출력은 `<UUID>\t@alias\t<endpoint.address>`이며 `--idle-ms`·`--max-active`는 생략 또는 0만 허용합니다.
 
 runner 장애로 남은 직결 포트는 `wafl reservation list`, `wafl reservation get <ID|IP:PORT>`로 조회합니다. 소유 세션이 종료되고 외부 경로·연결을 모두 정리했으면 `wafl reservation release <ID|IP:PORT> --token <관측한 token> --withdrawn`으로 회수합니다. token을 자동 갱신하지 않으며 활성 세션은 거절합니다. 전체 절차와 출력 열은 [예약 복구 튜토리얼](reservations.md)에 있습니다.
@@ -7,6 +9,8 @@ runner 장애로 남은 직결 포트는 `wafl reservation list`, `wafl reservat
 ## 시작하기
 
 저장소 루트에서 CLI를 설치합니다. Rust와 WASIp2 target은 `rust-toolchain.toml`에 고정되어 있습니다.
+
+PostgreSQL Store 연결 때문에 빌드에 libpq가 필요합니다. Debian/Ubuntu의 개발 패키지는 `libpq-dev`입니다.
 
 ```sh
 cargo install --path . --locked --bin wafl

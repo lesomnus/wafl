@@ -13,6 +13,16 @@ CREATE TABLE "pd_wafl__Access" (
   "f20" TEXT NOT NULL,
   "f21" BIGINT NOT NULL
 );
+CREATE TABLE "pd_wafl__App" (
+  "f1" BLOB NOT NULL PRIMARY KEY,
+  "f2" BLOB NOT NULL REFERENCES "pd_wafl__Tenant" ("f1"),
+  "f4" TEXT NOT NULL,
+  "f5" TEXT NOT NULL,
+  "f8" TEXT NOT NULL,
+  "f9" BIGINT NOT NULL,
+  "f10" TEXT NOT NULL,
+  "f16" TEXT
+);
 CREATE TABLE "pd_wafl__Archived" (
   "f1" BLOB NOT NULL PRIMARY KEY,
   "f7" TEXT NOT NULL,
@@ -46,6 +56,11 @@ CREATE TABLE "pd_wafl__Audit" (
   "f23" BLOB,
   "f24" BLOB,
   "f25" TEXT
+);
+CREATE TABLE "pd_wafl__Controller" (
+  "f1" BLOB NOT NULL PRIMARY KEY,
+  "f4" TEXT NOT NULL,
+  "f8" TEXT NOT NULL
 );
 CREATE TABLE "pd_wafl__Holder" (
   "f1" BLOB NOT NULL PRIMARY KEY,
@@ -93,6 +108,23 @@ CREATE TABLE "pd_wafl__Owed" (
   "f9" TEXT NOT NULL,
   "f15" TEXT NOT NULL
 );
+CREATE TABLE "pd_wafl__Placement" (
+  "f1" BLOB NOT NULL PRIMARY KEY,
+  "f2" BLOB NOT NULL REFERENCES "pd_wafl__Tenant" ("f1"),
+  "f8" BLOB NOT NULL REFERENCES "pd_wafl__App" ("f1"),
+  "f9" TEXT NOT NULL,
+  "f10" TEXT NOT NULL,
+  "f11" BLOB NOT NULL,
+  "f12" BLOB NOT NULL,
+  "f16" TEXT NOT NULL,
+  "f17" TEXT,
+  "f18" TEXT,
+  "f19" BOOLEAN NOT NULL,
+  "f20" TEXT NOT NULL,
+  "f21" TEXT NOT NULL,
+  "f22" BIGINT NOT NULL,
+  "f23" TEXT NOT NULL
+);
 CREATE TABLE "pd_wafl__Reservation" (
   "f1" BLOB NOT NULL PRIMARY KEY,
   "f8" TEXT NOT NULL,
@@ -135,6 +167,8 @@ CREATE INDEX "pd_wafl__Access__access" ON "pd_wafl__Access" ("f2", "f15");
 CREATE INDEX "pd_wafl__Access__by_actor" ON "pd_wafl__Access" ("f8", "f15");
 CREATE INDEX "pd_wafl__Access__by_actor_tenant" ON "pd_wafl__Access" ("f16", "f15");
 CREATE INDEX "pd_wafl__Access__by_time" ON "pd_wafl__Access" ("f15", "f1");
+CREATE UNIQUE INDEX "pd_wafl__App__field_4" ON "pd_wafl__App" ("f4");
+CREATE UNIQUE INDEX "pd_wafl__App__field_8" ON "pd_wafl__App" ("f8");
 CREATE INDEX "pd_wafl__Archived__blob" ON "pd_wafl__Archived" ("f8", "f9");
 CREATE INDEX "pd_wafl__Archived__state" ON "pd_wafl__Archived" ("f11");
 CREATE INDEX "pd_wafl__Audit__by_actor" ON "pd_wafl__Audit" ("f8", "f15");
@@ -145,6 +179,7 @@ CREATE INDEX "pd_wafl__Audit__by_tenant_domain" ON "pd_wafl__Audit" ("f2", "f19"
 CREATE INDEX "pd_wafl__Audit__by_time" ON "pd_wafl__Audit" ("f15", "f1");
 CREATE INDEX "pd_wafl__Audit__object" ON "pd_wafl__Audit" ("f11");
 CREATE INDEX "pd_wafl__Audit__trail" ON "pd_wafl__Audit" ("f2", "f15");
+CREATE UNIQUE INDEX "pd_wafl__Controller__field_4" ON "pd_wafl__Controller" ("f4");
 CREATE INDEX "pd_wafl__Holder__page" ON "pd_wafl__Holder" ("f2", "f15", "f1");
 CREATE UNIQUE INDEX "pd_wafl__Holder__slug" ON "pd_wafl__Holder" ("f4", "f2") WHERE "f14" IS NULL;
 CREATE UNIQUE INDEX "pd_wafl__Instance__field_4" ON "pd_wafl__Instance" ("f4");

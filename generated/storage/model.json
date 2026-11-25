@@ -123,6 +123,71 @@
       ]
     },
     {
+      "name": "wafl.App",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant",
+          "json": "tenant",
+          "number": 2,
+          "kind": "MESSAGE",
+          "target": "wafl.Tenant",
+          "immutable": true
+        },
+        {
+          "name": "alias",
+          "json": "alias",
+          "number": 4,
+          "kind": "STRING",
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "name",
+          "json": "name",
+          "number": 5,
+          "kind": "STRING"
+        },
+        {
+          "name": "domain",
+          "json": "domain",
+          "number": 8,
+          "kind": "STRING",
+          "immutable": true,
+          "unique": true
+        },
+        {
+          "name": "replicas",
+          "json": "replicas",
+          "number": 9,
+          "kind": "UINT32"
+        },
+        {
+          "name": "revision",
+          "json": "revision",
+          "number": 10,
+          "kind": "UINT64"
+        },
+        {
+          "name": "manifest",
+          "json": "manifest",
+          "number": 16,
+          "kind": "JSON",
+          "nullable": true
+        }
+      ],
+      "indexes": []
+    },
+    {
       "name": "wafl.Archived",
       "key": "id",
       "fields": [
@@ -408,6 +473,36 @@
           ]
         }
       ]
+    },
+    {
+      "name": "wafl.Controller",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "alias",
+          "json": "alias",
+          "number": 4,
+          "kind": "STRING",
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "configuration",
+          "json": "configuration",
+          "number": 8,
+          "kind": "STRING"
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "wafl.Holder",
@@ -732,6 +827,117 @@
           ]
         }
       ]
+    },
+    {
+      "name": "wafl.Placement",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant",
+          "json": "tenant",
+          "number": 2,
+          "kind": "MESSAGE",
+          "target": "wafl.Tenant",
+          "immutable": true
+        },
+        {
+          "name": "app",
+          "json": "app",
+          "number": 8,
+          "kind": "MESSAGE",
+          "target": "wafl.App",
+          "immutable": true
+        },
+        {
+          "name": "revision",
+          "json": "revision",
+          "number": 9,
+          "kind": "UINT64",
+          "immutable": true
+        },
+        {
+          "name": "runner",
+          "json": "runner",
+          "number": 10,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "session",
+          "json": "session",
+          "number": 11,
+          "kind": "UUID",
+          "immutable": true
+        },
+        {
+          "name": "instance",
+          "json": "instance",
+          "number": 12,
+          "kind": "UUID",
+          "immutable": true
+        },
+        {
+          "name": "phase",
+          "json": "phase",
+          "number": 16,
+          "kind": "ENUM"
+        },
+        {
+          "name": "manifest",
+          "json": "manifest",
+          "number": 17,
+          "kind": "JSON",
+          "nullable": true,
+          "immutable": true
+        },
+        {
+          "name": "execution",
+          "json": "execution",
+          "number": 18,
+          "kind": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "withdrawn",
+          "json": "withdrawn",
+          "number": 19,
+          "kind": "BOOL"
+        },
+        {
+          "name": "error",
+          "json": "error",
+          "number": 20,
+          "kind": "STRING"
+        },
+        {
+          "name": "date_seen",
+          "json": "dateSeen",
+          "number": 21,
+          "kind": "UINT64"
+        },
+        {
+          "name": "failures",
+          "json": "failures",
+          "number": 22,
+          "kind": "UINT32"
+        },
+        {
+          "name": "date_retry",
+          "json": "dateRetry",
+          "number": 23,
+          "kind": "UINT64"
+        }
+      ],
+      "indexes": []
     },
     {
       "name": "wafl.Reservation",

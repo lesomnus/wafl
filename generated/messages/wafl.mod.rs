@@ -2,9 +2,13 @@
 
 include!("wafl.manifest.rs");
 include!("wafl.payday.tenant.rs");
+include!("wafl.app.rs");
+include!("wafl.payday.tenant_svc.g.rs");
+include!("wafl.app_svc.g.rs");
+include!("wafl.controller.rs");
+include!("wafl.controller_svc.g.rs");
 include!("wafl.instance.rs");
 include!("wafl.log.rs");
-include!("wafl.payday.tenant_svc.g.rs");
 include!("wafl.instance_svc.g.rs");
 include!("wafl.payday.access.rs");
 include!("wafl.payday.access_svc.g.rs");
@@ -16,6 +20,8 @@ include!("wafl.payday.holder_svc.g.rs");
 include!("wafl.payday.outbox.rs");
 include!("wafl.payday.owed.rs");
 include!("wafl.payday.rowseal.rs");
+include!("wafl.placement.rs");
+include!("wafl.placement_svc.g.rs");
 include!("wafl.reservation.rs");
 include!("wafl.reservation_svc.g.rs");
 include!("wafl.runner.rs");
@@ -39,9 +45,13 @@ pub mod __buffa {
         use super::*;
         include!("wafl.manifest.__view.rs");
         include!("wafl.payday.tenant.__view.rs");
+        include!("wafl.app.__view.rs");
+        include!("wafl.payday.tenant_svc.g.__view.rs");
+        include!("wafl.app_svc.g.__view.rs");
+        include!("wafl.controller.__view.rs");
+        include!("wafl.controller_svc.g.__view.rs");
         include!("wafl.instance.__view.rs");
         include!("wafl.log.__view.rs");
-        include!("wafl.payday.tenant_svc.g.__view.rs");
         include!("wafl.instance_svc.g.__view.rs");
         include!("wafl.payday.access.__view.rs");
         include!("wafl.payday.access_svc.g.__view.rs");
@@ -53,6 +63,8 @@ pub mod __buffa {
         include!("wafl.payday.outbox.__view.rs");
         include!("wafl.payday.owed.__view.rs");
         include!("wafl.payday.rowseal.__view.rs");
+        include!("wafl.placement.__view.rs");
+        include!("wafl.placement_svc.g.__view.rs");
         include!("wafl.reservation.__view.rs");
         include!("wafl.reservation_svc.g.__view.rs");
         include!("wafl.runner.__view.rs");
@@ -62,10 +74,13 @@ pub mod __buffa {
             use super::*;
             include!("wafl.manifest.__view_oneof.rs");
             include!("wafl.payday.tenant_svc.g.__view_oneof.rs");
+            include!("wafl.app_svc.g.__view_oneof.rs");
+            include!("wafl.controller_svc.g.__view_oneof.rs");
             include!("wafl.instance_svc.g.__view_oneof.rs");
             include!("wafl.payday.access_svc.g.__view_oneof.rs");
             include!("wafl.payday.audit_svc.g.__view_oneof.rs");
             include!("wafl.payday.holder_svc.g.__view_oneof.rs");
+            include!("wafl.placement_svc.g.__view_oneof.rs");
             include!("wafl.reservation_svc.g.__view_oneof.rs");
             include!("wafl.runner_svc.g.__view_oneof.rs");
         }
@@ -75,10 +90,13 @@ pub mod __buffa {
         use super::*;
         include!("wafl.manifest.__oneof.rs");
         include!("wafl.payday.tenant_svc.g.__oneof.rs");
+        include!("wafl.app_svc.g.__oneof.rs");
+        include!("wafl.controller_svc.g.__oneof.rs");
         include!("wafl.instance_svc.g.__oneof.rs");
         include!("wafl.payday.access_svc.g.__oneof.rs");
         include!("wafl.payday.audit_svc.g.__oneof.rs");
         include!("wafl.payday.holder_svc.g.__oneof.rs");
+        include!("wafl.placement_svc.g.__oneof.rs");
         include!("wafl.reservation_svc.g.__oneof.rs");
         include!("wafl.runner_svc.g.__oneof.rs");
     }
@@ -88,9 +106,7 @@ pub mod __buffa {
         reg.register_json_any(super::__ASSET_JSON_ANY);
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
-        reg.register_json_any(super::__INSTANCE_JSON_ANY);
-        reg.register_json_any(super::__ENDPOINT_JSON_ANY);
-        reg.register_json_any(super::__LOG_JSON_ANY);
+        reg.register_json_any(super::__APP_JSON_ANY);
         reg.register_json_any(super::__TENANT_ADD_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_REF_JSON_ANY);
@@ -101,6 +117,23 @@ pub mod __buffa {
         reg.register_json_any(super::__TENANT_LIST_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_LIST_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__TENANT_FILTER_JSON_ANY);
+        reg.register_json_any(super::__APP_ADD_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_REF_JSON_ANY);
+        reg.register_json_any(super::__APP_SELECT_JSON_ANY);
+        reg.register_json_any(super::__APP_PATCH_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_APPLY_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_ERASE_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__APP_LIST_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_LIST_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__APP_FILTER_JSON_ANY);
+        reg.register_json_any(super::__CONTROLLER_JSON_ANY);
+        reg.register_json_any(super::__CONTROLLER_REF_JSON_ANY);
+        reg.register_json_any(super::__CONTROLLER_SELECT_JSON_ANY);
+        reg.register_json_any(super::__CONTROLLER_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__INSTANCE_JSON_ANY);
+        reg.register_json_any(super::__ENDPOINT_JSON_ANY);
+        reg.register_json_any(super::__LOG_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_ADD_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_REF_JSON_ANY);
@@ -151,6 +184,14 @@ pub mod __buffa {
         reg.register_json_any(super::__OUTBOX_JSON_ANY);
         reg.register_json_any(super::__OWED_JSON_ANY);
         reg.register_json_any(super::__ROW_SEAL_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_REF_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_SELECT_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_LIST_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_LIST_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_FILTER_JSON_ANY);
+        reg.register_json_any(super::__PLACEMENT_RELEASE_REQUEST_JSON_ANY);
         reg.register_json_any(super::__RESERVATION_JSON_ANY);
         reg.register_json_any(super::__RESERVATION_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__RESERVATION_REF_JSON_ANY);
@@ -188,17 +229,9 @@ pub use self::__buffa::view::TenantView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantOwnedView;
 #[doc(inline)]
-pub use self::__buffa::view::InstanceView;
+pub use self::__buffa::view::AppView;
 #[doc(inline)]
-pub use self::__buffa::view::InstanceOwnedView;
-#[doc(inline)]
-pub use self::__buffa::view::EndpointView;
-#[doc(inline)]
-pub use self::__buffa::view::EndpointOwnedView;
-#[doc(inline)]
-pub use self::__buffa::view::LogView;
-#[doc(inline)]
-pub use self::__buffa::view::LogOwnedView;
+pub use self::__buffa::view::AppOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantAddRequestView;
 #[doc(inline)]
@@ -239,6 +272,74 @@ pub use self::__buffa::view::TenantListResponseOwnedView;
 pub use self::__buffa::view::TenantFilterView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppAddRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppAddRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppRefView;
+#[doc(inline)]
+pub use self::__buffa::view::AppRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppPatchRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppPatchRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppApplyRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppApplyRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppEraseResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::AppEraseResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppListRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppListRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppListResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::AppListResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppFilterView;
+#[doc(inline)]
+pub use self::__buffa::view::AppFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerRefView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::ControllerGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::EndpointView;
+#[doc(inline)]
+pub use self::__buffa::view::EndpointOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::LogView;
+#[doc(inline)]
+pub use self::__buffa::view::LogOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceAddRequestView;
 #[doc(inline)]
@@ -439,6 +540,38 @@ pub use self::__buffa::view::OwedOwnedView;
 pub use self::__buffa::view::RowSealView;
 #[doc(inline)]
 pub use self::__buffa::view::RowSealOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementRefView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementListRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementListRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementListResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementListResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementFilterView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementReleaseRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::PlacementReleaseRequestOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::ReservationView;
 #[doc(inline)]
