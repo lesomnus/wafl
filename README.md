@@ -2,6 +2,8 @@
 
 작은 HTTP/gRPC 앱을 위한 자체 운영 WASM 앱 플랫폼. 전체 구상은 [이슈 #1](https://github.com/lesomnus/wafl/issues/1)에 있습니다.
 
+컨테이너 이미지는 `ghcr.io/lesomnus/wafl:latest`입니다. runner·controller 실행과 영속 볼륨 설정은 [컨테이너 문서](docs/container.md)에 있습니다.
+
 현재 runner는 paydirt와 Wasmtime으로 한 프로세스에서 여러 WASIp2 소켓 서버를 실행합니다. 앱은 표준 TCP·파일 API를 사용하며 별도 핸들러 SDK가 필요하지 않습니다. `Instance`는 Manifest를 가진 일반 entity이고 생성된 `InstanceService.Add(InstanceAddRequest)`로 만듭니다.
 
 **도메인으로 앱을 호출하려면 [Controller + Traefik 튜토리얼](docs/controller.md)**을 따라 실행하세요. `wafl serve controller`가 PostgreSQL에 App·Placement를 저장하고 runner에 목표 replica를 배치합니다. Traefik HTTP provider가 설정을 자동 갱신하며 요청은 WASM 소켓으로 직접 갑니다. controller 여러 개와 runner 장애 복구, HTTP·gRPC 전달을 지원합니다.
