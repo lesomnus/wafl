@@ -1,0 +1,2498 @@
+[
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": false,
+    "case": "cli",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 48.57588928064431,
+        "min": 47.28077224744121,
+        "max": 49.76769723119651
+      },
+      "total.cpu_ms_request": {
+        "median": 0.972,
+        "min": 0.946,
+        "max": 0.996
+      },
+      "total.pss_mib": {
+        "median": 162.3505859375,
+        "min": 161.1123046875,
+        "max": 164.1796875
+      },
+      "total.rss_mib": {
+        "median": 188.39453125,
+        "min": 188.01171875,
+        "max": 188.51171875
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 9.495286999302898,
+        "min": 9.096300791791016,
+        "max": 9.893578365237857
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.19,
+        "min": 0.18200000000000002,
+        "max": 0.198
+      },
+      "backend.pss_mib": {
+        "median": 39.3330078125,
+        "min": 38.5419921875,
+        "max": 40.0810546875
+      },
+      "backend.rss_mib": {
+        "median": 64.578125,
+        "min": 63.65625,
+        "max": 66.9765625
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 39.080602281341406,
+        "min": 38.1844714556502,
+        "max": 39.87411886595864
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.782,
+        "min": 0.7640000000000001,
+        "max": 0.798
+      },
+      "gateway.pss_mib": {
+        "median": 123.80859375,
+        "min": 121.02734375,
+        "max": 124.84765625
+      },
+      "gateway.rss_mib": {
+        "median": 123.81640625,
+        "min": 121.03515625,
+        "max": 124.85546875
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.9120821612828,
+        "min": 499.8449770846004,
+        "max": 499.94499746007176
+      },
+      "latency_p50_ms": {
+        "median": 0.6994309369474649,
+        "min": 0.6950430106371641,
+        "max": 0.7217240054160357
+      },
+      "latency_p95_ms": {
+        "median": 1.542076002806425,
+        "min": 1.419982174411416,
+        "max": 1.5918288845568895
+      },
+      "schedule_p95_ms": {
+        "median": 1.065943855792284,
+        "min": 1.0642139241099358,
+        "max": 1.0723948944360018
+      },
+      "client_connections_opened": {
+        "median": 5000,
+        "min": 5000,
+        "max": 5000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": false,
+    "case": "cli",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "total.pss_mib": {
+        "median": 153.2275390625,
+        "min": 152.6220703125,
+        "max": 153.6884765625
+      },
+      "total.rss_mib": {
+        "median": 178.6640625,
+        "min": 178.02734375,
+        "max": 180.13671875
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "backend.pss_mib": {
+        "median": 39.3251953125,
+        "min": 38.5439453125,
+        "max": 40.1689453125
+      },
+      "backend.rss_mib": {
+        "median": 64.578125,
+        "min": 63.65625,
+        "max": 67.0703125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 114.078125,
+        "min": 113.05859375,
+        "max": 114.36328125
+      },
+      "gateway.rss_mib": {
+        "median": 114.0859375,
+        "min": 113.06640625,
+        "max": 114.37109375
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": false,
+    "case": "cli",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 33.09430127434575,
+        "min": 30.69510212071164,
+        "max": 33.29450160956362
+      },
+      "total.cpu_ms_request": {
+        "median": 1.6550000000000002,
+        "min": 1.5349999999999997,
+        "max": 1.665
+      },
+      "total.pss_mib": {
+        "median": 162.6318359375,
+        "min": 157.6884765625,
+        "max": 164.220703125
+      },
+      "total.rss_mib": {
+        "median": 188.62109375,
+        "min": 182.61328125,
+        "max": 188.67578125
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 13.697737899430077,
+        "min": 12.89794193345864,
+        "max": 14.797451929314718
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.6849999999999998,
+        "min": 0.645,
+        "max": 0.7400000000000001
+      },
+      "backend.pss_mib": {
+        "median": 38.5419921875,
+        "min": 38.4697265625,
+        "max": 39.263671875
+      },
+      "backend.rss_mib": {
+        "median": 63.65625,
+        "min": 63.3828125,
+        "max": 64.578125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 18.29684934503103,
+        "min": 17.797160187253,
+        "max": 19.59676371013354
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.915,
+        "min": 0.8899999999999997,
+        "max": 0.98
+      },
+      "gateway.pss_mib": {
+        "median": 124.08984375,
+        "min": 119.22265625,
+        "max": 124.95703125
+      },
+      "gateway.rss_mib": {
+        "median": 124.09765625,
+        "min": 119.23046875,
+        "max": 124.96484375
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.99599667828883,
+        "min": 199.99106202173203,
+        "max": 199.99626020909133
+      },
+      "latency_p50_ms": {
+        "median": 1.43154407851398,
+        "min": 1.2875099200755358,
+        "max": 1.5966789796948433
+      },
+      "latency_p95_ms": {
+        "median": 1.8899068236351013,
+        "min": 1.8874530214816332,
+        "max": 2.2241719998419285
+      },
+      "schedule_p95_ms": {
+        "median": 1.087479293346405,
+        "min": 1.0819449089467525,
+        "max": 1.09853595495224
+      },
+      "client_connections_opened": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": false,
+    "case": "direct",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 46.57519818628604,
+        "min": 42.562909012268406,
+        "max": 48.07593628163197
+      },
+      "total.cpu_ms_request": {
+        "median": 0.932,
+        "min": 0.8520000000000002,
+        "max": 0.9620000000000002
+      },
+      "total.pss_mib": {
+        "median": 148.056640625,
+        "min": 147.8212890625,
+        "max": 152.2509765625
+      },
+      "total.rss_mib": {
+        "median": 149.88671875,
+        "min": 149.6953125,
+        "max": 154.109375
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 7.695901846231814,
+        "min": 7.093818168711402,
+        "max": 7.896047746879261
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.154,
+        "min": 0.14200000000000002,
+        "max": 0.15799999999999995
+      },
+      "backend.pss_mib": {
+        "median": 23.599609375,
+        "min": 23.5908203125,
+        "max": 27.427734375
+      },
+      "backend.rss_mib": {
+        "median": 25.44140625,
+        "min": 25.421875,
+        "max": 29.28125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 38.87929634005422,
+        "min": 35.469090843557,
+        "max": 40.179888534752706
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.7779999999999999,
+        "min": 0.7100000000000001,
+        "max": 0.804
+      },
+      "gateway.pss_mib": {
+        "median": 124.45703125,
+        "min": 124.24609375,
+        "max": 124.8203125
+      },
+      "gateway.rss_mib": {
+        "median": 124.46484375,
+        "min": 124.25390625,
+        "max": 124.828125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.87427886923746,
+        "min": 499.8140843046101,
+        "max": 499.90215000265164
+      },
+      "latency_p50_ms": {
+        "median": 0.6962248589843512,
+        "min": 0.6577519234269857,
+        "max": 0.7633930072188377
+      },
+      "latency_p95_ms": {
+        "median": 1.4403210952877998,
+        "min": 1.39277009293437,
+        "max": 1.4661210589110851
+      },
+      "schedule_p95_ms": {
+        "median": 1.060074893757701,
+        "min": 1.047393074259162,
+        "max": 1.0677480604499578
+      },
+      "client_connections_opened": {
+        "median": 5000,
+        "min": 5000,
+        "max": 5000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": false,
+    "case": "direct",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.09999456998576443,
+        "min": 0.09999093870092035,
+        "max": 0.1999680417115909
+      },
+      "total.pss_mib": {
+        "median": 138.9599609375,
+        "min": 138.5869140625,
+        "max": 141.7880859375
+      },
+      "total.rss_mib": {
+        "median": 140.74609375,
+        "min": 140.33203125,
+        "max": 143.55859375
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.09999456998576443,
+        "min": 0.09999093870092035,
+        "max": 0.1999680417115909
+      },
+      "backend.pss_mib": {
+        "median": 23.7158203125,
+        "min": 23.6943359375,
+        "max": 27.5185546875
+      },
+      "backend.rss_mib": {
+        "median": 25.47265625,
+        "min": 25.453125,
+        "max": 29.28125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 114.87109375,
+        "min": 114.26953125,
+        "max": 115.265625
+      },
+      "gateway.rss_mib": {
+        "median": 114.87890625,
+        "min": 114.27734375,
+        "max": 115.2734375
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": false,
+    "case": "direct",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 31.292571875200945,
+        "min": 31.19276801895797,
+        "max": 32.09164888315761
+      },
+      "total.cpu_ms_request": {
+        "median": 1.565,
+        "min": 1.56,
+        "max": 1.605
+      },
+      "total.pss_mib": {
+        "median": 148.4892578125,
+        "min": 148.1025390625,
+        "max": 152.458984375
+      },
+      "total.rss_mib": {
+        "median": 150.3203125,
+        "min": 149.9609375,
+        "max": 154.3203125
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 13.096963495139402,
+        "min": 12.796962300401665,
+        "max": 13.796409800235983
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.6549999999999999,
+        "min": 0.64,
+        "max": 0.69
+      },
+      "backend.pss_mib": {
+        "median": 23.599609375,
+        "min": 23.5947265625,
+        "max": 27.431640625
+      },
+      "backend.rss_mib": {
+        "median": 25.4453125,
+        "min": 25.421875,
+        "max": 29.28515625
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 18.29523908292163,
+        "min": 18.095804523818572,
+        "max": 18.49560957479928
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.915,
+        "min": 0.9050000000000002,
+        "max": 0.9249999999999998
+      },
+      "gateway.pss_mib": {
+        "median": 124.890625,
+        "min": 124.5078125,
+        "max": 125.02734375
+      },
+      "gateway.rss_mib": {
+        "median": 124.8984375,
+        "min": 124.515625,
+        "max": 125.03515625
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.9847718189331,
+        "min": 199.98001799810166,
+        "max": 199.98805259482745
+      },
+      "latency_p50_ms": {
+        "median": 1.3565118424594402,
+        "min": 1.3341079466044903,
+        "max": 1.4553398359566927
+      },
+      "latency_p95_ms": {
+        "median": 1.9752499647438526,
+        "min": 1.9120979122817516,
+        "max": 2.0782549399882555
+      },
+      "schedule_p95_ms": {
+        "median": 1.084582880139351,
+        "min": 1.0616767685860395,
+        "max": 1.0971920564770699
+      },
+      "client_connections_opened": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": true,
+    "case": "cli",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 41.157738210193486,
+        "min": 39.975322929841575,
+        "max": 46.67665949070431
+      },
+      "total.cpu_ms_request": {
+        "median": 0.824,
+        "min": 0.8,
+        "max": 0.934
+      },
+      "total.pss_mib": {
+        "median": 163.466796875,
+        "min": 161.8828125,
+        "max": 163.615234375
+      },
+      "total.rss_mib": {
+        "median": 189.2890625,
+        "min": 186.74609375,
+        "max": 189.625
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 9.690050015506719,
+        "min": 9.294262581188166,
+        "max": 11.09445225582051
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.194,
+        "min": 0.18599999999999997,
+        "max": 0.22199999999999995
+      },
+      "backend.pss_mib": {
+        "median": 39.775390625,
+        "min": 37.12109375,
+        "max": 39.916015625
+      },
+      "backend.rss_mib": {
+        "median": 65.58203125,
+        "min": 61.9765625,
+        "max": 65.92578125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 31.467688194686772,
+        "min": 30.68106034865341,
+        "max": 35.582207234883796
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.6300000000000001,
+        "min": 0.6140000000000001,
+        "max": 0.7119999999999999
+      },
+      "gateway.pss_mib": {
+        "median": 123.6953125,
+        "min": 123.69140625,
+        "max": 124.76171875
+      },
+      "gateway.rss_mib": {
+        "median": 123.703125,
+        "min": 123.69921875,
+        "max": 124.76953125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.87862151674216,
+        "min": 499.701745675231,
+        "max": 499.90766180079834
+      },
+      "latency_p50_ms": {
+        "median": 0.4137069918215275,
+        "min": 0.40743593126535416,
+        "max": 0.5044999998062849
+      },
+      "latency_p95_ms": {
+        "median": 0.9394879452884197,
+        "min": 0.8146201726049185,
+        "max": 1.0237190872430801
+      },
+      "schedule_p95_ms": {
+        "median": 1.065626973286271,
+        "min": 1.0423071216791868,
+        "max": 1.0754531249403954
+      },
+      "client_connections_opened": {
+        "median": 2,
+        "min": 2,
+        "max": 7
+      },
+      "client_connections_reused": {
+        "median": 4998,
+        "min": 4993,
+        "max": 4998
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": true,
+    "case": "cli",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "total.pss_mib": {
+        "median": 153.369140625,
+        "min": 151.94140625,
+        "max": 153.705078125
+      },
+      "total.rss_mib": {
+        "median": 179.37890625,
+        "min": 176.8046875,
+        "max": 179.52734375
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "backend.pss_mib": {
+        "median": 39.775390625,
+        "min": 37.12109375,
+        "max": 39.916015625
+      },
+      "backend.rss_mib": {
+        "median": 65.58203125,
+        "min": 61.9765625,
+        "max": 65.92578125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 113.7890625,
+        "min": 113.59375,
+        "max": 114.8203125
+      },
+      "gateway.rss_mib": {
+        "median": 113.796875,
+        "min": 113.6015625,
+        "max": 114.828125
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": true,
+    "case": "cli",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 29.291960523222837,
+        "min": 27.29384225830989,
+        "max": 33.99159246499815
+      },
+      "total.cpu_ms_request": {
+        "median": 1.465,
+        "min": 1.3649999999999998,
+        "max": 1.7000000000000002
+      },
+      "total.pss_mib": {
+        "median": 163.71875,
+        "min": 161.96875,
+        "max": 164.017578125
+      },
+      "total.rss_mib": {
+        "median": 189.69140625,
+        "min": 186.83984375,
+        "max": 189.890625
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 13.596268365728006,
+        "min": 13.396977518730864,
+        "max": 15.296216609249164
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.6799999999999999,
+        "min": 0.6699999999999999,
+        "max": 0.765
+      },
+      "backend.pss_mib": {
+        "median": 39.76171875,
+        "min": 37.1142578125,
+        "max": 39.919921875
+      },
+      "backend.rss_mib": {
+        "median": 65.5859375,
+        "min": 61.9765625,
+        "max": 65.92578125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 15.695692157494832,
+        "min": 13.896864739579028,
+        "max": 18.695375855748978
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.7850000000000001,
+        "min": 0.6949999999999998,
+        "max": 0.935
+      },
+      "gateway.pss_mib": {
+        "median": 124.09765625,
+        "min": 123.95703125,
+        "max": 124.85546875
+      },
+      "gateway.rss_mib": {
+        "median": 124.10546875,
+        "min": 123.96484375,
+        "max": 124.86328125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.98041467699903,
+        "min": 199.97844674555944,
+        "max": 199.98735575786478
+      },
+      "latency_p50_ms": {
+        "median": 1.0203018318861723,
+        "min": 0.9333258494734764,
+        "max": 1.2306321877986193
+      },
+      "latency_p95_ms": {
+        "median": 1.6694278456270695,
+        "min": 1.546924002468586,
+        "max": 2.31615686789155
+      },
+      "schedule_p95_ms": {
+        "median": 1.0980009101331234,
+        "min": 1.061603194102645,
+        "max": 1.148969866335392
+      },
+      "client_connections_opened": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "client_connections_reused": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": true,
+    "case": "direct",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 38.87100827620827,
+        "min": 38.381093810891414,
+        "max": 39.17497740239451
+      },
+      "total.cpu_ms_request": {
+        "median": 0.7779999999999999,
+        "min": 0.7679999999999999,
+        "max": 0.784
+      },
+      "total.pss_mib": {
+        "median": 148.7392578125,
+        "min": 148.0947265625,
+        "max": 149.458984375
+      },
+      "total.rss_mib": {
+        "median": 150.54296875,
+        "min": 149.84375,
+        "max": 151.33203125
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 7.795021013741765,
+        "min": 7.794186749471068,
+        "max": 7.796159680337318
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.156,
+        "min": 0.15599999999999997,
+        "max": 0.156
+      },
+      "backend.pss_mib": {
+        "median": 23.9697265625,
+        "min": 23.7470703125,
+        "max": 25.685546875
+      },
+      "backend.rss_mib": {
+        "median": 25.765625,
+        "min": 25.48828125,
+        "max": 27.55078125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 31.07682152673721,
+        "min": 30.584934130554096,
+        "max": 31.379956388652747
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.622,
+        "min": 0.6119999999999999,
+        "max": 0.628
+      },
+      "gateway.pss_mib": {
+        "median": 124.34765625,
+        "min": 123.7734375,
+        "max": 124.76953125
+      },
+      "gateway.rss_mib": {
+        "median": 124.35546875,
+        "min": 123.78125,
+        "max": 124.77734375
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.8559813988948,
+        "min": 499.8272143397846,
+        "max": 499.8793866003437
+      },
+      "latency_p50_ms": {
+        "median": 0.41632214561104774,
+        "min": 0.4057518672198057,
+        "max": 0.43552881106734276
+      },
+      "latency_p95_ms": {
+        "median": 0.8184479083865881,
+        "min": 0.803900184109807,
+        "max": 0.8870780002325773
+      },
+      "schedule_p95_ms": {
+        "median": 1.0606169234961271,
+        "min": 1.060553127899766,
+        "max": 1.063627889379859
+      },
+      "client_connections_opened": {
+        "median": 2,
+        "min": 0,
+        "max": 2
+      },
+      "client_connections_reused": {
+        "median": 4998,
+        "min": 4998,
+        "max": 5000
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": true,
+    "case": "direct",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.1999752083329123,
+        "min": 0.09998392099415773,
+        "max": 0.19998314337863057
+      },
+      "total.pss_mib": {
+        "median": 138.982421875,
+        "min": 138.4091796875,
+        "max": 139.01953125
+      },
+      "total.rss_mib": {
+        "median": 140.703125,
+        "min": 140.07421875,
+        "max": 140.73046875
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.1999752083329123,
+        "min": 0.09998392099415773,
+        "max": 0.19998314337863057
+      },
+      "backend.pss_mib": {
+        "median": 24.083984375,
+        "min": 23.8662109375,
+        "max": 25.7890625
+      },
+      "backend.rss_mib": {
+        "median": 25.796875,
+        "min": 25.5234375,
+        "max": 27.4921875
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 114.54296875,
+        "min": 113.23046875,
+        "max": 114.8984375
+      },
+      "gateway.rss_mib": {
+        "median": 114.55078125,
+        "min": 113.23828125,
+        "max": 114.90625
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": false,
+    "client_keepalive": true,
+    "case": "direct",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 28.193932513836323,
+        "min": 27.59522151787434,
+        "max": 30.292461948033147
+      },
+      "total.cpu_ms_request": {
+        "median": 1.4100000000000001,
+        "min": 1.38,
+        "max": 1.5150000000000001
+      },
+      "total.pss_mib": {
+        "median": 148.9111328125,
+        "min": 148.2197265625,
+        "max": 149.619140625
+      },
+      "total.rss_mib": {
+        "median": 150.71484375,
+        "min": 149.96875,
+        "max": 151.4921875
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 13.796566827817077,
+        "min": 13.697052320551688,
+        "max": 13.79761075893717
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.6900000000000002,
+        "min": 0.685,
+        "max": 0.6900000000000002
+      },
+      "backend.pss_mib": {
+        "median": 23.9697265625,
+        "min": 23.7470703125,
+        "max": 25.689453125
+      },
+      "backend.rss_mib": {
+        "median": 25.765625,
+        "min": 25.48828125,
+        "max": 27.5546875
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 14.496880193284635,
+        "min": 13.79761075893717,
+        "max": 16.495895120216073
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.7250000000000001,
+        "min": 0.69,
+        "max": 0.8250000000000002
+      },
+      "gateway.pss_mib": {
+        "median": 124.47265625,
+        "min": 123.9296875,
+        "max": 124.94140625
+      },
+      "gateway.rss_mib": {
+        "median": 124.48046875,
+        "min": 123.9375,
+        "max": 124.94921875
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.99288135400943,
+        "min": 199.99105941891813,
+        "max": 199.99393106228328
+      },
+      "latency_p50_ms": {
+        "median": 0.9772989433258772,
+        "min": 0.9631030261516571,
+        "max": 1.066950848326087
+      },
+      "latency_p95_ms": {
+        "median": 1.585266087204218,
+        "min": 1.5450601931661367,
+        "max": 1.7312050331383944
+      },
+      "schedule_p95_ms": {
+        "median": 1.1035841889679432,
+        "min": 1.0894890874624252,
+        "max": 1.1055611539632082
+      },
+      "client_connections_opened": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "client_connections_reused": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": false,
+    "case": "cli",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 30.28441305800014,
+        "min": 26.781732266426328,
+        "max": 33.974419819855605
+      },
+      "total.cpu_ms_request": {
+        "median": 0.6060000000000001,
+        "min": 0.536,
+        "max": 0.68
+      },
+      "total.pss_mib": {
+        "median": 162.9775390625,
+        "min": 162.16015625,
+        "max": 163.7001953125
+      },
+      "total.rss_mib": {
+        "median": 188.8203125,
+        "min": 187.640625,
+        "max": 189.4609375
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 4.8974793394125635,
+        "min": 3.59754612534085,
+        "max": 5.895561086386707
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.098,
+        "min": 0.072,
+        "max": 0.11800000000000002
+      },
+      "backend.pss_mib": {
+        "median": 38.515625,
+        "min": 38.4736328125,
+        "max": 39.7744140625
+      },
+      "backend.rss_mib": {
+        "median": 65.16796875,
+        "min": 63.12890625,
+        "max": 65.52734375
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 25.386933718587578,
+        "min": 23.18418614108548,
+        "max": 28.07885873346889
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.508,
+        "min": 0.4640000000000001,
+        "max": 0.562
+      },
+      "gateway.pss_mib": {
+        "median": 123.92578125,
+        "min": 123.64453125,
+        "max": 124.50390625
+      },
+      "gateway.rss_mib": {
+        "median": 123.93359375,
+        "min": 123.65234375,
+        "max": 124.51171875
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.84103401384067,
+        "min": 499.82242663545117,
+        "max": 499.89602227887315
+      },
+      "latency_p50_ms": {
+        "median": 0.6713971961289644,
+        "min": 0.5643540062010288,
+        "max": 0.7749551441520452
+      },
+      "latency_p95_ms": {
+        "median": 1.247484004124999,
+        "min": 1.0878299362957478,
+        "max": 1.440101070329547
+      },
+      "schedule_p95_ms": {
+        "median": 1.0721860453486443,
+        "min": 1.064192969352007,
+        "max": 1.077272929251194
+      },
+      "client_connections_opened": {
+        "median": 5000,
+        "min": 5000,
+        "max": 5000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": false,
+    "case": "cli",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "total.pss_mib": {
+        "median": 152.46484375,
+        "min": 151.90234375,
+        "max": 153.2197265625
+      },
+      "total.rss_mib": {
+        "median": 178.5625,
+        "min": 177.19140625,
+        "max": 178.98046875
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "backend.pss_mib": {
+        "median": 38.515625,
+        "min": 38.41015625,
+        "max": 39.7744140625
+      },
+      "backend.rss_mib": {
+        "median": 65.16796875,
+        "min": 63.12890625,
+        "max": 65.52734375
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 113.4453125,
+        "min": 113.38671875,
+        "max": 114.0546875
+      },
+      "gateway.rss_mib": {
+        "median": 113.453125,
+        "min": 113.39453125,
+        "max": 114.0625
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": false,
+    "case": "cli",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 24.093139076648647,
+        "min": 21.093589888179572,
+        "max": 25.89557781015838
+      },
+      "total.cpu_ms_request": {
+        "median": 1.2049999999999996,
+        "min": 1.055,
+        "max": 1.295
+      },
+      "total.pss_mib": {
+        "median": 163.64453125,
+        "min": 162.4228515625,
+        "max": 164.2958984375
+      },
+      "total.rss_mib": {
+        "median": 189.078125,
+        "min": 188.30078125,
+        "max": 190.078125
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 12.097934034861638,
+        "min": 10.596779754251349,
+        "max": 12.696384492673772
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.605,
+        "min": 0.53,
+        "max": 0.6349999999999999
+      },
+      "backend.pss_mib": {
+        "median": 38.5205078125,
+        "min": 38.48046875,
+        "max": 39.7646484375
+      },
+      "backend.rss_mib": {
+        "median": 65.16796875,
+        "min": 63.12890625,
+        "max": 65.52734375
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 11.39675458397488,
+        "min": 10.496810133928221,
+        "max": 13.797643775296743
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.5699999999999998,
+        "min": 0.5249999999999999,
+        "max": 0.69
+      },
+      "gateway.pss_mib": {
+        "median": 124.54296875,
+        "min": 123.90234375,
+        "max": 125.1640625
+      },
+      "gateway.rss_mib": {
+        "median": 124.55078125,
+        "min": 123.91015625,
+        "max": 125.171875
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.98381393184468,
+        "min": 199.98337398205507,
+        "max": 199.99392278332843
+      },
+      "latency_p50_ms": {
+        "median": 1.3495378661900759,
+        "min": 1.1629729997366667,
+        "max": 1.4054239727556705
+      },
+      "latency_p95_ms": {
+        "median": 1.741043059155345,
+        "min": 1.7221770249307156,
+        "max": 2.4299640208482742
+      },
+      "schedule_p95_ms": {
+        "median": 1.0898378677666187,
+        "min": 1.0829940438270569,
+        "max": 1.104764873161912
+      },
+      "client_connections_opened": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": false,
+    "case": "direct",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 25.7829184919356,
+        "min": 25.585279767426588,
+        "max": 25.78516647744521
+      },
+      "total.cpu_ms_request": {
+        "median": 0.5159999999999999,
+        "min": 0.5119999999999999,
+        "max": 0.516
+      },
+      "total.pss_mib": {
+        "median": 148.2841796875,
+        "min": 147.7001953125,
+        "max": 151.794921875
+      },
+      "total.rss_mib": {
+        "median": 150.00390625,
+        "min": 149.546875,
+        "max": 153.59765625
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 3.4976827411540543,
+        "min": 3.398044969111344,
+        "max": 3.5979302061551466
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.07,
+        "min": 0.068,
+        "max": 0.072
+      },
+      "backend.pss_mib": {
+        "median": 24.0107421875,
+        "min": 23.5556640625,
+        "max": 27.552734375
+      },
+      "backend.rss_mib": {
+        "median": 25.72265625,
+        "min": 25.390625,
+        "max": 29.34765625
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 22.187236271290068,
+        "min": 22.187234798315245,
+        "max": 22.285235750781546
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.4439999999999999,
+        "min": 0.4439999999999999,
+        "max": 0.446
+      },
+      "gateway.pss_mib": {
+        "median": 124.2421875,
+        "min": 124.1484375,
+        "max": 124.2734375
+      },
+      "gateway.rss_mib": {
+        "median": 124.25,
+        "min": 124.15625,
+        "max": 124.28125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.8795508762649,
+        "min": 499.8502654018556,
+        "max": 499.8821390333347
+      },
+      "latency_p50_ms": {
+        "median": 0.5453680641949177,
+        "min": 0.5385552067309618,
+        "max": 0.5591539666056633
+      },
+      "latency_p95_ms": {
+        "median": 1.0646271985024214,
+        "min": 1.063222996890545,
+        "max": 1.0751760564744473
+      },
+      "schedule_p95_ms": {
+        "median": 1.0679650586098433,
+        "min": 1.0601289104670286,
+        "max": 1.072840066626668
+      },
+      "client_connections_opened": {
+        "median": 5000,
+        "min": 5000,
+        "max": 5000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": false,
+    "case": "direct",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.09999214728565514,
+        "min": 0.09998642535308742,
+        "max": 0.19996930611200292
+      },
+      "total.pss_mib": {
+        "median": 138.453125,
+        "min": 138.08203125,
+        "max": 142.0654296875
+      },
+      "total.rss_mib": {
+        "median": 140.15234375,
+        "min": 139.83984375,
+        "max": 143.78515625
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.09999214728565514,
+        "min": 0.09998642535308742,
+        "max": 0.19996930611200292
+      },
+      "backend.pss_mib": {
+        "median": 24.09765625,
+        "min": 23.67578125,
+        "max": 27.7021484375
+      },
+      "backend.rss_mib": {
+        "median": 25.7890625,
+        "min": 25.42578125,
+        "max": 29.4140625
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 114.36328125,
+        "min": 114.35546875,
+        "max": 114.40625
+      },
+      "gateway.rss_mib": {
+        "median": 114.37109375,
+        "min": 114.36328125,
+        "max": 114.4140625
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": false,
+    "case": "direct",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 23.49554612574568,
+        "min": 20.896877229600406,
+        "max": 23.793566733416245
+      },
+      "total.cpu_ms_request": {
+        "median": 1.175,
+        "min": 1.0449999999999997,
+        "max": 1.19
+      },
+      "total.pss_mib": {
+        "median": 148.8603515625,
+        "min": 148.2392578125,
+        "max": 151.978515625
+      },
+      "total.rss_mib": {
+        "median": 150.59375,
+        "min": 150.08203125,
+        "max": 153.78125
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 11.796810397239987,
+        "min": 10.698401261087291,
+        "max": 12.19768777591903
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.59,
+        "min": 0.5349999999999999,
+        "max": 0.6099999999999999
+      },
+      "backend.pss_mib": {
+        "median": 23.9931640625,
+        "min": 23.5556640625,
+        "max": 27.552734375
+      },
+      "backend.rss_mib": {
+        "median": 25.72265625,
+        "min": 25.390625,
+        "max": 29.34765625
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 11.29785834982665,
+        "min": 10.198475968513115,
+        "max": 11.996756336176256
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.5650000000000002,
+        "min": 0.5099999999999998,
+        "max": 0.5999999999999999
+      },
+      "gateway.pss_mib": {
+        "median": 124.68359375,
+        "min": 124.42578125,
+        "max": 124.86328125
+      },
+      "gateway.rss_mib": {
+        "median": 124.69140625,
+        "min": 124.43359375,
+        "max": 124.87109375
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.9961471973873,
+        "min": 199.98744812876953,
+        "max": 199.9984689313781
+      },
+      "latency_p50_ms": {
+        "median": 1.2674119789153337,
+        "min": 1.0833409614861012,
+        "max": 1.338146161288023
+      },
+      "latency_p95_ms": {
+        "median": 1.7443511169403791,
+        "min": 1.722628017887473,
+        "max": 1.7803481314331293
+      },
+      "schedule_p95_ms": {
+        "median": 1.0773821268230677,
+        "min": 1.0734819807112217,
+        "max": 1.0869610123336315
+      },
+      "client_connections_opened": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      },
+      "client_connections_reused": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": true,
+    "case": "cli",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 19.38683360275857,
+        "min": 18.488519736801667,
+        "max": 19.389277473655874
+      },
+      "total.cpu_ms_request": {
+        "median": 0.38799999999999996,
+        "min": 0.37,
+        "max": 0.388
+      },
+      "total.pss_mib": {
+        "median": 159.4580078125,
+        "min": 159.1376953125,
+        "max": 161.203125
+      },
+      "total.rss_mib": {
+        "median": 185.36328125,
+        "min": 184.38671875,
+        "max": 187.1796875
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 3.7976418918835853,
+        "min": 3.7974210149733283,
+        "max": 3.8978444405803048
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.076,
+        "min": 0.076,
+        "max": 0.07799999999999999
+      },
+      "backend.pss_mib": {
+        "median": 38.4892578125,
+        "min": 38.2861328125,
+        "max": 39.84765625
+      },
+      "backend.rss_mib": {
+        "median": 64.50390625,
+        "min": 63.41015625,
+        "max": 65.81640625
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 15.49143303307557,
+        "min": 14.69087784491808,
+        "max": 15.589412587785242
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.30999999999999994,
+        "min": 0.294,
+        "max": 0.312
+      },
+      "gateway.pss_mib": {
+        "median": 120.96875,
+        "min": 120.8515625,
+        "max": 121.35546875
+      },
+      "gateway.rss_mib": {
+        "median": 120.9765625,
+        "min": 120.859375,
+        "max": 121.36328125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.8393997495442,
+        "min": 499.83132641594716,
+        "max": 499.9026242098789
+      },
+      "latency_p50_ms": {
+        "median": 0.2777490299195051,
+        "min": 0.27670711278915405,
+        "max": 0.28056418523192406
+      },
+      "latency_p95_ms": {
+        "median": 0.547412084415555,
+        "min": 0.529757933691144,
+        "max": 0.5500670522451401
+      },
+      "schedule_p95_ms": {
+        "median": 1.0570529848337173,
+        "min": 1.0499099735170603,
+        "max": 1.059938920661807
+      },
+      "client_connections_opened": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "client_connections_reused": {
+        "median": 5000,
+        "min": 5000,
+        "max": 5000
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": true,
+    "case": "cli",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "total.pss_mib": {
+        "median": 153.1015625,
+        "min": 151.5791015625,
+        "max": 153.40625
+      },
+      "total.rss_mib": {
+        "median": 178.03125,
+        "min": 177.8125,
+        "max": 179.38671875
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "backend.pss_mib": {
+        "median": 38.48828125,
+        "min": 38.2783203125,
+        "max": 39.84375
+      },
+      "backend.rss_mib": {
+        "median": 64.50390625,
+        "min": 63.41015625,
+        "max": 65.81640625
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 113.5625,
+        "min": 113.30078125,
+        "max": 114.61328125
+      },
+      "gateway.rss_mib": {
+        "median": 113.5703125,
+        "min": 113.30859375,
+        "max": 114.62109375
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": true,
+    "case": "cli",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 20.294975372374804,
+        "min": 19.294884742898624,
+        "max": 20.69385728113938
+      },
+      "total.cpu_ms_request": {
+        "median": 1.015,
+        "min": 0.965,
+        "max": 1.0350000000000001
+      },
+      "total.pss_mib": {
+        "median": 162.6845703125,
+        "min": 162.2666015625,
+        "max": 163.82421875
+      },
+      "total.rss_mib": {
+        "median": 188.4921875,
+        "min": 187.61328125,
+        "max": 189.80078125
+      },
+      "total.threads": {
+        "median": 14,
+        "min": 14,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 12.996782258171057,
+        "min": 12.096793025340588,
+        "max": 13.096112578885306
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.6499999999999999,
+        "min": 0.6050000000000001,
+        "max": 0.655
+      },
+      "backend.pss_mib": {
+        "median": 38.4892578125,
+        "min": 38.2861328125,
+        "max": 39.84765625
+      },
+      "backend.rss_mib": {
+        "median": 64.50390625,
+        "min": 63.41015625,
+        "max": 65.81640625
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 7.298193114203749,
+        "min": 7.198091717558032,
+        "max": 7.597744702254074
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.365,
+        "min": 0.3599999999999999,
+        "max": 0.3800000000000001
+      },
+      "gateway.pss_mib": {
+        "median": 123.98046875,
+        "min": 123.9765625,
+        "max": 124.1953125
+      },
+      "gateway.rss_mib": {
+        "median": 123.98828125,
+        "min": 123.984375,
+        "max": 124.203125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.98345210705892,
+        "min": 199.98146365847228,
+        "max": 199.99117303017857
+      },
+      "latency_p50_ms": {
+        "median": 0.894532073289156,
+        "min": 0.8509699255228043,
+        "max": 0.9768190793693066
+      },
+      "latency_p95_ms": {
+        "median": 1.4224471524357796,
+        "min": 1.4042430557310581,
+        "max": 1.427296083420515
+      },
+      "schedule_p95_ms": {
+        "median": 1.0845160577446222,
+        "min": 1.083811977878213,
+        "max": 1.0882930364459753
+      },
+      "client_connections_opened": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "client_connections_reused": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": true,
+    "case": "direct",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 19.190780631868407,
+        "min": 17.390252351246723,
+        "max": 19.49112667983395
+      },
+      "total.cpu_ms_request": {
+        "median": 0.384,
+        "min": 0.348,
+        "max": 0.38999999999999996
+      },
+      "total.pss_mib": {
+        "median": 145.7236328125,
+        "min": 144.40625,
+        "max": 149.1162109375
+      },
+      "total.rss_mib": {
+        "median": 147.5078125,
+        "min": 146.1640625,
+        "max": 150.94140625
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 3.698223350932974,
+        "min": 3.5979832450855294,
+        "max": 3.69831634437875
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.074,
+        "min": 0.072,
+        "max": 0.074
+      },
+      "backend.pss_mib": {
+        "median": 23.7431640625,
+        "min": 23.5703125,
+        "max": 27.26953125
+      },
+      "backend.rss_mib": {
+        "median": 25.51953125,
+        "min": 25.3203125,
+        "max": 29.0703125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 15.49255728093543,
+        "min": 13.792269106161195,
+        "max": 15.7928103354552
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.30999999999999994,
+        "min": 0.276,
+        "max": 0.31599999999999995
+      },
+      "gateway.pss_mib": {
+        "median": 121.86328125,
+        "min": 120.8359375,
+        "max": 121.98046875
+      },
+      "gateway.rss_mib": {
+        "median": 121.87109375,
+        "min": 120.84375,
+        "max": 121.98828125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.91455055564916,
+        "min": 499.85112798967197,
+        "max": 499.92759377710485
+      },
+      "latency_p50_ms": {
+        "median": 0.2730798441916704,
+        "min": 0.2671489492058754,
+        "max": 0.27604494243860245
+      },
+      "latency_p95_ms": {
+        "median": 0.5342469085007906,
+        "min": 0.5327640101313591,
+        "max": 0.5479520186781883
+      },
+      "schedule_p95_ms": {
+        "median": 1.0635978542268276,
+        "min": 1.0546520352363586,
+        "max": 1.069418154656887
+      },
+      "client_connections_opened": {
+        "median": 0,
+        "min": 0,
+        "max": 3
+      },
+      "client_connections_reused": {
+        "median": 5000,
+        "min": 4997,
+        "max": 5000
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": true,
+    "case": "direct",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.09999255639498612,
+        "min": 0.0,
+        "max": 0.19997891276382257
+      },
+      "total.pss_mib": {
+        "median": 138.0966796875,
+        "min": 137.109375,
+        "max": 141.2646484375
+      },
+      "total.rss_mib": {
+        "median": 139.73046875,
+        "min": 138.78515625,
+        "max": 143.0078125
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.09999255639498612,
+        "min": 0.0,
+        "max": 0.19997891276382257
+      },
+      "backend.pss_mib": {
+        "median": 23.8544921875,
+        "min": 23.6875,
+        "max": 27.4013671875
+      },
+      "backend.rss_mib": {
+        "median": 25.48046875,
+        "min": 25.35546875,
+        "max": 29.13671875
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 113.86328125,
+        "min": 113.421875,
+        "max": 114.2421875
+      },
+      "gateway.rss_mib": {
+        "median": 113.87109375,
+        "min": 113.4296875,
+        "max": 114.25
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "guest_keepalive": true,
+    "client_keepalive": true,
+    "case": "direct",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 20.594900103355872,
+        "min": 20.09673016551391,
+        "max": 22.196192391720277
+      },
+      "total.cpu_ms_request": {
+        "median": 1.0300000000000002,
+        "min": 1.005,
+        "max": 1.11
+      },
+      "total.pss_mib": {
+        "median": 148.8759765625,
+        "min": 147.05859375,
+        "max": 151.7421875
+      },
+      "total.rss_mib": {
+        "median": 150.66015625,
+        "min": 148.79296875,
+        "max": 153.55078125
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 13.396682591503334,
+        "min": 12.897901449508929,
+        "max": 14.797461594480183
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.6700000000000002,
+        "min": 0.645,
+        "max": 0.74
+      },
+      "backend.pss_mib": {
+        "median": 23.7431640625,
+        "min": 23.59375,
+        "max": 27.26953125
+      },
+      "backend.rss_mib": {
+        "median": 25.51953125,
+        "min": 25.3203125,
+        "max": 29.0703125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 7.198828716004984,
+        "min": 7.198217511852537,
+        "max": 7.398730797240094
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.3600000000000001,
+        "min": 0.36,
+        "max": 0.3700000000000001
+      },
+      "gateway.pss_mib": {
+        "median": 124.47265625,
+        "min": 123.46484375,
+        "max": 125.1328125
+      },
+      "gateway.rss_mib": {
+        "median": 124.48046875,
+        "min": 123.47265625,
+        "max": 125.140625
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.99072861066873,
+        "min": 199.9845646314294,
+        "max": 199.99745257183918
+      },
+      "latency_p50_ms": {
+        "median": 0.9394979570060968,
+        "min": 0.8866579737514257,
+        "max": 1.0641149710863829
+      },
+      "latency_p95_ms": {
+        "median": 1.4220059383660555,
+        "min": 1.4111560303717852,
+        "max": 1.4289391692727804
+      },
+      "schedule_p95_ms": {
+        "median": 1.0778619907796383,
+        "min": 1.0739448480308056,
+        "max": 1.0943720117211342
+      },
+      "client_connections_opened": {
+        "median": 0,
+        "min": 0,
+        "max": 0
+      },
+      "client_connections_reused": {
+        "median": 2000,
+        "min": 2000,
+        "max": 2000
+      }
+    }
+  }
+]

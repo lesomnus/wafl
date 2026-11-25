@@ -16,11 +16,13 @@ def main():
         report = json.loads(Path(filename).read_text())
         for trial in report["trials"]:
             for phase in trial["phases"]:
-                key = (trial["gateway"], trial["memory_mib_per_guest"], trial["case"], phase["phase"])
+                key = (trial["gateway"], trial.get("guest_keepalive", False), trial.get("client_keepalive", False),
+                       trial["memory_mib_per_guest"], trial["case"], phase["phase"])
                 grouped[key].append(phase)
     summary = []
-    for (gateway, memory, case, phase), values in sorted(grouped.items()):
+    for (gateway, guest_keepalive, client_keepalive, memory, case, phase), values in sorted(grouped.items()):
         item = {"gateway": gateway, "memory_mib_per_guest": memory,
+                "guest_keepalive": guest_keepalive, "client_keepalive": client_keepalive,
                 "case": case, "phase": phase, "trials": len(values)}
         metrics = {}
 
@@ -36,6 +38,8 @@ def main():
         traffic = [v["traffic"] for v in values if v["traffic"]]
         for field in ["achieved_rps", "latency_p50_ms", "latency_p95_ms", "schedule_p95_ms"]:
             aggregate(field, [v[field] for v in traffic])
+        for field in ["client_connections_opened", "client_connections_reused"]:
+            aggregate(field, [v.get(field) for v in traffic])
         item["requests"] = sum(v["requests"] for v in traffic)
         item["errors"] = sum(len(v["errors"]) for v in traffic)
         item["cgroup_throttled_usec"] = sum(v["cgroup_cpu_end"].get("throttled_usec", 0) -
