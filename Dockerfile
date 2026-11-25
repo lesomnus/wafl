@@ -21,6 +21,6 @@ LABEL org.opencontainers.image.source="https://github.com/lesomnus/wafl" \
       org.opencontainers.image.description="WAFL WASM application controller and runner"
 USER 10001:10001
 WORKDIR /var/lib/wafl
-EXPOSE 8080 8081 8082
+EXPOSE 8080 8081 8082 8083
 ENTRYPOINT ["/usr/local/bin/wafl"]
 CMD ["--help"]

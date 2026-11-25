@@ -1,0 +1,22 @@
+edition = "2023";
+package wafl;
+import "wafl/traffic.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+service TrafficService {
+  rpc Report(TrafficReportRequest) returns (Traffic);
+  // Operator recovery only, after this observer and every connection it owned
+  // have stopped. A heartbeat timeout alone is never sufficient evidence.
+  rpc Close(TrafficCloseRequest) returns (Traffic);
+}
+message TrafficCloseRequest {
+  TrafficRef ref = 1;
+  bool withdrawn = 2 [features.field_presence = IMPLICIT];
+}
+message TrafficReportRequest {
+  TrafficRef ref = 1;
+  uint64 sequence = 2 [features.field_presence = IMPLICIT];
+  uint32 active = 3 [features.field_presence = IMPLICIT];
+  uint64 started = 4 [features.field_presence = IMPLICIT];
+  uint64 busy_ms = 5 [features.field_presence = IMPLICIT];
+  bool closed = 6 [features.field_presence = IMPLICIT];
+}

@@ -1,0 +1,14 @@
+alias: load
+domain: load.localhost
+manifest:
+  bundle:
+    url: http://bundles:8090/hello.tar.gz
+  env:
+    GREETING: Load test
+    RESPONSE_DELAY_MS: "100"
+scaling:
+  min: 1
+  max: 4
+  target: 2
+  up_ms: 1000
+  down_ms: 10000

@@ -448,6 +448,13 @@ pub struct Capacity {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub compilations: u64,
+    /// Field 11: `tombstones`
+    #[serde(
+        rename = "tombstones",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub tombstones: u64,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -465,6 +472,7 @@ impl ::core::fmt::Debug for Capacity {
             .field("queue_ms", &self.queue_ms)
             .field("drain_ms", &self.drain_ms)
             .field("compilations", &self.compilations)
+            .field("tombstones", &self.tombstones)
             .finish()
     }
 }
@@ -523,6 +531,9 @@ impl ::buffa::Message for Capacity {
         if self.compilations != 0u64 {
             size += 1u32 + ::buffa::types::uint64_encoded_len(self.compilations) as u32;
         }
+        if self.tombstones != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.tombstones) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -562,6 +573,9 @@ impl ::buffa::Message for Capacity {
         }
         if self.compilations != 0u64 {
             ::buffa::types::put_uint64_field(10u32, self.compilations, buf);
+        }
+        if self.tombstones != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.tombstones, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -646,6 +660,13 @@ impl ::buffa::Message for Capacity {
                 )?;
                 self.compilations = ::buffa::types::decode_uint64(buf)?;
             }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.tombstones = ::buffa::types::decode_uint64(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -664,6 +685,7 @@ impl ::buffa::Message for Capacity {
         self.queue_ms = 0u64;
         self.drain_ms = 0u64;
         self.compilations = 0u64;
+        self.tombstones = 0u64;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -763,6 +785,13 @@ pub struct Usage {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub compilations: u64,
+    /// Field 9: `tombstones`
+    #[serde(
+        rename = "tombstones",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub tombstones: u64,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -778,6 +807,7 @@ impl ::core::fmt::Debug for Usage {
             .field("requests", &self.requests)
             .field("waiting", &self.waiting)
             .field("compilations", &self.compilations)
+            .field("tombstones", &self.tombstones)
             .finish()
     }
 }
@@ -830,6 +860,9 @@ impl ::buffa::Message for Usage {
         if self.compilations != 0u64 {
             size += 1u32 + ::buffa::types::uint64_encoded_len(self.compilations) as u32;
         }
+        if self.tombstones != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.tombstones) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -863,6 +896,9 @@ impl ::buffa::Message for Usage {
         }
         if self.compilations != 0u64 {
             ::buffa::types::put_uint64_field(8u32, self.compilations, buf);
+        }
+        if self.tombstones != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.tombstones, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -933,6 +969,13 @@ impl ::buffa::Message for Usage {
                 )?;
                 self.compilations = ::buffa::types::decode_uint64(buf)?;
             }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.tombstones = ::buffa::types::decode_uint64(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -949,6 +992,7 @@ impl ::buffa::Message for Usage {
         self.requests = 0u64;
         self.waiting = 0u64;
         self.compilations = 0u64;
+        self.tombstones = 0u64;
         self.__buffa_unknown_fields.clear();
     }
 }

@@ -449,6 +449,9 @@ pub struct PlacementSelect {
         skip_serializing_if = "::core::option::Option::is_none"
     )]
     pub date_retry: ::core::option::Option<bool>,
+    /// Field 24: `managed`
+    #[serde(rename = "managed", skip_serializing_if = "::core::option::Option::is_none")]
+    pub managed: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -471,6 +474,7 @@ impl ::core::fmt::Debug for PlacementSelect {
             .field("date_seen", &self.date_seen)
             .field("failures", &self.failures)
             .field("date_retry", &self.date_retry)
+            .field("managed", &self.managed)
             .finish()
     }
 }
@@ -573,6 +577,13 @@ impl PlacementSelect {
         self.date_retry = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::managed`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_managed(mut self, value: bool) -> Self {
+        self.managed = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(PlacementSelect);
 impl ::buffa::MessageName for PlacementSelect {
@@ -647,6 +658,9 @@ impl ::buffa::Message for PlacementSelect {
         if self.date_retry.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.managed.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -703,6 +717,9 @@ impl ::buffa::Message for PlacementSelect {
         }
         if let Some(v) = self.date_retry {
             ::buffa::types::put_bool_field(23u32, v, buf);
+        }
+        if let Some(v) = self.managed {
+            ::buffa::types::put_bool_field(24u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -856,6 +873,15 @@ impl ::buffa::Message for PlacementSelect {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.managed = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -879,6 +905,7 @@ impl ::buffa::Message for PlacementSelect {
         self.date_seen = ::core::option::Option::None;
         self.failures = ::core::option::Option::None;
         self.date_retry = ::core::option::Option::None;
+        self.managed = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }

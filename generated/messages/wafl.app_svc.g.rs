@@ -55,6 +55,18 @@ pub struct AppAddRequest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub manifest: ::buffa::MessageField<Manifest>,
+    /// Field 17: `scaling`
+    #[serde(
+        rename = "scaling",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub scaling: ::buffa::MessageField<Scaling>,
+    /// Field 18: `state`
+    #[serde(
+        rename = "state",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub state: ::buffa::MessageField<ScaleState>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -70,6 +82,8 @@ impl ::core::fmt::Debug for AppAddRequest {
             .field("replicas", &self.replicas)
             .field("revision", &self.revision)
             .field("manifest", &self.manifest)
+            .field("scaling", &self.scaling)
+            .field("state", &self.state)
             .finish()
     }
 }
@@ -151,6 +165,22 @@ impl ::buffa::Message for AppAddRequest {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.scaling.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.scaling.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.state.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.state.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -186,6 +216,14 @@ impl ::buffa::Message for AppAddRequest {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(16u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if self.scaling.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.scaling.write_to(__cache, buf);
+        }
+        if self.state.is_set() {
+            ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
+            self.state.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -270,6 +308,28 @@ impl ::buffa::Message for AppAddRequest {
                     ctx,
                 )?;
             }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.scaling.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.state.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -286,6 +346,8 @@ impl ::buffa::Message for AppAddRequest {
         self.replicas = 0u32;
         self.revision = 0u64;
         self.manifest = ::buffa::MessageField::none();
+        self.scaling = ::buffa::MessageField::none();
+        self.state = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -799,6 +861,12 @@ pub struct AppSelect {
         skip_serializing_if = "::core::option::Option::is_none"
     )]
     pub manifest: ::core::option::Option<bool>,
+    /// Field 17: `scaling`
+    #[serde(rename = "scaling", skip_serializing_if = "::core::option::Option::is_none")]
+    pub scaling: ::core::option::Option<bool>,
+    /// Field 18: `state`
+    #[serde(rename = "state", skip_serializing_if = "::core::option::Option::is_none")]
+    pub state: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -814,6 +882,8 @@ impl ::core::fmt::Debug for AppSelect {
             .field("replicas", &self.replicas)
             .field("revision", &self.revision)
             .field("manifest", &self.manifest)
+            .field("scaling", &self.scaling)
+            .field("state", &self.state)
             .finish()
     }
 }
@@ -874,6 +944,20 @@ impl AppSelect {
         self.manifest = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::scaling`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_scaling(mut self, value: bool) -> Self {
+        self.scaling = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::state`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_state(mut self, value: bool) -> Self {
+        self.state = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(AppSelect);
 impl ::buffa::MessageName for AppSelect {
@@ -922,6 +1006,12 @@ impl ::buffa::Message for AppSelect {
         if self.manifest.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.scaling.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.state.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -956,6 +1046,12 @@ impl ::buffa::Message for AppSelect {
         }
         if let Some(v) = self.manifest {
             ::buffa::types::put_bool_field(16u32, v, buf);
+        }
+        if let Some(v) = self.scaling {
+            ::buffa::types::put_bool_field(17u32, v, buf);
+        }
+        if let Some(v) = self.state {
+            ::buffa::types::put_bool_field(18u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1044,6 +1140,24 @@ impl ::buffa::Message for AppSelect {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.scaling = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.state = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1060,6 +1174,8 @@ impl ::buffa::Message for AppSelect {
         self.replicas = ::core::option::Option::None;
         self.revision = ::core::option::Option::None;
         self.manifest = ::core::option::Option::None;
+        self.scaling = ::core::option::Option::None;
+        self.state = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -1140,6 +1256,42 @@ pub struct AppPatchRequest {
         skip_serializing_if = "::core::option::Option::is_none"
     )]
     pub manifest_null: ::core::option::Option<bool>,
+    /// Field 34: `scaling`
+    #[serde(
+        rename = "scaling",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub scaling: ::buffa::MessageField<Scaling>,
+    /// Clear scaling instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and scaling clears.
+    ///
+    /// Field 35: `scaling_null`
+    #[serde(
+        rename = "scalingNull",
+        alias = "scaling_null",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub scaling_null: ::core::option::Option<bool>,
+    /// Field 36: `state`
+    #[serde(
+        rename = "state",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub state: ::buffa::MessageField<ScaleState>,
+    /// Clear state instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and state clears.
+    ///
+    /// Field 37: `state_null`
+    #[serde(
+        rename = "stateNull",
+        alias = "state_null",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub state_null: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1154,6 +1306,10 @@ impl ::core::fmt::Debug for AppPatchRequest {
             .field("revision", &self.revision)
             .field("manifest", &self.manifest)
             .field("manifest_null", &self.manifest_null)
+            .field("scaling", &self.scaling)
+            .field("scaling_null", &self.scaling_null)
+            .field("state", &self.state)
+            .field("state_null", &self.state_null)
             .finish()
     }
 }
@@ -1206,6 +1362,20 @@ impl AppPatchRequest {
         self.manifest_null = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::scaling_null`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_scaling_null(mut self, value: bool) -> Self {
+        self.scaling_null = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::state_null`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_state_null(mut self, value: bool) -> Self {
+        self.state_null = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(AppPatchRequest);
 impl ::buffa::MessageName for AppPatchRequest {
@@ -1256,6 +1426,28 @@ impl ::buffa::Message for AppPatchRequest {
         if self.manifest_null.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.scaling.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.scaling.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.scaling_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.state.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.state.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.state_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1288,6 +1480,20 @@ impl ::buffa::Message for AppPatchRequest {
         }
         if let Some(v) = self.manifest_null {
             ::buffa::types::put_bool_field(33u32, v, buf);
+        }
+        if self.scaling.is_set() {
+            ::buffa::types::put_len_delimited_header(34u32, __cache.consume_next(), buf);
+            self.scaling.write_to(__cache, buf);
+        }
+        if let Some(v) = self.scaling_null {
+            ::buffa::types::put_bool_field(35u32, v, buf);
+        }
+        if self.state.is_set() {
+            ::buffa::types::put_len_delimited_header(36u32, __cache.consume_next(), buf);
+            self.state.write_to(__cache, buf);
+        }
+        if let Some(v) = self.state_null {
+            ::buffa::types::put_bool_field(37u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1371,6 +1577,46 @@ impl ::buffa::Message for AppPatchRequest {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            34u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.scaling.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            35u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.scaling_null = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            36u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.state.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            37u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.state_null = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1386,6 +1632,10 @@ impl ::buffa::Message for AppPatchRequest {
         self.revision = ::core::option::Option::None;
         self.manifest = ::buffa::MessageField::none();
         self.manifest_null = ::core::option::Option::None;
+        self.scaling = ::buffa::MessageField::none();
+        self.scaling_null = ::core::option::Option::None;
+        self.state = ::buffa::MessageField::none();
+        self.state_null = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }

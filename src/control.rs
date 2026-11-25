@@ -75,6 +75,26 @@ struct Cursor {
 
 #[allow(refining_impl_trait)]
 impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
+    async fn seal(
+        &self,
+        _: &N,
+        ctx: RequestContext,
+        req: ServiceRequest<'_, InstanceSealRequest>,
+    ) -> ServiceResult<InstanceSealResponse> {
+        let condition = condition(&ctx)?;
+        if condition.session.is_none() || condition.revision.is_some() {
+            return Err(ConnectError::invalid_argument(
+                "Seal requires wafl-session and no revision",
+            ));
+        }
+        self.0.check_session(condition.session)?;
+        self.0
+            .seal(req.to_owned_message().id.as_deref().unwrap_or_default())?;
+        Response::ok(InstanceSealResponse {
+            sealed: true,
+            ..Default::default()
+        })
+    }
     async fn add(
         &self,
         _: &N,

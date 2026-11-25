@@ -31,6 +31,9 @@ pub trait Server {
     fn wafl_tenant(&self) -> impl crate::services::r#wafl::r#TenantService {
         crate::services::r#wafl::r#TenantServiceUnimplemented
     }
+    fn wafl_traffic(&self) -> impl crate::services::r#wafl::r#TrafficService {
+        crate::services::r#wafl::r#TrafficServiceUnimplemented
+    }
     /// Add an outer layer. The last layer added handles a request first.
     fn layer<L: Layer<Self>>(self, layer: L) -> Overlay<Self, L>
     where
@@ -86,6 +89,9 @@ pub trait Layer<N: Server + ?Sized> {
     fn wafl_tenant(&self, next: &N) -> impl crate::services::r#wafl::r#TenantService {
         next.wafl_tenant()
     }
+    fn wafl_traffic(&self, next: &N) -> impl crate::services::r#wafl::r#TrafficService {
+        next.wafl_traffic()
+    }
 }
 #[derive(Clone)]
 pub struct Overlay<N, L> {
@@ -123,6 +129,9 @@ impl<N: Server, L: Layer<N>> Server for Overlay<N, L> {
     fn wafl_tenant(&self) -> impl crate::services::r#wafl::r#TenantService {
         self.layer.wafl_tenant(&self.next)
     }
+    fn wafl_traffic(&self) -> impl crate::services::r#wafl::r#TrafficService {
+        self.layer.wafl_traffic(&self.next)
+    }
 }
 impl<T: Server + ?Sized> Server for ::std::sync::Arc<T> {
     fn wafl_access(&self) -> impl crate::services::r#wafl::r#AccessService {
@@ -154,6 +163,9 @@ impl<T: Server + ?Sized> Server for ::std::sync::Arc<T> {
     }
     fn wafl_tenant(&self) -> impl crate::services::r#wafl::r#TenantService {
         self.as_ref().wafl_tenant()
+    }
+    fn wafl_traffic(&self) -> impl crate::services::r#wafl::r#TrafficService {
+        self.as_ref().wafl_traffic()
     }
 }
 pub fn mount(
@@ -225,6 +237,12 @@ pub fn mount_if(
     if include("wafl.TenantService") {
         router = crate::services::r#wafl::r#TenantServiceExt::register(
             ::std::sync::Arc::new(server.wafl_tenant()),
+            router,
+        );
+    }
+    if include("wafl.TrafficService") {
+        router = crate::services::r#wafl::r#TrafficServiceExt::register(
+            ::std::sync::Arc::new(server.wafl_traffic()),
             router,
         );
     }

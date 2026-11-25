@@ -21,7 +21,9 @@ CREATE TABLE "pd_wafl__App" (
   "f8" TEXT NOT NULL,
   "f9" BIGINT NOT NULL,
   "f10" TEXT NOT NULL,
-  "f16" TEXT
+  "f16" TEXT,
+  "f17" TEXT,
+  "f18" TEXT
 );
 CREATE TABLE "pd_wafl__Archived" (
   "f1" BLOB NOT NULL PRIMARY KEY,
@@ -123,7 +125,8 @@ CREATE TABLE "pd_wafl__Placement" (
   "f20" TEXT NOT NULL,
   "f21" TEXT NOT NULL,
   "f22" BIGINT NOT NULL,
-  "f23" TEXT NOT NULL
+  "f23" TEXT NOT NULL,
+  "f24" BOOLEAN NOT NULL
 );
 CREATE TABLE "pd_wafl__Reservation" (
   "f1" BLOB NOT NULL PRIMARY KEY,
@@ -162,6 +165,22 @@ CREATE TABLE "pd_wafl__Tenant" (
   "f7" TEXT NOT NULL,
   "f13" TEXT NOT NULL,
   "f15" TEXT NOT NULL
+);
+CREATE TABLE "pd_wafl__Traffic" (
+  "f1" BLOB NOT NULL PRIMARY KEY,
+  "f2" BLOB NOT NULL REFERENCES "pd_wafl__Tenant" ("f1"),
+  "f8" BLOB NOT NULL REFERENCES "pd_wafl__App" ("f1"),
+  "f9" BLOB REFERENCES "pd_wafl__Placement" ("f1"),
+  "f10" TEXT NOT NULL,
+  "f11" TEXT NOT NULL,
+  "f12" BIGINT NOT NULL,
+  "f16" TEXT NOT NULL,
+  "f17" TEXT NOT NULL,
+  "f18" BOOLEAN NOT NULL,
+  "f19" BOOLEAN NOT NULL,
+  "f20" TEXT NOT NULL,
+  "f21" TEXT NOT NULL,
+  "f22" BOOLEAN NOT NULL
 );
 CREATE INDEX "pd_wafl__Access__access" ON "pd_wafl__Access" ("f2", "f15");
 CREATE INDEX "pd_wafl__Access__by_actor" ON "pd_wafl__Access" ("f8", "f15");

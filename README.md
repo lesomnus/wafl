@@ -4,6 +4,8 @@
 
 컨테이너 이미지는 `ghcr.io/lesomnus/wafl:latest`입니다. runner·controller 실행과 영속 볼륨 설정은 [컨테이너 문서](docs/container.md)에 있습니다.
 
+**[app.yaml과 자동 증감 튜토리얼](docs/autoscaling.md)**에는 Compose 배포, 최초 요청으로 0개에서 기동하기, 부하에 따라 여러 runner로 확장하기, gRPC 스트림을 유지하며 축소하기가 포함되어 있습니다. gateway 이미지 `ghcr.io/lesomnus/wafl-traefik:latest`는 필요한 관측 미들웨어를 포함합니다.
+
 현재 runner는 paydirt와 Wasmtime으로 한 프로세스에서 여러 WASIp2 소켓 서버를 실행합니다. 앱은 표준 TCP·파일 API를 사용하며 별도 핸들러 SDK가 필요하지 않습니다. `Instance`는 Manifest를 가진 일반 entity이고 생성된 `InstanceService.Add(InstanceAddRequest)`로 만듭니다.
 
 **도메인으로 앱을 호출하려면 [Controller + Traefik 튜토리얼](docs/controller.md)**을 따라 실행하세요. `wafl serve controller`가 PostgreSQL에 App·Placement를 저장하고 runner에 목표 replica를 배치합니다. Traefik HTTP provider가 설정을 자동 갱신하며 요청은 WASM 소켓으로 직접 갑니다. controller 여러 개와 runner 장애 복구, HTTP·gRPC 전달을 지원합니다.
@@ -56,7 +58,7 @@ runner 설정의 `metrics.endpoint`를 지정하면 실행 상태·활성 lease�
 
 [Keep-alive 비교](docs/benchmarks/2026-11-25-keepalive.md)는 Wasmtime 개별 실행과 runner 직결 양쪽에 Traefik을 두고, 앱의 연결 유지 지원과 클라이언트의 연결 재사용을 독립적으로 비교합니다.
 
-gateway는 기본 모드에서 `wafl-instance` 헤더로, 직결 모드에서 `Instance.endpoint` 주소로 인스턴스를 선택합니다. 현재 controller는 정해진 runner 목록과 고정 replica 목표를 사용하며, 축소 후 포트 재사용에는 외부 연결 철회 확인이 필요합니다. 관리 API는 인증 없이 동작합니다. 부하 기반 자동 확장, Kubernetes runner 발견, zero-scale activator, credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
+gateway는 기본 모드에서 `wafl-instance` 헤더로, 직결 모드에서 `Instance.endpoint` 주소로 인스턴스를 선택합니다. controller는 정해진 runner 목록과 고정 replica 또는 요청 동시성 기반 자동 증감을 지원합니다. 자동 관리 앱은 게이트웨이 관측자의 수신 중단과 스트림 종료 확인 후 포트를 회수합니다. 관리 API는 인증 없이 동작합니다. Kubernetes runner 발견, 앱 DB 자동 제공, credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
 
 [CLI 튜토리얼](docs/cli.md) · [외부 연결과 DB](docs/network.md) · [RPC와 시나리오](docs/runner.md) · [번들 규격](docs/bundle.md) · [공유 저장소 계약과 원격 읽기 확장](docs/store.md) · [Instance](proto/wafl/instance.proto) · [생성된 RPC](generated/proto/wafl/instance_svc.g.proto)
 

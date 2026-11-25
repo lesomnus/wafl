@@ -650,6 +650,8 @@ pub struct PlacementSelectView<'a> {
     pub failures: ::core::option::Option<bool>,
     /// Field 23: `date_retry`
     pub date_retry: ::core::option::Option<bool>,
+    /// Field 24: `managed`
+    pub managed: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for PlacementSelectView<'a> {
@@ -812,6 +814,13 @@ impl<'a> ::buffa::MessageView<'a> for PlacementSelectView<'a> {
                 )?;
                 view.date_retry = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.managed = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -863,6 +872,7 @@ impl<'a> ::buffa::MessageView<'a> for PlacementSelectView<'a> {
             date_seen: self.date_seen,
             failures: self.failures,
             date_retry: self.date_retry,
+            managed: self.managed,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -929,6 +939,9 @@ impl<'a> ::buffa::ViewEncode<'a> for PlacementSelectView<'a> {
         if self.date_retry.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.managed.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -986,6 +999,9 @@ impl<'a> ::buffa::ViewEncode<'a> for PlacementSelectView<'a> {
         }
         if let Some(v) = self.date_retry {
             ::buffa::types::put_bool_field(23u32, v, buf);
+        }
+        if let Some(v) = self.managed {
+            ::buffa::types::put_bool_field(24u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1056,6 +1072,9 @@ impl<'__a> ::serde::Serialize for PlacementSelectView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.date_retry {
             __map.serialize_entry("dateRetry", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.managed {
+            __map.serialize_entry("managed", &__v)?;
         }
         __map.end()
     }
@@ -1226,6 +1245,11 @@ impl PlacementSelectOwnedView {
     #[must_use]
     pub fn date_retry(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().date_retry
+    }
+    /// Field 24: `managed`
+    #[must_use]
+    pub fn managed(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().managed
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<PlacementSelectView<'static>>>

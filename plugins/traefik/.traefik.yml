@@ -1,0 +1,9 @@
+displayName: WAFL admission observer
+type: middleware
+import: github.com/lesomnus/wafl/traefik
+summary: Observe direct WASM requests and drain placements before endpoint reuse.
+testData:
+  control: http://controller:8082
+  activate: http://controller:8083
+  placement: AAAAAAAAgACACwAAAAAAAA==
+  intervalMs: 500

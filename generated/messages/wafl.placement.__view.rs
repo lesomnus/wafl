@@ -45,6 +45,10 @@ pub struct PlacementView<'a> {
     pub failures: u32,
     /// Field 23: `date_retry`
     pub date_retry: u64,
+    /// Every route to this placement enforces the Traffic admission/drain protocol.
+    ///
+    /// Field 24: `managed`
+    pub managed: bool,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for PlacementView<'a> {
@@ -237,6 +241,13 @@ impl<'a> ::buffa::MessageView<'a> for PlacementView<'a> {
                 )?;
                 view.date_retry = ::buffa::types::decode_uint64(&mut cur)?;
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.managed = ::buffa::types::decode_bool(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -302,6 +313,7 @@ impl<'a> ::buffa::MessageView<'a> for PlacementView<'a> {
             date_seen: self.date_seen,
             failures: self.failures,
             date_retry: self.date_retry,
+            managed: self.managed,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -381,6 +393,9 @@ impl<'a> ::buffa::ViewEncode<'a> for PlacementView<'a> {
         if self.date_retry != 0u64 {
             size += 2u32 + ::buffa::types::uint64_encoded_len(self.date_retry) as u32;
         }
+        if self.managed {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -443,6 +458,9 @@ impl<'a> ::buffa::ViewEncode<'a> for PlacementView<'a> {
         }
         if self.date_retry != 0u64 {
             ::buffa::types::put_uint64_field(23u32, self.date_retry, buf);
+        }
+        if self.managed {
+            ::buffa::types::put_bool_field(24u32, self.managed, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -541,6 +559,9 @@ impl<'__a> ::serde::Serialize for PlacementView<'__a> {
                     "dateRetry",
                     &::buffa::json_helpers::ProtoJson(&self.date_retry),
                 )?;
+        }
+        if self.managed {
+            __map.serialize_entry("managed", &self.managed)?;
         }
         __map.end()
     }
@@ -719,6 +740,13 @@ impl PlacementOwnedView {
     #[must_use]
     pub fn date_retry(&self) -> u64 {
         self.0.reborrow().date_retry
+    }
+    /// Every route to this placement enforces the Traffic admission/drain protocol.
+    ///
+    /// Field 24: `managed`
+    #[must_use]
+    pub fn managed(&self) -> bool {
+        self.0.reborrow().managed
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<PlacementView<'static>>>

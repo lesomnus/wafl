@@ -1,0 +1,17 @@
+entryPoints:
+  web:
+    address: :8080
+    transport:
+      respondingTimeouts:
+        readTimeout: 0s
+        writeTimeout: 0s
+experimental:
+  localPlugins:
+    wafl:
+      moduleName: github.com/lesomnus/wafl/traefik
+providers:
+  providersThrottleDuration: 500ms
+  http:
+    endpoint: http://controller:8082/traefik
+    pollInterval: 500ms
+    pollTimeout: 2s

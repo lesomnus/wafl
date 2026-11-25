@@ -26,6 +26,32 @@ pub struct Config {
     pub max_replicas: u32,
     #[serde(default = "entrypoint")]
     pub entrypoint: String,
+    #[serde(default)]
+    pub traffic: Option<TrafficConfig>,
+}
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct TrafficConfig {
+    /// Shared controller RPC URL reached by Traefik observers.
+    pub control: String,
+    /// Shared activator URL reached by Traefik (separate from the management API).
+    pub activate: String,
+    pub listen: SocketAddr,
+    #[serde(default = "report_interval")]
+    pub interval_ms: u64,
+    #[serde(default = "traffic_fresh")]
+    pub fresh_ms: u64,
+    #[serde(default = "waiting")]
+    pub waiting: u32,
+}
+fn report_interval() -> u64 {
+    500
+}
+fn traffic_fresh() -> u64 {
+    5000
+}
+fn waiting() -> u32 {
+    256
 }
 fn listen() -> SocketAddr {
     "127.0.0.1:8082".parse().unwrap()
@@ -61,6 +87,32 @@ impl Config {
         Ok(value)
     }
     pub fn validate(&self) -> Result<()> {
+        if let Some(t) = &self.traffic {
+            for endpoint in [&t.control, &t.activate] {
+                let url = reqwest::Url::parse(endpoint)?;
+                ensure!(
+                    url.scheme() == "http"
+                        && url.host_str().is_some()
+                        && url.username().is_empty()
+                        && url.password().is_none()
+                        && url.path() == "/"
+                        && url.query().is_none()
+                        && url.fragment().is_none(),
+                    "traffic endpoints must be HTTP origins"
+                );
+            }
+            ensure!(
+                t.listen != self.listen || t.listen.port() == 0,
+                "activation and management listeners must differ"
+            );
+            ensure!(
+                (100..=5000).contains(&t.interval_ms)
+                    && t.fresh_ms >= t.interval_ms * 5
+                    && t.fresh_ms <= 60000
+                    && (1..=4096).contains(&t.waiting),
+                "invalid traffic reporting/queue limits"
+            );
+        }
         ensure!(
             self.database.starts_with("postgres://") || self.database.starts_with("postgresql://"),
             "controller requires a PostgreSQL database URL"
@@ -120,6 +172,7 @@ impl Config {
             .map(|s| reqwest::Url::parse(s).unwrap().to_string())
             .collect();
         runners.sort();
-        format!("{:x}", Sha256::digest(serde_json::to_vec(&serde_json::json!({"format":1,"runners":runners,"pending":self.max_pending,"retiring":self.max_retiring,"replicas":self.max_replicas,"fresh":self.fresh_ms,"entrypoint":self.entrypoint})).unwrap()))
+        let traffic=self.traffic.as_ref().map(|t|serde_json::json!({"control":t.control,"activate":t.activate,"interval":t.interval_ms,"fresh":t.fresh_ms,"waiting":t.waiting}));
+        format!("{:x}", Sha256::digest(serde_json::to_vec(&serde_json::json!({"format":2,"runners":runners,"pending":self.max_pending,"retiring":self.max_retiring,"replicas":self.max_replicas,"fresh":self.fresh_ms,"entrypoint":self.entrypoint,"traffic":traffic})).unwrap()))
     }
 }

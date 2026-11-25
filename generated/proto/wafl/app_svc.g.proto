@@ -33,6 +33,8 @@ message AppAddRequest {
   uint32 replicas = 9 [features.field_presence = IMPLICIT];
   uint64 revision = 10 [features.field_presence = IMPLICIT];
   Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
+  Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON}];
+  ScaleState state = 18 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message AppGetRequest {
@@ -57,6 +59,8 @@ message AppSelect {
   bool replicas = 9;
   bool revision = 10;
   bool manifest = 16;
+  bool scaling = 17;
+  bool state = 18;
 }
 
 message AppPatchRequest {
@@ -71,6 +75,18 @@ message AppPatchRequest {
   // "leave it alone", so no value could have meant NULL. It wins
   // outright: setting both this and manifest clears.
   bool manifest_null = 33;
+  Scaling scaling = 34 [(orm.field) = {type: TYPE_JSON}];
+  // Clear scaling instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and scaling clears.
+  bool scaling_null = 35;
+  ScaleState state = 36 [(orm.field) = {type: TYPE_JSON}];
+  // Clear state instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and state clears.
+  bool state_null = 37;
 }
 
 message AppApplyRequest {

@@ -26,6 +26,8 @@ include!("wafl.reservation.rs");
 include!("wafl.reservation_svc.g.rs");
 include!("wafl.runner.rs");
 include!("wafl.runner_svc.g.rs");
+include!("wafl.traffic.rs");
+include!("wafl.traffic_svc.g.rs");
 #[allow(
     non_camel_case_types,
     dead_code,
@@ -69,6 +71,8 @@ pub mod __buffa {
         include!("wafl.reservation_svc.g.__view.rs");
         include!("wafl.runner.__view.rs");
         include!("wafl.runner_svc.g.__view.rs");
+        include!("wafl.traffic.__view.rs");
+        include!("wafl.traffic_svc.g.__view.rs");
         pub mod oneof {
             #[allow(unused_imports)]
             use super::*;
@@ -83,6 +87,7 @@ pub mod __buffa {
             include!("wafl.placement_svc.g.__view_oneof.rs");
             include!("wafl.reservation_svc.g.__view_oneof.rs");
             include!("wafl.runner_svc.g.__view_oneof.rs");
+            include!("wafl.traffic_svc.g.__view_oneof.rs");
         }
     }
     pub mod oneof {
@@ -99,6 +104,7 @@ pub mod __buffa {
         include!("wafl.placement_svc.g.__oneof.rs");
         include!("wafl.reservation_svc.g.__oneof.rs");
         include!("wafl.runner_svc.g.__oneof.rs");
+        include!("wafl.traffic_svc.g.__oneof.rs");
     }
     /// Register this package's `Any` type entries and extension entries.
     pub fn register_types(reg: &mut ::buffa::type_registry::TypeRegistry) {
@@ -107,6 +113,8 @@ pub mod __buffa {
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
         reg.register_json_any(super::__APP_JSON_ANY);
+        reg.register_json_any(super::__SCALING_JSON_ANY);
+        reg.register_json_any(super::__SCALE_STATE_JSON_ANY);
         reg.register_json_any(super::__TENANT_ADD_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_REF_JSON_ANY);
@@ -146,6 +154,8 @@ pub mod __buffa {
         reg.register_json_any(super::__INSTANCE_STOP_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_DRAIN_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_RELEASE_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__INSTANCE_SEAL_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__INSTANCE_SEAL_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_TAIL_REQUEST_JSON_ANY);
         reg.register_json_any(super::__ACCESS_JSON_ANY);
         reg.register_json_any(super::__ACCESS_GET_REQUEST_JSON_ANY);
@@ -210,6 +220,16 @@ pub mod __buffa {
         reg.register_json_any(super::__RUNNER_LIST_REQUEST_JSON_ANY);
         reg.register_json_any(super::__RUNNER_LIST_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__RUNNER_FILTER_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_ADD_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_REF_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_SELECT_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_LIST_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_LIST_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_FILTER_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_REPORT_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__TRAFFIC_CLOSE_REQUEST_JSON_ANY);
     }
 }
 #[doc(inline)]
@@ -232,6 +252,14 @@ pub use self::__buffa::view::TenantOwnedView;
 pub use self::__buffa::view::AppView;
 #[doc(inline)]
 pub use self::__buffa::view::AppOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ScalingView;
+#[doc(inline)]
+pub use self::__buffa::view::ScalingOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ScaleStateView;
+#[doc(inline)]
+pub use self::__buffa::view::ScaleStateOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantAddRequestView;
 #[doc(inline)]
@@ -388,6 +416,14 @@ pub use self::__buffa::view::InstanceDrainRequestOwnedView;
 pub use self::__buffa::view::InstanceReleaseRequestView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceReleaseRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceSealRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceSealRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceSealResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceSealResponseOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceTailRequestView;
 #[doc(inline)]
@@ -644,5 +680,45 @@ pub use self::__buffa::view::RunnerListResponseOwnedView;
 pub use self::__buffa::view::RunnerFilterView;
 #[doc(inline)]
 pub use self::__buffa::view::RunnerFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficAddRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficAddRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficRefView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficListRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficListRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficListResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficListResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficFilterView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficReportRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficReportRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficCloseRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::TrafficCloseRequestOwnedView;
 #[doc(inline)]
 pub use self::__buffa::register_types;

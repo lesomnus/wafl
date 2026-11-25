@@ -38,6 +38,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect autoscaling observers and recover an explicitly stopped observer.
+    Traffic {
+        #[command(subcommand)]
+        action: apps::TrafficCommand,
+    },
     /// Manage controller-owned applications.
     App {
         #[command(subcommand)]
@@ -84,6 +89,9 @@ struct ControllerArgs {
     config: PathBuf,
     #[arg(long)]
     listen: Option<SocketAddr>,
+    /// Adopt changed deployment settings after stopping old controller replicas.
+    #[arg(long)]
+    configure: bool,
 }
 #[derive(Args)]
 struct RunnerArgs {
@@ -308,7 +316,7 @@ async fn main() -> Result<()> {
             if let Some(listen) = args.listen {
                 config.listen = listen;
             }
-            return wafl_runner::controller::serve(config).await;
+            return wafl_runner::controller::serve(config, args.configure).await;
         }
         Command::App { action } => {
             ensure!(
@@ -390,6 +398,10 @@ async fn main() -> Result<()> {
                     value.accepting
                 );
             }
+            return Ok(());
+        }
+        Command::Traffic { action } => {
+            apps::traffic(action, client_config(&cli.endpoint, None, None)?, cli.json).await?;
             return Ok(());
         }
         Command::Instance { action } => action,

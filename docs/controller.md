@@ -10,7 +10,7 @@ Traefik ── 설정 조회 ─────→ GET /traefik
 사용자 ── Host/authority → Traefik ─────────→ Instance.endpoint
 ```
 
-현재는 고정 replica 수를 유지합니다. `replicas=0`인 앱에는 503을 반환하며 첫 요청에 실행하는 activator는 아직 없습니다. 요청 부하 기반 자동 증감, Kubernetes runner 발견, 앱 DB 자동 제공은 [#10](https://github.com/lesomnus/wafl/issues/10) 등의 후속 범위입니다. 앱은 기존처럼 Manifest의 env로 전달받은 DB에 직접 연결합니다.
+이 문서는 고정 replica 운영을 설명합니다. 고정 방식의 `replicas=0`에는 503을 반환합니다. **YAML 등록, 요청 부하 기반 자동 증감과 최초 요청 기동은 [자동 증감 튜토리얼](autoscaling.md)**을 참고하세요. 앱은 Manifest의 env로 전달받은 DB에 직접 연결합니다. Kubernetes runner 발견과 앱 DB 자동 제공은 후속 범위입니다.
 
 ## 로컬에서 끝까지 실행
 

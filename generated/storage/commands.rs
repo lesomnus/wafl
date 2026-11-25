@@ -481,6 +481,24 @@ async fn dispatch(
                 .await?;
             emit(serde_json::to_value(res.into_owned())?)?;
         }
+        ("wafl.Instance", "Seal") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#InstanceSealRequest,
+                <proto::r#wafl::r#InstanceSealResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.InstanceService",
+                    "Seal",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Instance", "Start") => {
             let res = call_unary::<
                 _,
@@ -761,6 +779,88 @@ async fn dispatch(
                     config,
                     "wafl.TenantService",
                     "Patch",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Traffic", "Add") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#TrafficAddRequest,
+                <proto::r#wafl::r#Traffic as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.TrafficService",
+                    "Add",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Traffic", "Close") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#TrafficCloseRequest,
+                <proto::r#wafl::r#Traffic as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.TrafficService",
+                    "Close",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Traffic", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#TrafficGetRequest,
+                <proto::r#wafl::r#Traffic as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.TrafficService",
+                    "Get",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Traffic", "List") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#TrafficListRequest,
+                <proto::r#wafl::r#TrafficListResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.TrafficService",
+                    "List",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Traffic", "Report") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#TrafficReportRequest,
+                <proto::r#wafl::r#Traffic as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.TrafficService",
+                    "Report",
                     serde_json::from_value(request)?,
                     Default::default(),
                 )

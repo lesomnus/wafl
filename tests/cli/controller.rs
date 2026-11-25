@@ -3,12 +3,12 @@ use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use wafl_runner::proto::wafl::{App, Placement, PlacementPhase};
 
-struct Controller {
+pub(super) struct Controller {
     child: Child,
-    endpoint: String,
+    pub(super) endpoint: String,
 }
 impl Controller {
-    async fn start(root: &Path, config: &Value) -> Self {
+    pub(super) async fn start(root: &Path, config: &Value) -> Self {
         let path = root.join(format!("controller-{}.json", uuid::Uuid::new_v4()));
         std::fs::write(&path, serde_json::to_vec(config).unwrap()).unwrap();
         let mut child = command()
@@ -41,12 +41,17 @@ impl Controller {
             endpoint: format!("http://{address}"),
         }
     }
-    async fn stop(&mut self) {
+    pub(super) async fn stop(&mut self) {
         self.child.kill().await.unwrap();
         self.child.wait().await.unwrap();
     }
 }
-async fn rpc(endpoint: &str, service: &str, method: &str, request: Value) -> (u16, Value) {
+pub(super) async fn rpc(
+    endpoint: &str,
+    service: &str,
+    method: &str,
+    request: Value,
+) -> (u16, Value) {
     let response = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
         .build()
@@ -64,17 +69,20 @@ async fn rpc(endpoint: &str, service: &str, method: &str, request: Value) -> (u1
         serde_json::from_slice(&response.bytes().await.unwrap()).unwrap(),
     )
 }
-async fn app(endpoint: &str, args: &[&str]) -> App {
+pub(super) async fn app(endpoint: &str, args: &[&str]) -> App {
     let mut all = vec!["--json", "app"];
     all.extend_from_slice(args);
     serde_json::from_slice(&success(cli(endpoint, &all).await)).unwrap()
 }
-async fn placements(endpoint: &str) -> Vec<Placement> {
+pub(super) async fn placements(endpoint: &str) -> Vec<Placement> {
     let (status, body) = rpc(endpoint, "PlacementService", "List", json!({"size":1000})).await;
     assert_eq!(status, 200, "{body}");
     serde_json::from_value(body.get("items").cloned().unwrap_or_else(|| json!([]))).unwrap()
 }
-async fn until(endpoint: &str, predicate: impl Fn(&[Placement]) -> bool) -> Vec<Placement> {
+pub(super) async fn until(
+    endpoint: &str,
+    predicate: impl Fn(&[Placement]) -> bool,
+) -> Vec<Placement> {
     tokio::time::timeout(Duration::from_secs(120), async {
         let mut previous = String::new();
         loop {
@@ -555,12 +563,7 @@ async fn postgres_replicas_reconcile_real_runners_and_traefik_routes_http_and_gr
         success(cli(&c1.endpoint, &["app", "erase", alias]).await);
     }
     assert!(placements(&c2.endpoint).await.is_empty());
-    assert!(
-        snapshot(c2.endpoint.clone()).await["http"]["routers"]
-            .as_object()
-            .unwrap()
-            .is_empty()
-    );
+    assert_eq!(snapshot(c2.endpoint.clone()).await, json!({}));
     assert_ne!(alpha.id, beta.id);
     // A bad revision remains inspectable, without creating a new failed
     // execution every reconciliation tick. Changing the manifest permits repair.

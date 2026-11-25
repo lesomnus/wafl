@@ -9,7 +9,7 @@ const MODEL: &str = include_str!("../../generated/storage/model.json");
 const POLICIES: &str = include_str!("../../generated/storage/policies.json");
 
 #[derive(Clone)]
-pub struct Database(Arc<Mutex<Store>>);
+pub struct Database(Arc<Mutex<Store>>, String);
 pub fn encode(id: &[u8]) -> String {
     STANDARD.encode(id)
 }
@@ -57,7 +57,7 @@ pub fn fault(error: Fault) -> ConnectError {
     }
 }
 impl Database {
-    pub async fn open(config: &Config) -> anyhow::Result<Self> {
+    pub async fn open(config: &Config, configure: bool) -> anyhow::Result<Self> {
         let url = config.database.clone();
         let signature = config.signature();
         tokio::task::spawn_blocking(move || {
@@ -75,8 +75,11 @@ impl Database {
                 }
             }
             let current = store.operator(Call { entity:"wafl.Controller".into(), method:"Get".into(), request:json!({"ref":{"alias":"self"}}) })?;
-            if current["configuration"] != signature { return Err(Fault::precondition("controller replicas must use the same runner topology and scheduling/routing settings")); }
-            Ok(Self(Arc::new(Mutex::new(store))))
+            if current["configuration"] != signature {
+                if !configure { return Err(Fault::precondition("controller configuration changed; stop old replicas and use --configure to adopt it")); }
+                store.operator(Call { entity:"wafl.Controller".into(), method:"Patch".into(), request:json!({"ref":{"alias":"self"},"configuration":signature}) })?;
+            }
+            Ok(Self(Arc::new(Mutex::new(store)), signature))
         }).await?.map_err(|e: Fault| anyhow::anyhow!(fault(e)))
     }
     pub async fn transaction<T: Send + 'static>(
@@ -84,6 +87,7 @@ impl Database {
         operation: impl FnOnce(&mut Transaction<'_>) -> paydirt_store::Result<T> + Send + 'static,
     ) -> Result<T, ConnectError> {
         let db = self.0.clone();
+        let signature = self.1.clone();
         tokio::task::spawn_blocking(move || {
             let mut store = db
                 .lock()
@@ -91,7 +95,8 @@ impl Database {
             store.transaction(&Scope::Internal, |tx| {
                 // A no-op Patch acquires PostgreSQL FOR UPDATE. All decisions
                 // are short transactions; no network calls hold this lock.
-                call(tx, "Controller", "Patch", json!({"ref":{"alias":"self"}}))?;
+                let current=call(tx, "Controller", "Patch", json!({"ref":{"alias":"self"}}))?;
+                if current["configuration"] != signature { return Err(Fault::precondition("controller configuration was replaced; restart with the current configuration")); }
                 operation(tx)
             })
         })

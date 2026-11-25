@@ -1,0 +1,36 @@
+edition = "2023";
+package wafl;
+import "payday.proto";
+import "orm.proto";
+import "wafl/app.proto";
+import "wafl/placement.proto";
+import "wafl/payday/tenant.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// One observer's admission gate for a placement, or one cold-start request.
+// Register before forwarding. closed is irreversible. Missing heartbeats NEVER
+// prove that a stream ended or authorize endpoint reuse.
+message Traffic {
+  option (orm.message) = {rpc: {add: {}, get: {}}};
+  option (payday.entity) = {
+    domain: 13 erase: {hard: {}}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}, {name: "app"}] size: 100 max: 1000 filters: 64}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+  reserved 3, 4, 5, 6, 7;
+  App app = 8 [(orm.edge) = {immutable: true}];
+  Placement placement = 9 [(orm.edge) = {nullable: true}];
+  string session = 10 [(orm.field) = {immutable: true}];
+  uint64 sequence = 11 [(payday.field) = {stamped: true}];
+  uint32 active = 12 [(payday.field) = {stamped: true}];
+  reserved 13, 14, 15;
+  uint64 started = 16 [(payday.field) = {stamped: true}];
+  uint64 busy_ms = 17 [(payday.field) = {stamped: true}];
+  bool closed = 18 [(payday.field) = {stamped: true}];
+  bool draining = 19 [(payday.field) = {stamped: true}];
+  uint64 date_seen = 20 [(payday.field) = {stamped: true}];
+  uint64 revision = 21 [(orm.field) = {immutable: true}];
+  bool activation = 22 [(payday.field) = {stamped: true}];
+}

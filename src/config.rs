@@ -103,6 +103,7 @@ impl Default for Cache {
 #[serde(default, deny_unknown_fields)]
 pub struct Capacity {
     pub instances: usize,
+    pub tombstones: usize,
     pub preparations: usize,
     pub startups: usize,
     pub running: usize,
@@ -117,6 +118,7 @@ impl Default for Capacity {
     fn default() -> Self {
         Self {
             instances: 128,
+            tombstones: 65536,
             preparations: 4,
             startups: 4,
             running: 128,
@@ -133,6 +135,7 @@ impl Capacity {
     fn validate(&self) -> Result<()> {
         for value in [
             self.instances,
+            self.tombstones,
             self.preparations,
             self.startups,
             self.running,
