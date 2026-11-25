@@ -2,8 +2,11 @@ use crate::{
     admission::{Admission, Reservation},
     compiler::{Compiled, Compiler},
     config::{Config, Spec},
+    endpoint::{Claim, Ports},
     logs::{LogStream, Logs},
-    proto::wafl::{Instance, InstanceAddRequest, InstanceRef, Phase, Tenant, instance_ref},
+    proto::wafl::{
+        Endpoint, Instance, InstanceAddRequest, InstanceRef, Phase, Tenant, instance_ref,
+    },
     runtime::Runtime,
     store::{Bundle, Store},
     telemetry::{InstanceSample, Observe, Snapshot},
@@ -56,6 +59,7 @@ impl Pending {
             let mut value = execution.snapshot();
             // Running becomes observable only when Add commits the route.
             value.phase = Phase::Starting.into();
+            value.endpoint = Default::default();
             value
         } else {
             self.value.clone()
@@ -96,6 +100,8 @@ struct State {
     address: Option<SocketAddr>,
     activity: Instant,
     task: Option<JoinHandle<()>>,
+    claim: Option<Arc<Claim>>,
+    releasing: bool,
 }
 
 /// A request owns this lease through the final response frame or cancellation.
@@ -122,7 +128,20 @@ impl Drop for Addition {
             entries.aliases.remove(&self.alias);
             drop(entries);
             if let Some(execution) = &self.execution {
-                let _ = execution.retire(true);
+                let execution = execution.clone();
+                if let Ok(task) = execution.retire(true) {
+                    tokio::spawn(async move {
+                        if let Some(task) = task {
+                            let _ = task.await;
+                        }
+                        // Pending snapshots never publish endpoints. Once its
+                        // guest is gone an uncommitted Add can reclaim the slot.
+                        let claim = execution.state.lock().unwrap().claim.clone();
+                        if let Some(claim) = claim {
+                            let _ = claim.release().await;
+                        }
+                    });
+                }
             }
         }
     }
@@ -132,11 +151,32 @@ impl Runner {
     pub async fn new(config: &Config) -> Result<Self> {
         config.validate()?;
         let directory = config.directory()?;
+        let session = paydirt::mint(8);
+        let direct = match config.direct.clone() {
+            Some(direct) => {
+                let cache = directory.clone();
+                Some(
+                    tokio::task::spawn_blocking(move || {
+                        let ports = Ports::new(direct, session)?;
+                        std::fs::create_dir_all(&cache)?;
+                        let cache = std::fs::canonicalize(cache)?;
+                        let state = std::fs::canonicalize(&ports.config.directory)?;
+                        anyhow::ensure!(
+                            !state.starts_with(&cache) && !cache.starts_with(&state),
+                            "direct state and bundle cache directories must be separate"
+                        );
+                        Ok::<_, anyhow::Error>(ports)
+                    })
+                    .await??,
+                )
+            }
+            None => None,
+        };
         let limits = config.bundle.clone();
         let cache = config.cache.clone();
         let store =
             tokio::task::spawn_blocking(move || Store::new(&directory, limits, &cache)).await??;
-        let runtime = Arc::new(Runtime::new()?);
+        let runtime = Arc::new(Runtime::new(direct)?);
         let compiler = Compiler::new(runtime.engine.clone(), config.capacity.compilations);
         Ok(Self(Arc::new(Registry {
             entries: Mutex::new(Entries::default()),
@@ -151,7 +191,7 @@ impl Runner {
             slots: Arc::new(Semaphore::new(config.capacity.preparations)),
             closed: Arc::new(AtomicBool::new(false)),
             stopped: Notify::new(),
-            session: paydirt::mint(8),
+            session,
             revisions: Arc::new(AtomicU64::new(1)),
             admission: Admission::new(config.capacity.clone()),
             compiler,
@@ -160,7 +200,17 @@ impl Runner {
     }
 
     pub async fn add(&self, req: InstanceAddRequest) -> Result<Instance, ConnectError> {
+        if self.direct() && (req.manifest.idle_ms != 0 || req.manifest.max_active != 0) {
+            return Err(ConnectError::invalid_argument(
+                "direct mode requires idle_ms=max_active=0; gateways own request accounting and idle retirement",
+            ));
+        }
         let mut spec = Spec::parse(req)?;
+        if self.direct() {
+            spec.idle_ms = 0;
+            spec.manifest.idle_ms = 0;
+            spec.manifest.max_active = 0;
+        }
         let slot = Arc::new(self.0.slots.clone().try_acquire_owned().map_err(|_| {
             ConnectError::resource_exhausted("runner preparation capacity reached")
         })?);
@@ -200,6 +250,7 @@ impl Runner {
                         name: spec.name.clone(),
                         manifest: Some(spec.manifest.clone()).into(),
                         phase: Phase::Preparing.into(),
+                        direct: self.direct(),
                         session: self.0.session.to_vec(),
                         revision,
                         ..Default::default()
@@ -263,6 +314,8 @@ impl Runner {
                     address: None,
                     activity: Instant::now(),
                     task: None,
+                    claim: None,
+                    releasing: false,
                 }),
             });
             addition.execution = Some(execution.clone());
@@ -363,7 +416,11 @@ impl Runner {
                             Phase::Stopping => "stopping",
                             _ => "unspecified",
                         },
-                        active: state.active as u64,
+                        active: if registry.runtime.direct.is_some() {
+                            None
+                        } else {
+                            Some(state.active as u64)
+                        },
                     }
                 })
                 .collect();
@@ -428,6 +485,9 @@ impl Runner {
     pub async fn acquire(&self, execution: &Arc<Execution>) -> Result<Lease, ConnectError> {
         execution.acquire(false, Condition::default()).await
     }
+    pub fn direct(&self) -> bool {
+        self.0.runtime.direct.is_some()
+    }
     pub async fn start(
         &self,
         execution: &Arc<Execution>,
@@ -464,14 +524,27 @@ impl Runner {
             version: env!("CARGO_PKG_VERSION").into(),
             runtime: "wasmtime".into(),
             abi: "wasip2".into(),
-            ingress: addresses.0.to_string(),
+            ingress: if self.direct() {
+                String::new()
+            } else {
+                addresses.0.to_string()
+            },
             control: addresses.1.to_string(),
             accepting: !self.0.closed.load(Ordering::Acquire),
             capabilities: [
                 "http",
                 "h2c",
                 "grpc",
-                "drain",
+                if self.direct() {
+                    "direct-endpoint-v1"
+                } else {
+                    "proxy-ingress"
+                },
+                if self.direct() {
+                    "external-drain-v1"
+                } else {
+                    "drain"
+                },
                 "command-conditions",
                 "cache-v2",
                 "outbound-tcp",
@@ -542,6 +615,16 @@ impl Execution {
             phase: state.phase.into(),
             generation: state.generation,
             active: state.active,
+            direct: self.runtime.direct.is_some(),
+            endpoint: state
+                .claim
+                .as_ref()
+                .map(|claim| Endpoint {
+                    address: claim.address.to_string(),
+                    protocol: self.spec.manifest.protocol.clone(),
+                    ..Default::default()
+                })
+                .into(),
             error: state.error.clone(),
             session: self.session.to_vec(),
             revision: state.revision,
@@ -579,6 +662,14 @@ impl Execution {
             }
             if state.retired {
                 return Err(ConnectError::not_found("instance was erased"));
+            }
+            if self.runtime.direct.is_some()
+                && (state.releasing
+                    || (state.claim.is_some() && (state.draining || state.phase != Phase::Running)))
+            {
+                return Err(ConnectError::failed_precondition(
+                    "withdraw the previous direct endpoint and Release before restarting",
+                ));
             }
             if state.phase == Phase::Stopping
                 || state.drain.is_some()
@@ -672,7 +763,7 @@ impl Execution {
             ready,
         );
         tokio::pin!(guest);
-        let address = tokio::select! {
+        let ready = tokio::select! {
             result = &mut guest => return Err(ConnectError::unavailable(format!("guest startup: {:#}", result.err().unwrap_or_else(|| anyhow!("guest exited before listening"))))),
             endpoint = receiver => endpoint.map_err(|_| ConnectError::unavailable("guest did not open its declared port"))?,
             _ = tokio::time::sleep(Duration::from_millis(self.spec.startup_ms)) => return Err(ConnectError::deadline_exceeded("guest startup timed out")),
@@ -682,7 +773,11 @@ impl Execution {
             if state.generation != generation || state.phase != Phase::Starting {
                 return Ok(());
             }
-            state.address = Some(address);
+            if let Some(claim) = &ready.claim {
+                claim.publish();
+            }
+            state.claim = ready.claim;
+            state.address = Some(ready.address);
             state.phase = Phase::Running;
             state.activity = Instant::now();
             self.revise(&mut state);
@@ -723,6 +818,11 @@ impl Execution {
     ) -> Result<Option<JoinHandle<()>>, ConnectError> {
         let mut state = self.state.lock().unwrap();
         self.check(&state, condition)?;
+        if !force && (state.claim.is_some() || state.releasing) {
+            return Err(ConnectError::failed_precondition(
+                "Drain and Release the direct endpoint before Erase",
+            ));
+        }
         if !force && (state.active != 0 || state.drain.is_some()) {
             return Err(ConnectError::failed_precondition(
                 "instance has active requests or drain",
@@ -763,6 +863,14 @@ impl Execution {
         let (task, generation) = {
             let mut state = self.state.lock().unwrap();
             self.check(&state, condition)?;
+            if idle && self.runtime.direct.is_some() {
+                return Ok(());
+            }
+            if !force && (state.claim.is_some() || state.releasing) {
+                return Err(ConnectError::failed_precondition(
+                    "direct endpoints require Drain then Release after gateway drain",
+                ));
+            }
             if state.retired {
                 return Err(ConnectError::not_found("instance was erased"));
             }
@@ -826,6 +934,29 @@ impl Execution {
         force: bool,
         condition: Condition,
     ) -> Result<(), ConnectError> {
+        if self.runtime.direct.is_some() {
+            if timeout_ms != 0 || force {
+                return Err(ConnectError::invalid_argument(
+                    "direct Drain only withdraws publication; timeout_ms and force must be zero; acknowledge gateway drain with Release",
+                ));
+            }
+            let mut state = self.state.lock().unwrap();
+            self.check(&state, condition)?;
+            if state.retired {
+                return Err(ConnectError::not_found("instance was erased"));
+            }
+            if matches!(state.phase, Phase::Starting | Phase::Stopping) || state.releasing {
+                return Err(ConnectError::failed_precondition(
+                    "instance lifecycle operation is in progress",
+                ));
+            }
+            if !state.draining {
+                state.draining = true;
+                self.revise(&mut state);
+            }
+            self.changed.send_replace(());
+            return Ok(());
+        }
         let timeout_ms = if timeout_ms == 0 {
             self.admission.limits.drain_ms
         } else {
@@ -904,6 +1035,76 @@ impl Execution {
                 .await
                 .map_err(|_| ConnectError::internal("drain supervisor ended"))?;
         }
+    }
+
+    pub async fn release(
+        self: &Arc<Self>,
+        generation: u64,
+        condition: Condition,
+    ) -> Result<(), ConnectError> {
+        if self.runtime.direct.is_none()
+            || condition.session.is_none()
+            || condition.revision.is_none()
+            || generation == 0
+        {
+            return Err(ConnectError::failed_precondition(
+                "Release requires direct mode, generation, wafl-session and wafl-revision",
+            ));
+        }
+        let (task, claim) = {
+            let mut state = self.state.lock().unwrap();
+            self.check(&state, condition)?;
+            if state.retired {
+                return Err(ConnectError::not_found("instance was erased"));
+            }
+            if state.generation != generation {
+                return Err(ConnectError::aborted("instance generation changed"));
+            }
+            if !state.draining
+                || state.releasing
+                || matches!(state.phase, Phase::Starting | Phase::Stopping)
+                || state.active != 0
+            {
+                return Err(ConnectError::failed_precondition(
+                    "Drain and finish management waiters before Release",
+                ));
+            }
+            let Some(claim) = state.claim.clone() else {
+                return Ok(());
+            };
+            state.releasing = true;
+            state.phase = Phase::Stopping;
+            state.address = None;
+            self.revise(&mut state);
+            (state.task.take(), claim)
+        };
+        self.changed.send_replace(());
+        let app = self.clone();
+        // Complete independently of the RPC connection. The old socket must be
+        // gone before another execution can acquire its durable reservation.
+        tokio::spawn(async move {
+            if let Some(task) = task {
+                task.abort();
+                let _ = task.await;
+            }
+            let result = claim
+                .release()
+                .await
+                .map_err(|e| ConnectError::internal(format!("release endpoint: {e:#}")));
+            let mut state = app.state.lock().unwrap();
+            if state.generation == generation {
+                if result.is_ok() {
+                    state.claim = None;
+                }
+                state.releasing = false;
+                state.phase = Phase::Stopped;
+                app.revise(&mut state);
+            }
+            app.changed.send_replace(());
+            result
+        })
+        .await
+        .map_err(|_| ConnectError::internal("endpoint release supervisor failed"))?
     }
 }
 impl Drop for Lease {

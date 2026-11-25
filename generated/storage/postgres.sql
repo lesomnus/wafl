@@ -70,7 +70,9 @@ CREATE TABLE "pd_wafl__Instance" (
   "f17" TEXT,
   "f18" BYTEA NOT NULL,
   "f19" TEXT NOT NULL,
-  "f20" BOOLEAN NOT NULL
+  "f20" BOOLEAN NOT NULL,
+  "f21" TEXT,
+  "f22" BOOLEAN NOT NULL
 );
 CREATE TABLE "pd_wafl__Outbox" (
   "f1" BYTEA NOT NULL PRIMARY KEY,

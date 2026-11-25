@@ -4,7 +4,7 @@ use connectrpc::ConnectError;
 use serde::Deserialize;
 use std::{
     collections::BTreeSet,
-    net::SocketAddr,
+    net::{Ipv4Addr, SocketAddr},
     path::{Path, PathBuf},
 };
 
@@ -27,6 +27,44 @@ pub struct Config {
     pub cache: Cache,
     #[serde(default)]
     pub capacity: Capacity,
+    /// Direct guest sockets; disables the runner HTTP ingress and idle reaper.
+    #[serde(default)]
+    pub direct: Option<Direct>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Direct {
+    pub listen: Ipv4Addr,
+    pub advertise: Ipv4Addr,
+    /// Durable reservations, separate from the disposable bundle cache.
+    /// All runners advertising this IP must share this directory.
+    pub directory: PathBuf,
+    pub first: u16,
+    pub last: u16,
+}
+impl Direct {
+    fn validate(&self) -> Result<()> {
+        ensure!(
+            self.directory.is_absolute(),
+            "direct.directory must be an absolute durable state directory"
+        );
+        ensure!(
+            self.first > 0 && self.first <= self.last,
+            "direct.first..last must be a nonempty port range"
+        );
+        ensure!(
+            !self.advertise.is_unspecified()
+                && !self.advertise.is_multicast()
+                && !self.advertise.is_broadcast(),
+            "direct.advertise must be a concrete unicast IPv4 address"
+        );
+        ensure!(
+            self.listen.is_unspecified() || self.listen == self.advertise,
+            "direct.listen must be 0.0.0.0 or direct.advertise"
+        );
+        Ok(())
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -178,10 +216,24 @@ impl Config {
             "cache.capacity_bytes must be positive"
         );
         ensure!(
-            self.listen != self.control || self.listen.port() == 0,
+            self.direct.is_some() || self.listen != self.control || self.listen.port() == 0,
             "ingress and control require separate listeners"
         );
         self.capacity.validate()?;
+        if let Some(direct) = &self.direct {
+            direct.validate()?;
+            ensure!(
+                !(direct.first..=direct.last).contains(&self.control.port()),
+                "control port must be outside the direct endpoint range"
+            );
+            if let Some(directory) = &self.directory {
+                ensure!(
+                    !direct.directory.starts_with(directory)
+                        && !directory.starts_with(&direct.directory),
+                    "direct state and bundle cache directories must be separate"
+                );
+            }
+        }
         if let Some(metrics) = &self.metrics {
             metrics.validate()?;
         }
@@ -245,9 +297,11 @@ impl Spec {
             || !req.session.is_empty()
             || req.revision != 0
             || req.draining
+            || req.endpoint.as_option().is_some()
+            || req.direct
         {
             return Err(invalid(
-                "phase, generation, active, error, session, revision and draining are server-set",
+                "phase, generation, active, error, session, revision, draining, endpoint and direct are server-set",
             ));
         }
         let id = match req.id {

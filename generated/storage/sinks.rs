@@ -361,6 +361,28 @@ impl<
             call.unary::<crate::proto::r#wafl::r#Instance, _>(reply)
         }
     }
+    fn release<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceReleaseRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.InstanceService/Release", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.release(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#Instance, _>(reply)
+        }
+    }
     fn tail(
         &self,
         next: &N,
@@ -2492,6 +2514,68 @@ mod sink_wafl_instance {
                 Ok(response)
             }
         }
+        fn release<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::InstanceReleaseRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Instance,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.InstanceReleaseRequest",
+                    "wafl.Instance",
+                    "/wafl.InstanceService/Release",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Instance",
+                        "Release",
+                        self.public.contains(&"/wafl.InstanceService/Release"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.release(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#Instance,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
         fn tail(
             &self,
             next: &N,
@@ -2783,6 +2867,39 @@ mod sink_wafl_instance {
                     )
                     .await?;
                 let result = next.drain(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+        fn release<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::InstanceReleaseRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Instance,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Instance",
+                        "Release",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.release(ctx, request).await;
                 if let Some(guard) = guard {
                     guard.finish(result.is_ok()).await?;
                 }
@@ -4011,6 +4128,27 @@ pub trait InstanceCalls: crate::services::r#wafl::InstanceService {
             ))?;
         let reply = self
             .drain(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#Instance::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+    async fn release_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#InstanceReleaseRequest,
+    ) -> Result<crate::proto::r#wafl::r#Instance, ::connectrpc::ConnectError> {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#InstanceReleaseRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .release(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
             .await?;
         let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
         crate::proto::r#wafl::r#Instance::decode_from_slice(&wire)

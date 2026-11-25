@@ -133,7 +133,7 @@ mod tests {
         let root = std::path::PathBuf::from(
             std::env::var_os("WAFL_TEST_GUEST_DIR").expect("run scripts/test.sh"),
         );
-        let engine = crate::runtime::Runtime::new().unwrap().engine.clone();
+        let engine = crate::runtime::Runtime::new(None).unwrap().engine.clone();
         let compiler = Compiler::new(engine, 1);
         let barrier = Arc::new(std::sync::Barrier::new(2));
         let threads: Vec<_> = (0..2)

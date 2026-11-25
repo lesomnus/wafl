@@ -6,7 +6,11 @@ use std::time::Duration;
 pub async fn serve(config: Config) -> Result<()> {
     config.validate()?;
     let runner = Runner::new(&config).await?;
-    let ingress = tokio::net::TcpListener::bind(config.listen).await?;
+    let ingress = if runner.direct() {
+        None
+    } else {
+        Some(tokio::net::TcpListener::bind(config.listen).await?)
+    };
     let control = paydirt_server::Host::bind(
         config.control,
         paydirt_server::Serving::default(),
@@ -16,18 +20,26 @@ pub async fn serve(config: Config) -> Result<()> {
     .await
     .map_err(|e| anyhow!("{e}"))?;
     let control_addr = control.local_addr()?;
-    runner.addresses(ingress.local_addr()?, control_addr);
+    let ingress_addr = ingress.as_ref().map(|s| s.local_addr()).transpose()?;
+    runner.addresses(ingress_addr.unwrap_or(config.listen), control_addr);
     let mut workers = Workers::default();
-    let reaper = runner.clone();
-    workers.add("wafl.reap", Placement::Everywhere, move |stop| {
-        let runner = reaper.clone();
-        async move {
-            let mut tick = tokio::time::interval(Duration::from_millis(100));
-            loop {
-                tokio::select! { _ = stop.cancelled() => return Ok(()), _ = tick.tick() => runner.reap().await }
-            }
-        }
-    }).map_err(|e| anyhow!(e))?;
+    if !runner.direct() {
+        let reaper = runner.clone();
+        workers
+            .add("wafl.reap", Placement::Everywhere, move |stop| {
+                let runner = reaper.clone();
+                async move {
+                    let mut tick = tokio::time::interval(Duration::from_millis(100));
+                    loop {
+                        tokio::select! {
+                            _ = stop.cancelled() => return Ok(()),
+                            _ = tick.tick() => runner.reap().await,
+                        }
+                    }
+                }
+            })
+            .map_err(|e| anyhow!(e))?;
+    }
     let telemetry = match config.metrics {
         Some(metrics) => Some(
             Telemetry::start(
@@ -41,7 +53,9 @@ pub async fn serve(config: Config) -> Result<()> {
     };
     eprintln!(
         "wafl-runner ingress={} control={}",
-        ingress.local_addr()?,
+        ingress_addr
+            .map(|a| a.to_string())
+            .unwrap_or_else(|| "direct".into()),
         control_addr
     );
     let traffic = runner.clone();
@@ -57,9 +71,15 @@ pub async fn serve(config: Config) -> Result<()> {
                 tokio::try_join!(
                     async { control.serve(stop.clone()).await.map_err(|e| e.to_string()) },
                     async {
-                        proxy::serve(ingress, traffic, stop.clone())
-                            .await
-                            .map_err(|e| e.to_string())
+                        match ingress {
+                            Some(ingress) => proxy::serve(ingress, traffic, stop.clone())
+                                .await
+                                .map_err(|e| e.to_string()),
+                            None => {
+                                stop.cancelled().await;
+                                Ok(())
+                            }
+                        }
                     }
                 )
                 .map(|_| ())

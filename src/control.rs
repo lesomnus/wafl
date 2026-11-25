@@ -153,6 +153,12 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
                 if !select.draining.unwrap_or(false) {
                     value.draining = false;
                 }
+                if !select.endpoint.unwrap_or(false) {
+                    value.endpoint = Default::default();
+                }
+                if !select.direct.unwrap_or(false) {
+                    value.direct = false;
+                }
                 if !select.manifest.unwrap_or(false) {
                     value.manifest = Default::default();
                 }
@@ -264,6 +270,18 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
         let app = self.app(&req.r#ref)?;
         app.drain(req.timeout_ms, req.force, condition(&ctx)?)
             .await?;
+        Response::ok(app.snapshot())
+    }
+
+    async fn release(
+        &self,
+        _: &N,
+        ctx: RequestContext,
+        req: ServiceRequest<'_, InstanceReleaseRequest>,
+    ) -> ServiceResult<Instance> {
+        let req = req.to_owned_message();
+        let app = self.app(&req.r#ref)?;
+        app.release(req.generation, condition(&ctx)?).await?;
         Response::ok(app.snapshot())
     }
 

@@ -60,6 +60,7 @@ fn main() -> std::io::Result<()> {
                 "logged".into()
             }
             "/data" => std::fs::read_to_string("/data/index.html")?,
+            "/local" => stream.local_addr()?.port().to_string(),
             "/headers" => {
                 let headers = String::from_utf8_lossy(&request).to_ascii_lowercase();
                 assert!(headers.contains("host: same.example\r\n"));

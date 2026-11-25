@@ -12,7 +12,7 @@ async fn until(mut ready: impl FnMut() -> bool) {
     .await
     .unwrap();
 }
-async fn call(
+pub(super) async fn call(
     runner: &Runner,
     procedure: &str,
     body: serde_json::Value,
@@ -42,7 +42,7 @@ async fn call(
         serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap(),
     )
 }
-fn conditions(instance: &Instance) -> [(&'static str, String); 2] {
+pub(super) fn conditions(instance: &Instance) -> [(&'static str, String); 2] {
     [
         (
             "wafl-session",

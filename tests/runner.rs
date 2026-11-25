@@ -160,6 +160,7 @@ fn config() -> Config {
         bundle: Default::default(),
         cache: Default::default(),
         capacity: Default::default(),
+        direct: None,
     }
 }
 struct Harness {
@@ -1040,3 +1041,6 @@ async fn grpc_bidirectional_data_trailers_and_cancellation_survive_the_proxy() {
 
 #[path = "runner/lifecycle.rs"]
 mod lifecycle;
+
+#[path = "runner/direct.rs"]
+mod direct;

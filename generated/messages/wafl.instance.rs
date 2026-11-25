@@ -273,6 +273,26 @@ pub struct Instance {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
     )]
     pub draining: bool,
+    /// Present while a direct endpoint reservation exists, including failed/draining
+    /// executions. Route only when phase=RUNNING and draining=false. The identity
+    /// is (session, id, generation); the address alone is not a stable identity.
+    ///
+    /// Field 21: `endpoint`
+    #[serde(
+        rename = "endpoint",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub endpoint: ::buffa::MessageField<Endpoint>,
+    /// Direct traffic bypasses runner HTTP accounting; active counts only runner
+    /// management waiters in this mode. idle_ms/max_active must be zero in Add.
+    ///
+    /// Field 22: `direct`
+    #[serde(
+        rename = "direct",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub direct: bool,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -292,6 +312,8 @@ impl ::core::fmt::Debug for Instance {
             .field("session", &self.session)
             .field("revision", &self.revision)
             .field("draining", &self.draining)
+            .field("endpoint", &self.endpoint)
+            .field("direct", &self.direct)
             .finish()
     }
 }
@@ -369,6 +391,17 @@ impl ::buffa::Message for Instance {
         if self.draining {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.endpoint.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.endpoint.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.direct {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -419,6 +452,13 @@ impl ::buffa::Message for Instance {
         }
         if self.draining {
             ::buffa::types::put_bool_field(20u32, self.draining, buf);
+        }
+        if self.endpoint.is_set() {
+            ::buffa::types::put_len_delimited_header(21u32, __cache.consume_next(), buf);
+            self.endpoint.write_to(__cache, buf);
+        }
+        if self.direct {
+            ::buffa::types::put_bool_field(22u32, self.direct, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -527,6 +567,24 @@ impl ::buffa::Message for Instance {
                 )?;
                 self.draining = ::buffa::types::decode_bool(buf)?;
             }
+            21u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.endpoint.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            22u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.direct = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -547,6 +605,8 @@ impl ::buffa::Message for Instance {
         self.session.clear();
         self.revision = 0u64;
         self.draining = false;
+        self.endpoint = ::buffa::MessageField::none();
+        self.direct = false;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -577,5 +637,155 @@ pub const __INSTANCE_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::t
     type_url: "type.googleapis.com/wafl.Instance",
     to_json: ::buffa::type_registry::any_to_json::<Instance>,
     from_json: ::buffa::type_registry::any_from_json::<Instance>,
+    is_wkt: false,
+};
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct Endpoint {
+    /// Routable IPv4 socket address, e.g. 10.244.1.5:20001. Never a wildcard.
+    ///
+    /// Field 1: `address`
+    #[serde(
+        rename = "address",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub address: ::buffa::alloc::string::String,
+    /// http or h2c, copied from the manifest.
+    ///
+    /// Field 2: `protocol`
+    #[serde(
+        rename = "protocol",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub protocol: ::buffa::alloc::string::String,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for Endpoint {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Endpoint")
+            .field("address", &self.address)
+            .field("protocol", &self.protocol)
+            .finish()
+    }
+}
+impl Endpoint {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.Endpoint";
+}
+::buffa::impl_default_instance!(Endpoint);
+impl ::buffa::MessageName for Endpoint {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "Endpoint";
+    const FULL_NAME: &'static str = "wafl.Endpoint";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.Endpoint";
+}
+impl ::buffa::Message for Endpoint {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if !self.address.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.address) as u32;
+        }
+        if !self.protocol.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.protocol) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.address.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.address, buf);
+        }
+        if !self.protocol.is_empty() {
+            ::buffa::types::put_string_field(2u32, &self.protocol, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.address, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.protocol, buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.address.clear();
+        self.protocol.clear();
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for Endpoint {
+    const PROTO_FQN: &'static str = "wafl.Endpoint";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for Endpoint {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __ENDPOINT_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.Endpoint",
+    to_json: ::buffa::type_registry::any_to_json::<Endpoint>,
+    from_json: ::buffa::type_registry::any_from_json::<Endpoint>,
     is_wkt: false,
 };

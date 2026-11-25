@@ -150,6 +150,10 @@
         f19 -> Text,
         /// wafl.Instance.draining
         f20 -> Bool,
+        /// wafl.Instance.endpoint
+        f21 -> Nullable<Text>,
+        /// wafl.Instance.direct
+        f22 -> Bool,
     }
 }
 ::diesel::table! {

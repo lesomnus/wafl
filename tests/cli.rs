@@ -124,6 +124,13 @@ impl Server {
             let control_socket = std::net::TcpListener::bind("127.0.0.1:0").unwrap();
             let ingress = ingress_socket.local_addr().unwrap();
             let control = control_socket.local_addr().unwrap();
+            if let Some(direct) = options.as_ref().and_then(|o| o.get("direct")) {
+                let first = direct["first"].as_u64().unwrap();
+                let last = direct["last"].as_u64().unwrap();
+                if (first..=last).contains(&u64::from(control.port())) {
+                    continue;
+                }
+            }
             let mut command = command();
             command.args(["serve", "runner"]);
             if let Some(options) = &options {
@@ -151,19 +158,26 @@ impl Server {
             let mut child = command.spawn().unwrap();
             let mut stderr = BufReader::new(child.stderr.take().unwrap()).lines();
             let mut diagnostics = String::new();
-            let expected = format!("wafl-runner ingress={ingress} control={control}");
-            let ready = tokio::time::timeout(Duration::from_secs(10), async {
-                while let Some(line) = stderr.next_line().await.unwrap() {
-                    diagnostics.push_str(&line);
-                    diagnostics.push('\n');
-                    if line == expected {
-                        return true;
+            let direct = options.as_ref().is_some_and(|o| o.get("direct").is_some());
+            let ingress_label = if direct {
+                "direct".into()
+            } else {
+                ingress.to_string()
+            };
+            let expected = format!("wafl-runner ingress={ingress_label} control={control}");
+            let ready =
+                tokio::time::timeout(Duration::from_secs(if direct { 30 } else { 10 }), async {
+                    while let Some(line) = stderr.next_line().await.unwrap() {
+                        diagnostics.push_str(&line);
+                        diagnostics.push('\n');
+                        if line == expected {
+                            return true;
+                        }
                     }
-                }
-                false
-            })
-            .await
-            .expect("runner readiness timeout");
+                    false
+                })
+                .await
+                .unwrap_or_else(|_| panic!("runner readiness timeout: {diagnostics}"));
             if ready {
                 tokio::spawn(async move {
                     while let Ok(Some(line)) = stderr.next_line().await {
@@ -201,6 +215,8 @@ impl Server {
 
 #[path = "cli/cache.rs"]
 mod cache;
+#[path = "cli/direct.rs"]
+mod direct;
 #[path = "cli/lifecycle.rs"]
 mod lifecycle;
 #[path = "cli/metrics.rs"]

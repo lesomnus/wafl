@@ -38,6 +38,10 @@ pub type OwnedInstanceStopRequestView = ::buffa::view::OwnedView<
 pub type OwnedInstanceDrainRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceDrainRequestView<'static>,
 >;
+///Shorthand for `OwnedView<InstanceReleaseRequestView<'static>>`.
+pub type OwnedInstanceReleaseRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceReleaseRequestView<'static>,
+>;
 ///Shorthand for `OwnedView<InstanceTailRequestView<'static>>`.
 pub type OwnedInstanceTailRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceTailRequestView<'static>,
@@ -184,6 +188,15 @@ pub const INSTANCE_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::s
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
 pub const INSTANCE_SERVICE_DRAIN_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/wafl.InstanceService/Drain",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Release` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_RELEASE_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Release",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -353,7 +366,8 @@ pub trait InstanceService: Send + Sync + 'static {
             > + Send + use<'a, Self>,
         >,
     > + Send;
-    /// Refuse active requests. A later request starts the instance again.
+    /// Proxy mode: refuse active requests; a later request starts the instance again.
+    /// Direct mode: requires the endpoint reservation to have been Released first.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///
@@ -376,7 +390,8 @@ pub trait InstanceService: Send + Sync + 'static {
             > + Send + use<'a, Self>,
         >,
     > + Send;
-    /// Close admission, finish current requests, then stop. Start resumes admission.
+    /// Proxy mode: close admission, finish requests, then stop. Start resumes it.
+    /// Direct mode: mark draining and return; gateways withdraw before Release.
     ///
     /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
     ///
@@ -391,6 +406,32 @@ pub trait InstanceService: Send + Sync + 'static {
         request: ::connectrpc::ServiceRequest<
             '_,
             crate::proto::wafl::InstanceDrainRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Direct mode only. Acknowledge that ALL gateways have withdrawn this
+    /// generation and closed/drained their connections, then stop and free its
+    /// endpoint reservation. Requires prior Drain and wafl-session/wafl-revision.
+    /// The supervisor completes even if the RPC caller disconnects.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn release<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceReleaseRequest,
         >,
     ) -> impl ::std::future::Future<
         Output = ::connectrpc::ServiceResult<
@@ -639,6 +680,33 @@ impl<S: InstanceService> InstanceServiceExt for S {
                 },
             )
             .with_spec(INSTANCE_SERVICE_DRAIN_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Release",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceReleaseRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceReleaseRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.release(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::Instance>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_RELEASE_SPEC)
             .route_view_server_stream::<
                 _,
                 _,
@@ -761,6 +829,12 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
                         .with_spec(INSTANCE_SERVICE_DRAIN_SPEC),
+                )
+            }
+            "Release" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_RELEASE_SPEC),
                 )
             }
             "Tail" => {
@@ -911,6 +985,25 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                         crate::proto::wafl::InstanceDrainRequest,
                     >::from_parts(&req, &body);
                     svc.drain(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::Instance>(format)
+                })
+            }
+            "Release" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceReleaseRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceReleaseRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceReleaseRequest,
+                    >::from_parts(&req, &body);
+                    svc.release(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::Instance>(format)
                 })
@@ -1331,6 +1424,44 @@ where
                 &self.config,
                 INSTANCE_SERVICE_SERVICE_NAME,
                 "Drain",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Release RPC. Sends a request to /wafl.InstanceService/Release.
+    pub async fn release(
+        &self,
+        request: crate::proto::wafl::InstanceReleaseRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.release_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Release RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn release_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceReleaseRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Release",
                 request,
                 options,
             )
