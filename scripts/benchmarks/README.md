@@ -152,3 +152,24 @@ python3 scripts/benchmarks/summarize.py \
 
 이 스크립트는 제품 코드를 바꾸지 않는다. 짧은 smoke run으로 구성·응답 검증을 한 뒤
 정식 측정을 실행하며, smoke run의 수치는 성능 결론에 사용하지 않는다.
+
+요청 생성이 크게 지연된 구간은 평균 처리율만 정상이어도 일정한 부하로 볼 수 없다.
+재측정이 필요하면 특정 host의 불리한 trial만 제거하지 않고 **그 반복의 모든 조건**을
+대체한다. `select.py`는 선택 목록에 따라 완전한 반복 묶음, 동일 바이너리·측정 조건,
+오류 없음과 부하 품질을 검사한다. CPU나 응답 latency가 높다는 이유로 제외하지 않는다.
+
+이번 Keep-alive 보고서는 최초 마지막 반복에서 요청 생성 지연 p95 164.500 ms를 발견해
+8개 조건 전체를 다시 실행했다. 재측정 전 채택 기준을 요청 생성 지연 p95 ≤ 5 ms,
+목표 처리율의 99% 이상, 오류 없음으로 정했다. 최초·재측정 원본은 각각 보존하고,
+선택 목록에 제외한 반복과 이유를 기록했다. 다음 명령으로 최종 집계를 재현한다.
+
+```sh
+python3 scripts/benchmarks/select.py \
+  docs/benchmarks/2026-11-25-keepalive-selection.json \
+  > /tmp/wafl-performance/selected.json
+python3 scripts/benchmarks/summarize.py /tmp/wafl-performance/selected.json \
+  > /tmp/wafl-performance/keepalive-summary.json
+```
+
+선택 결과의 `repeat`는 최종 집계 안의 순서이며 `source`에 원본 파일·원래 반복 번호를
+기록한다. `source_reports`에는 원본별 실행 인자와 hash 등 metadata를 보존한다.
