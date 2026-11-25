@@ -14,7 +14,7 @@ use crate::{
 use anyhow::{Result, anyhow};
 use connectrpc::ConnectError;
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     net::SocketAddr,
     sync::{
         Arc, Mutex,
@@ -45,6 +45,7 @@ struct Registry {
 }
 #[derive(Default)]
 struct Entries {
+    sealed: BTreeSet<[u8; 16]>,
     instances: BTreeMap<[u8; 16], Arc<Execution>>,
     pending: BTreeMap<[u8; 16], Pending>,
     aliases: BTreeMap<String, [u8; 16]>,
@@ -219,6 +220,11 @@ impl Runner {
             if self.0.closed.load(Ordering::Acquire) {
                 return Err(ConnectError::unavailable("runner is shutting down"));
             }
+            if entries.sealed.contains(&spec.id) {
+                return Err(ConnectError::failed_precondition(
+                    "instance ID is sealed for this runner session",
+                ));
+            }
             if entries.instances.contains_key(&spec.id) || entries.pending.contains_key(&spec.id) {
                 return Err(ConnectError::already_exists(
                     "instance ID already exists or is being added",
@@ -327,12 +333,22 @@ impl Runner {
                 .get_mut(&addition.id)
                 .unwrap()
                 .execution = Some(execution.clone());
+            if self.0.entries.lock().unwrap().sealed.contains(&addition.id) {
+                return Err(ConnectError::failed_precondition(
+                    "instance ID was sealed during preparation",
+                ));
+            }
             let lease = self.acquire(&execution).await?;
             drop(lease);
             {
                 let mut entries = self.0.entries.lock().unwrap();
                 if self.0.closed.load(Ordering::Acquire) {
                     return Err(ConnectError::unavailable("runner is shutting down"));
+                }
+                if entries.sealed.contains(&addition.id) {
+                    return Err(ConnectError::failed_precondition(
+                        "instance ID was sealed during startup",
+                    ));
                 }
                 execution.revise(&mut execution.state.lock().unwrap());
                 entries.pending.remove(&addition.id);
@@ -509,6 +525,23 @@ impl Runner {
     pub fn session(&self) -> [u8; 16] {
         self.0.session
     }
+    pub fn seal(&self, id: &[u8]) -> Result<(), ConnectError> {
+        let id: [u8; 16] = <[u8; 16]>::try_from(id)
+            .ok()
+            .filter(|id| paydirt::has_domain(id, 7))
+            .ok_or_else(|| ConnectError::invalid_argument("expected a domain-7 Instance ID"))?;
+        let mut entries = self.0.entries.lock().unwrap();
+        if entries.sealed.contains(&id) {
+            return Ok(());
+        }
+        if entries.sealed.len() >= self.0.admission.limits.tombstones {
+            return Err(ConnectError::resource_exhausted(
+                "runner tombstone capacity reached",
+            ));
+        }
+        entries.sealed.insert(id);
+        Ok(())
+    }
     pub fn drain_timeout(&self) -> Duration {
         Duration::from_millis(self.0.admission.limits.drain_ms)
     }
@@ -520,6 +553,7 @@ impl Runner {
         let mut usage = self.0.admission.usage();
         let entries = self.0.entries.lock().unwrap();
         usage.instances = (entries.instances.len() + entries.pending.len()) as u64;
+        usage.tombstones = entries.sealed.len() as u64;
         usage.preparations = (limits.preparations - self.0.slots.available_permits()) as u64;
         usage.compilations = self.0.compiler.count();
         let addresses = self.0.addresses.lock().unwrap();
@@ -551,6 +585,7 @@ impl Runner {
                     "drain"
                 },
                 "command-conditions",
+                "sealed-instance-v1",
                 "cache-v2",
                 "outbound-tcp",
             ]
@@ -560,6 +595,7 @@ impl Runner {
             .collect(),
             capacity: Some(crate::proto::wafl::Capacity {
                 instances: limits.instances as u64,
+                tombstones: limits.tombstones as u64,
                 preparations: limits.preparations as u64,
                 startups: limits.startups as u64,
                 running: limits.running as u64,

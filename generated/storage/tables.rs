@@ -49,6 +49,10 @@
         f10 -> Text,
         /// wafl.App.manifest
         f16 -> Nullable<Text>,
+        /// wafl.App.scaling
+        f17 -> Nullable<Text>,
+        /// wafl.App.state
+        f18 -> Nullable<Text>,
     }
 }
 ::diesel::table! {
@@ -261,6 +265,8 @@
         f22 -> BigInt,
         /// wafl.Placement.date_retry
         f23 -> Text,
+        /// wafl.Placement.managed
+        f24 -> Bool,
     }
 }
 ::diesel::table! {
@@ -341,5 +347,38 @@
         f13 -> Text,
         /// wafl.Tenant.date_created
         f15 -> Text,
+    }
+}
+::diesel::table! {
+    #[sql_name = "pd_wafl__Traffic"]
+    pd_wafl_traffic (f1) {
+        /// wafl.Traffic.id
+        f1 -> Binary,
+        /// wafl.Traffic.tenant
+        f2 -> Binary,
+        /// wafl.Traffic.app
+        f8 -> Binary,
+        /// wafl.Traffic.placement
+        f9 -> Nullable<Binary>,
+        /// wafl.Traffic.session
+        f10 -> Text,
+        /// wafl.Traffic.sequence
+        f11 -> Text,
+        /// wafl.Traffic.active
+        f12 -> BigInt,
+        /// wafl.Traffic.started
+        f16 -> Text,
+        /// wafl.Traffic.busy_ms
+        f17 -> Text,
+        /// wafl.Traffic.closed
+        f18 -> Bool,
+        /// wafl.Traffic.draining
+        f19 -> Bool,
+        /// wafl.Traffic.date_seen
+        f20 -> Text,
+        /// wafl.Traffic.revision
+        f21 -> Text,
+        /// wafl.Traffic.activation
+        f22 -> Bool,
     }
 }

@@ -288,6 +288,15 @@ pub struct Placement {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
     )]
     pub date_retry: u64,
+    /// Every route to this placement enforces the Traffic admission/drain protocol.
+    ///
+    /// Field 24: `managed`
+    #[serde(
+        rename = "managed",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub managed: bool,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -310,6 +319,7 @@ impl ::core::fmt::Debug for Placement {
             .field("date_seen", &self.date_seen)
             .field("failures", &self.failures)
             .field("date_retry", &self.date_retry)
+            .field("managed", &self.managed)
             .finish()
     }
 }
@@ -406,6 +416,9 @@ impl ::buffa::Message for Placement {
         if self.date_retry != 0u64 {
             size += 2u32 + ::buffa::types::uint64_encoded_len(self.date_retry) as u32;
         }
+        if self.managed {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -467,6 +480,9 @@ impl ::buffa::Message for Placement {
         }
         if self.date_retry != 0u64 {
             ::buffa::types::put_uint64_field(23u32, self.date_retry, buf);
+        }
+        if self.managed {
+            ::buffa::types::put_bool_field(24u32, self.managed, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -604,6 +620,13 @@ impl ::buffa::Message for Placement {
                 )?;
                 self.date_retry = ::buffa::types::decode_uint64(buf)?;
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.managed = ::buffa::types::decode_bool(buf)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -627,6 +650,7 @@ impl ::buffa::Message for Placement {
         self.date_seen = 0u64;
         self.failures = 0u32;
         self.date_retry = 0u64;
+        self.managed = false;
         self.__buffa_unknown_fields.clear();
     }
 }

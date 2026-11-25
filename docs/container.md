@@ -1,5 +1,7 @@
 # 컨테이너로 실행
 
+앱 등록부터 자동 증감까지 실행하려면 [Compose와 app.yaml 튜토리얼](autoscaling.md)을 사용하세요. `ghcr.io/lesomnus/wafl-traefik` 이미지는 자동 증감용 관측 미들웨어를 포함합니다. 두 이미지의 같은 `sha-<commit>` 태그로 버전을 맞출 수 있습니다.
+
 동일한 `ghcr.io/lesomnus/wafl` 이미지에서 `serve runner`, `serve controller`와 CLI를 실행합니다. 현재 발행 플랫폼은 `linux/amd64`입니다. 이미지는 UID/GID 10001로 실행하며, WASM은 runner 프로세스 내부에서 실행됩니다.
 
 ```sh

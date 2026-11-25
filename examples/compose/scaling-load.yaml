@@ -1,0 +1,6 @@
+min: 1
+max: 4
+target: 2
+up_ms: 1000
+down_ms: 10000
+idle_ms: 30000

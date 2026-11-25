@@ -45,6 +45,12 @@ fn main() -> std::io::Result<()> {
                 format!("{name}; request {count}\n"),
             )
         };
+        if let Some(delay) = std::env::var("RESPONSE_DELAY_MS")
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+        {
+            std::thread::sleep(std::time::Duration::from_millis(delay));
+        }
         write!(
             stream,
             "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nContent-Type: {content_type}\r\nConnection: close\r\n\r\n{body}",

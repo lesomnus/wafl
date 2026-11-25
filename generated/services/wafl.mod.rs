@@ -13,3 +13,4 @@ include!("wafl.payday.rowseal_svc.g.__connect.rs");
 include!("wafl.placement_svc.g.__connect.rs");
 include!("wafl.reservation_svc.g.__connect.rs");
 include!("wafl.runner_svc.g.__connect.rs");
+include!("wafl.traffic_svc.g.__connect.rs");

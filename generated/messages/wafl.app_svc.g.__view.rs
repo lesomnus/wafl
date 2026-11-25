@@ -23,6 +23,12 @@ pub struct AppAddRequestView<'a> {
     pub manifest: ::buffa::MessageFieldView<
         super::super::__buffa::view::ManifestView<'a>,
     >,
+    /// Field 17: `scaling`
+    pub scaling: ::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'a>>,
+    /// Field 18: `state`
+    pub state: ::buffa::MessageFieldView<
+        super::super::__buffa::view::ScaleStateView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
@@ -136,6 +142,48 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                     }
                 }
             }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.scaling.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.scaling = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ScalingView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.state.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.state = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ScaleStateView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -176,6 +224,22 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                 Some(v) => {
                     ::buffa::MessageField::<
                         super::super::Manifest,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            scaling: match self.scaling.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Scaling,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            state: match self.state.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::ScaleState,
                     >::some(v.to_owned_from_source(__buffa_src)?)
                 }
                 None => ::buffa::MessageField::none(),
@@ -225,6 +289,22 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.scaling.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.scaling.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.state.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.state.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -261,6 +341,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(16u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if self.scaling.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.scaling.write_to(__cache, buf);
+        }
+        if self.state.is_set() {
+            ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
+            self.state.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -317,6 +405,16 @@ impl<'__a> ::serde::Serialize for AppAddRequestView<'__a> {
         {
             if let ::core::option::Option::Some(__v) = self.manifest.as_option() {
                 __map.serialize_entry("manifest", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.scaling.as_option() {
+                __map.serialize_entry("scaling", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.state.as_option() {
+                __map.serialize_entry("state", __v)?;
             }
         }
         __map.end()
@@ -451,6 +549,20 @@ impl AppAddRequestOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ManifestView<'_>> {
         &self.0.reborrow().manifest
+    }
+    /// Field 17: `scaling`
+    #[must_use]
+    pub fn scaling(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'_>> {
+        &self.0.reborrow().scaling
+    }
+    /// Field 18: `state`
+    #[must_use]
+    pub fn state(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScaleStateView<'_>> {
+        &self.0.reborrow().state
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppAddRequestView<'static>>>
@@ -1137,6 +1249,10 @@ pub struct AppSelectView<'a> {
     pub revision: ::core::option::Option<bool>,
     /// Field 16: `manifest`
     pub manifest: ::core::option::Option<bool>,
+    /// Field 17: `scaling`
+    pub scaling: ::core::option::Option<bool>,
+    /// Field 18: `state`
+    pub state: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
@@ -1236,6 +1352,20 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
                 )?;
                 view.manifest = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.scaling = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.state = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1273,6 +1403,8 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
             replicas: self.replicas,
             revision: self.revision,
             manifest: self.manifest,
+            scaling: self.scaling,
+            state: self.state,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1313,6 +1445,12 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         if self.manifest.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.scaling.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.state.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1348,6 +1486,12 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         }
         if let Some(v) = self.manifest {
             ::buffa::types::put_bool_field(16u32, v, buf);
+        }
+        if let Some(v) = self.scaling {
+            ::buffa::types::put_bool_field(17u32, v, buf);
+        }
+        if let Some(v) = self.state {
+            ::buffa::types::put_bool_field(18u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1395,6 +1539,12 @@ impl<'__a> ::serde::Serialize for AppSelectView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.manifest {
             __map.serialize_entry("manifest", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.scaling {
+            __map.serialize_entry("scaling", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.state {
+            __map.serialize_entry("state", &__v)?;
         }
         __map.end()
     }
@@ -1527,6 +1677,16 @@ impl AppSelectOwnedView {
     pub fn manifest(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().manifest
     }
+    /// Field 17: `scaling`
+    #[must_use]
+    pub fn scaling(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().scaling
+    }
+    /// Field 18: `state`
+    #[must_use]
+    pub fn state(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().state
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppSelectView<'static>>>
 for AppSelectOwnedView {
@@ -1581,6 +1741,26 @@ pub struct AppPatchRequestView<'a> {
     ///
     /// Field 33: `manifest_null`
     pub manifest_null: ::core::option::Option<bool>,
+    /// Field 34: `scaling`
+    pub scaling: ::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'a>>,
+    /// Clear scaling instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and scaling clears.
+    ///
+    /// Field 35: `scaling_null`
+    pub scaling_null: ::core::option::Option<bool>,
+    /// Field 36: `state`
+    pub state: ::buffa::MessageFieldView<
+        super::super::__buffa::view::ScaleStateView<'a>,
+    >,
+    /// Clear state instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and state clears.
+    ///
+    /// Field 37: `state_null`
+    pub state_null: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppPatchRequestView<'a> {
@@ -1687,6 +1867,62 @@ impl<'a> ::buffa::MessageView<'a> for AppPatchRequestView<'a> {
                 )?;
                 view.manifest_null = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            34u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.scaling.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.scaling = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ScalingView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            35u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.scaling_null = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
+            36u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.state.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.state = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ScaleStateView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            37u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.state_null = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1730,6 +1966,24 @@ impl<'a> ::buffa::MessageView<'a> for AppPatchRequestView<'a> {
                 None => ::buffa::MessageField::none(),
             },
             manifest_null: self.manifest_null,
+            scaling: match self.scaling.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Scaling,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            scaling_null: self.scaling_null,
+            state: match self.state.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::ScaleState,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            state_null: self.state_null,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1772,6 +2026,28 @@ impl<'a> ::buffa::ViewEncode<'a> for AppPatchRequestView<'a> {
         if self.manifest_null.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.scaling.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.scaling.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.scaling_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.state.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.state.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.state_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1805,6 +2081,20 @@ impl<'a> ::buffa::ViewEncode<'a> for AppPatchRequestView<'a> {
         }
         if let Some(v) = self.manifest_null {
             ::buffa::types::put_bool_field(33u32, v, buf);
+        }
+        if self.scaling.is_set() {
+            ::buffa::types::put_len_delimited_header(34u32, __cache.consume_next(), buf);
+            self.scaling.write_to(__cache, buf);
+        }
+        if let Some(v) = self.scaling_null {
+            ::buffa::types::put_bool_field(35u32, v, buf);
+        }
+        if self.state.is_set() {
+            ::buffa::types::put_len_delimited_header(36u32, __cache.consume_next(), buf);
+            self.state.write_to(__cache, buf);
+        }
+        if let Some(v) = self.state_null {
+            ::buffa::types::put_bool_field(37u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1851,6 +2141,22 @@ impl<'__a> ::serde::Serialize for AppPatchRequestView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.manifest_null {
             __map.serialize_entry("manifestNull", &__v)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.scaling.as_option() {
+                __map.serialize_entry("scaling", __v)?;
+            }
+        }
+        if let ::core::option::Option::Some(__v) = self.scaling_null {
+            __map.serialize_entry("scalingNull", &__v)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.state.as_option() {
+                __map.serialize_entry("state", __v)?;
+            }
+        }
+        if let ::core::option::Option::Some(__v) = self.state_null {
+            __map.serialize_entry("stateNull", &__v)?;
         }
         __map.end()
     }
@@ -1986,6 +2292,40 @@ impl AppPatchRequestOwnedView {
     #[must_use]
     pub fn manifest_null(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().manifest_null
+    }
+    /// Field 34: `scaling`
+    #[must_use]
+    pub fn scaling(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'_>> {
+        &self.0.reborrow().scaling
+    }
+    /// Clear scaling instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and scaling clears.
+    ///
+    /// Field 35: `scaling_null`
+    #[must_use]
+    pub fn scaling_null(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().scaling_null
+    }
+    /// Field 36: `state`
+    #[must_use]
+    pub fn state(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScaleStateView<'_>> {
+        &self.0.reborrow().state
+    }
+    /// Clear state instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and state clears.
+    ///
+    /// Field 37: `state_null`
+    #[must_use]
+    pub fn state_null(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().state_null
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppPatchRequestView<'static>>>

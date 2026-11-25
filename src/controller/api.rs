@@ -15,10 +15,17 @@ pub fn router(controller: Control) -> connectrpc::Router {
                 | "wafl.PlacementService"
                 | "wafl.ControllerService"
                 | "wafl.TenantService"
+                | "wafl.TrafficService"
         )
     })
 }
 impl<N: Server> server::Layer<N> for Control {
+    fn wafl_traffic(&self, next: &N) -> impl TrafficService {
+        TrafficServiceOverlay {
+            next: next.wafl_traffic(),
+            layer: self.clone(),
+        }
+    }
     fn wafl_app(&self, next: &N) -> impl AppService {
         AppServiceOverlay {
             next: next.wafl_app(),
@@ -110,10 +117,17 @@ fn finish_patch(
     tx: &mut Transaction<'_>,
     old: App,
     mut updated: App,
-    max: u32,
+    config: &Config,
 ) -> paydirt_store::Result<App> {
-    let normalized = validate(&updated, max).map_err(invalid)?;
-    let changed = normalized != *old.manifest;
+    let normalized = validate(&updated, config.max_replicas).map_err(invalid)?;
+    let policy = normalize_scaling(&updated, config).map_err(invalid)?;
+    let changed =
+        normalized != *old.manifest || policy.is_some() != old.scaling.as_option().is_some();
+    let state = if changed {
+        initial_state(policy.as_ref())
+    } else {
+        (*old.state).clone()
+    };
     updated.revision = old
         .revision
         .checked_add(u64::from(changed))
@@ -122,8 +136,31 @@ fn finish_patch(
         tx,
         "App",
         "Patch",
-        json!({"ref":{"id":encode(&updated.id)},"manifest":normalized,"revision":updated.revision.to_string()}),
+        json!({"ref":{"id":encode(&updated.id)},"manifest":normalized,"revision":updated.revision.to_string(),"scaling":policy,"state":state}),
     )?)
+}
+fn normalize_scaling(app: &App, config: &Config) -> Result<Option<Scaling>, ConnectError> {
+    app.scaling
+        .as_option()
+        .map(|p| {
+            if config.traffic.is_none() || app.replicas != 0 {
+                return Err(ConnectError::invalid_argument(
+                    "scaling requires controller traffic configuration and replicas=0",
+                ));
+            }
+            scaling::normalize(p.clone(), config.max_replicas)
+        })
+        .transpose()
+}
+fn initial_state(policy: Option<&Scaling>) -> ScaleState {
+    ScaleState {
+        desired: policy.map_or(0, |p| p.min),
+        date_activity: now(),
+        date_sample: now(),
+        date_change: now(),
+        fresh: true,
+        ..Default::default()
+    }
 }
 macro_rules! read {
     ($name:ident,$request:ty,$response:ty,$entity:literal,$method:literal) => {
@@ -153,10 +190,12 @@ impl<N: AppService> AppServiceLayer<N> for Control {
         req: ServiceRequest<'_, AppAddRequest>,
     ) -> ServiceResult<App> {
         let req = req.to_owned_message();
-        if req.revision != 0 {
-            return Err(ConnectError::invalid_argument("revision is server-set"));
+        if req.revision != 0 || req.state.as_option().is_some() {
+            return Err(ConnectError::invalid_argument(
+                "revision and state are server-set",
+            ));
         }
-        let max = self.config.max_replicas;
+        let config = self.config.clone();
         let request = value(req);
         Response::ok(
             self.db
@@ -164,12 +203,14 @@ impl<N: AppService> AppServiceLayer<N> for Control {
                     let mut row = call(tx, "App", "Add", request)?;
                     row["revision"] = "1".into();
                     let app: App = decode(row)?;
-                    let normalized = validate(&app, max).map_err(invalid)?;
+                    let normalized = validate(&app, config.max_replicas).map_err(invalid)?;
+                    let policy=normalize_scaling(&app,&config).map_err(invalid)?;
+                    let state=initial_state(policy.as_ref());
                     decode(call(
                         tx,
                         "App",
                         "Patch",
-                        json!({"ref":{"id":encode(&app.id)},"revision":"1","manifest":normalized}),
+                        json!({"ref":{"id":encode(&app.id)},"revision":"1","manifest":normalized,"scaling":policy,"state":state}),
                     )?)
                 })
                 .await?,
@@ -185,8 +226,11 @@ impl<N: AppService> AppServiceLayer<N> for Control {
         if req.manifest_null.unwrap_or(false) {
             return Err(ConnectError::invalid_argument("manifest cannot be cleared"));
         }
-        let max = self.config.max_replicas;
+        let config = self.config.clone();
         let mut request = value(&req);
+        if request.get("state").is_some() {
+            return Err(ConnectError::invalid_argument("state is server-set"));
+        }
         request.as_object_mut().unwrap().remove("revision");
         Response::ok(
             self.db
@@ -196,7 +240,7 @@ impl<N: AppService> AppServiceLayer<N> for Control {
                         return Err(Fault::aborted("app revision changed"));
                     }
                     let updated = decode(call(tx, "App", "Patch", request)?)?;
-                    finish_patch(tx, old, updated, max)
+                    finish_patch(tx, old, updated, &config)
                 })
                 .await?,
         )
@@ -208,13 +252,13 @@ impl<N: AppService> AppServiceLayer<N> for Control {
         req: ServiceRequest<'_, AppApplyRequest>,
     ) -> ServiceResult<App> {
         let request = value(req.to_owned_message());
-        let max = self.config.max_replicas;
+        let config = self.config.clone();
         Response::ok(
             self.db
                 .transaction(move |tx| {
                     let old: App = decode(call(tx, "App", "Get", json!({"ref":request["ref"]}))?)?;
                     let updated = decode(call(tx, "App", "Apply", request)?)?;
-                    finish_patch(tx, old, updated, max)
+                    finish_patch(tx, old, updated, &config)
                 })
                 .await?,
         )
@@ -231,7 +275,10 @@ impl<N: AppService> AppServiceLayer<N> for Control {
             let Some(found) = page["items"].as_array().and_then(|a| a.first()) else { return Ok(AppEraseResponse { erased: Some(false), ..Default::default() }); };
             let app: App = decode(found.clone())?;
             let placements = all::<Placement>(tx, "Placement")?.into_iter().filter(|p| p.app.id == app.id).collect::<Vec<_>>();
-            if app.replicas != 0 || placements.iter().any(|p| p.phase != PlacementPhase::Released) { return Err(Fault::precondition("set replicas=0, withdraw routes and release every placement before Erase")); }
+            if app.scaling.as_option().is_some() || app.replicas != 0 || placements.iter().any(|p| p.phase != PlacementPhase::Released) { return Err(Fault::precondition("disable scaling, set replicas=0 and release every placement before Erase")); }
+            let traffic=all::<Traffic>(tx,"Traffic")?.into_iter().filter(|t|t.app.id==app.id).collect::<Vec<_>>();
+            if traffic.iter().any(|t|!t.closed || t.active!=0) { return Err(Fault::precondition("traffic observers must close before Erase")); }
+            for t in traffic { call(tx,"Traffic","Erase",json!({"id":encode(&t.id)}))?; }
             for p in placements { call(tx, "Placement", "Erase", json!({"id":encode(&p.id)}))?; }
             decode(call(tx, "App", "Erase", reference)?)
         }).await?)

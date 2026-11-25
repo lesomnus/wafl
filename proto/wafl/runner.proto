@@ -43,6 +43,7 @@ message Capacity {
   uint64 drain_ms = 9;
   // Retained entries without Instance references; referenced code stays pinned.
   uint64 compilations = 10;
+  uint64 tombstones = 11;
 }
 message Usage {
   uint64 instances = 1;
@@ -56,4 +57,5 @@ message Usage {
   uint64 waiting = 7;
   // All code entries: referenced, retained, or currently compiling.
   uint64 compilations = 8;
+  uint64 tombstones = 9;
 }

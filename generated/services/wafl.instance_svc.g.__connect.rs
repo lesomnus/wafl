@@ -42,6 +42,14 @@ pub type OwnedInstanceDrainRequestView = ::buffa::view::OwnedView<
 pub type OwnedInstanceReleaseRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceReleaseRequestView<'static>,
 >;
+///Shorthand for `OwnedView<InstanceSealRequestView<'static>>`.
+pub type OwnedInstanceSealRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceSealRequestView<'static>,
+>;
+///Shorthand for `OwnedView<InstanceSealResponseView<'static>>`.
+pub type OwnedInstanceSealResponseView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceSealResponseView<'static>,
+>;
 ///Shorthand for `OwnedView<InstanceTailRequestView<'static>>`.
 pub type OwnedInstanceTailRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceTailRequestView<'static>,
@@ -100,6 +108,26 @@ for crate::proto::wafl::__buffa::view::InstanceListResponseView<'_> {
 impl ::connectrpc::Encodable<crate::proto::wafl::InstanceListResponse>
 for ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::InstanceListResponseView<'static>,
+> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self.reborrow(), codec)
+    }
+}
+impl ::connectrpc::Encodable<crate::proto::wafl::InstanceSealResponse>
+for crate::proto::wafl::__buffa::view::InstanceSealResponseView<'_> {
+    fn encode(
+        &self,
+        codec: ::connectrpc::CodecFormat,
+    ) -> ::std::result::Result<::buffa::bytes::Bytes, ::connectrpc::ConnectError> {
+        ::connectrpc::__codegen::encode_view_body(self, codec)
+    }
+}
+impl ::connectrpc::Encodable<crate::proto::wafl::InstanceSealResponse>
+for ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::InstanceSealResponseView<'static>,
 > {
     fn encode(
         &self,
@@ -197,6 +225,15 @@ pub const INSTANCE_SERVICE_DRAIN_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
 pub const INSTANCE_SERVICE_RELEASE_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/wafl.InstanceService/Release",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Seal` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_SEAL_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Seal",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -437,6 +474,31 @@ pub trait InstanceService: Send + Sync + 'static {
         Output = ::connectrpc::ServiceResult<
             impl ::connectrpc::Encodable<
                 crate::proto::wafl::Instance,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Fence all future Add calls for this ID in the current runner session.
+    /// Does not interrupt an already published execution; Drain/Release still
+    /// apply. Allows safe Erase after release despite delayed controller calls.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn seal<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceSealRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::InstanceSealResponse,
             > + Send + use<'a, Self>,
         >,
     > + Send;
@@ -707,6 +769,33 @@ impl<S: InstanceService> InstanceServiceExt for S {
                 },
             )
             .with_spec(INSTANCE_SERVICE_RELEASE_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Seal",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceSealRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceSealRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.seal(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::InstanceSealResponse>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_SEAL_SPEC)
             .route_view_server_stream::<
                 _,
                 _,
@@ -835,6 +924,12 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
                         .with_spec(INSTANCE_SERVICE_RELEASE_SPEC),
+                )
+            }
+            "Seal" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_SEAL_SPEC),
                 )
             }
             "Tail" => {
@@ -1006,6 +1101,25 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                     svc.release(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::Instance>(format)
+                })
+            }
+            "Seal" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceSealRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceSealRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceSealRequest,
+                    >::from_parts(&req, &body);
+                    svc.seal(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::InstanceSealResponse>(format)
                 })
             }
             _ => ::connectrpc::dispatcher::codegen::unimplemented_unary(path),
@@ -1462,6 +1576,44 @@ where
                 &self.config,
                 INSTANCE_SERVICE_SERVICE_NAME,
                 "Release",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Seal RPC. Sends a request to /wafl.InstanceService/Seal.
+    pub async fn seal(
+        &self,
+        request: crate::proto::wafl::InstanceSealRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceSealResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.seal_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Seal RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn seal_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceSealRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceSealResponseView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Seal",
                 request,
                 options,
             )

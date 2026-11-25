@@ -24,4 +24,34 @@ message App {
   uint32 replicas = 9;
   uint64 revision = 10 [(payday.field) = {stamped: true}];
   Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
+  // Optional request-concurrency autoscaling; replicas is used only without it.
+  Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON, nullable: true}];
+  ScaleState state = 18 [(orm.field) = {type: TYPE_JSON}, (payday.field) = {stamped: true}];
+}
+
+message Scaling {
+  uint32 min = 1;
+  uint32 max = 2;
+  uint32 target = 3;
+  uint64 up_ms = 4;
+  uint64 down_ms = 5;
+  uint64 idle_ms = 6;
+  uint32 waiting = 7;
+  uint64 wait_ms = 8;
+}
+
+// Controller observations and decisions. Times are Unix milliseconds.
+message ScaleState {
+  uint32 desired = 1;
+  uint32 active = 2;
+  uint32 waiting = 3;
+  double load = 4;
+  bool fresh = 5;
+  uint64 date_activity = 6;
+  uint64 date_change = 7;
+  uint64 date_sample = 8;
+  uint64 high_ms = 9;
+  uint64 low_ms = 10;
+  uint64 started = 11;
+  uint64 busy_ms = 12;
 }

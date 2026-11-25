@@ -63,6 +63,20 @@ pub struct App {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub manifest: ::buffa::MessageField<Manifest>,
+    /// Optional request-concurrency autoscaling; replicas is used only without it.
+    ///
+    /// Field 17: `scaling`
+    #[serde(
+        rename = "scaling",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub scaling: ::buffa::MessageField<Scaling>,
+    /// Field 18: `state`
+    #[serde(
+        rename = "state",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub state: ::buffa::MessageField<ScaleState>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -78,6 +92,8 @@ impl ::core::fmt::Debug for App {
             .field("replicas", &self.replicas)
             .field("revision", &self.revision)
             .field("manifest", &self.manifest)
+            .field("scaling", &self.scaling)
+            .field("state", &self.state)
             .finish()
     }
 }
@@ -140,6 +156,22 @@ impl ::buffa::Message for App {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.scaling.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.scaling.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.state.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.state.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -175,6 +207,14 @@ impl ::buffa::Message for App {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(16u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if self.scaling.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.scaling.write_to(__cache, buf);
+        }
+        if self.state.is_set() {
+            ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
+            self.state.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -253,6 +293,28 @@ impl ::buffa::Message for App {
                     ctx,
                 )?;
             }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.scaling.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.state.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -269,6 +331,8 @@ impl ::buffa::Message for App {
         self.replicas = 0u32;
         self.revision = 0u64;
         self.manifest = ::buffa::MessageField::none();
+        self.scaling = ::buffa::MessageField::none();
+        self.state = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -299,5 +363,660 @@ pub const __APP_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_r
     type_url: "type.googleapis.com/wafl.App",
     to_json: ::buffa::type_registry::any_to_json::<App>,
     from_json: ::buffa::type_registry::any_from_json::<App>,
+    is_wkt: false,
+};
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct Scaling {
+    /// Field 1: `min`
+    #[serde(
+        rename = "min",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub min: u32,
+    /// Field 2: `max`
+    #[serde(
+        rename = "max",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub max: u32,
+    /// Field 3: `target`
+    #[serde(
+        rename = "target",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub target: u32,
+    /// Field 4: `up_ms`
+    #[serde(
+        rename = "upMs",
+        alias = "up_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub up_ms: u64,
+    /// Field 5: `down_ms`
+    #[serde(
+        rename = "downMs",
+        alias = "down_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub down_ms: u64,
+    /// Field 6: `idle_ms`
+    #[serde(
+        rename = "idleMs",
+        alias = "idle_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub idle_ms: u64,
+    /// Field 7: `waiting`
+    #[serde(
+        rename = "waiting",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub waiting: u32,
+    /// Field 8: `wait_ms`
+    #[serde(
+        rename = "waitMs",
+        alias = "wait_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub wait_ms: u64,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for Scaling {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Scaling")
+            .field("min", &self.min)
+            .field("max", &self.max)
+            .field("target", &self.target)
+            .field("up_ms", &self.up_ms)
+            .field("down_ms", &self.down_ms)
+            .field("idle_ms", &self.idle_ms)
+            .field("waiting", &self.waiting)
+            .field("wait_ms", &self.wait_ms)
+            .finish()
+    }
+}
+impl Scaling {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.Scaling";
+}
+::buffa::impl_default_instance!(Scaling);
+impl ::buffa::MessageName for Scaling {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "Scaling";
+    const FULL_NAME: &'static str = "wafl.Scaling";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.Scaling";
+}
+impl ::buffa::Message for Scaling {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.min != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.min) as u32;
+        }
+        if self.max != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.max) as u32;
+        }
+        if self.target != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.target) as u32;
+        }
+        if self.up_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.up_ms) as u32;
+        }
+        if self.down_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.down_ms) as u32;
+        }
+        if self.idle_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.idle_ms) as u32;
+        }
+        if self.waiting != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.waiting) as u32;
+        }
+        if self.wait_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.wait_ms) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if self.min != 0u32 {
+            ::buffa::types::put_uint32_field(1u32, self.min, buf);
+        }
+        if self.max != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.max, buf);
+        }
+        if self.target != 0u32 {
+            ::buffa::types::put_uint32_field(3u32, self.target, buf);
+        }
+        if self.up_ms != 0u64 {
+            ::buffa::types::put_uint64_field(4u32, self.up_ms, buf);
+        }
+        if self.down_ms != 0u64 {
+            ::buffa::types::put_uint64_field(5u32, self.down_ms, buf);
+        }
+        if self.idle_ms != 0u64 {
+            ::buffa::types::put_uint64_field(6u32, self.idle_ms, buf);
+        }
+        if self.waiting != 0u32 {
+            ::buffa::types::put_uint32_field(7u32, self.waiting, buf);
+        }
+        if self.wait_ms != 0u64 {
+            ::buffa::types::put_uint64_field(8u32, self.wait_ms, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.min = ::buffa::types::decode_uint32(buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.max = ::buffa::types::decode_uint32(buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.target = ::buffa::types::decode_uint32(buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.up_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.down_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.idle_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.waiting = ::buffa::types::decode_uint32(buf)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.wait_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.min = 0u32;
+        self.max = 0u32;
+        self.target = 0u32;
+        self.up_ms = 0u64;
+        self.down_ms = 0u64;
+        self.idle_ms = 0u64;
+        self.waiting = 0u32;
+        self.wait_ms = 0u64;
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for Scaling {
+    const PROTO_FQN: &'static str = "wafl.Scaling";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for Scaling {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __SCALING_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.Scaling",
+    to_json: ::buffa::type_registry::any_to_json::<Scaling>,
+    from_json: ::buffa::type_registry::any_from_json::<Scaling>,
+    is_wkt: false,
+};
+/// Controller observations and decisions. Times are Unix milliseconds.
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct ScaleState {
+    /// Field 1: `desired`
+    #[serde(
+        rename = "desired",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub desired: u32,
+    /// Field 2: `active`
+    #[serde(
+        rename = "active",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub active: u32,
+    /// Field 3: `waiting`
+    #[serde(
+        rename = "waiting",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub waiting: u32,
+    /// Field 4: `load`
+    #[serde(
+        rename = "load",
+        with = "::buffa::json_helpers::double",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_f64"
+    )]
+    pub load: f64,
+    /// Field 5: `fresh`
+    #[serde(
+        rename = "fresh",
+        with = "::buffa::json_helpers::proto_bool",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
+    )]
+    pub fresh: bool,
+    /// Field 6: `date_activity`
+    #[serde(
+        rename = "dateActivity",
+        alias = "date_activity",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub date_activity: u64,
+    /// Field 7: `date_change`
+    #[serde(
+        rename = "dateChange",
+        alias = "date_change",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub date_change: u64,
+    /// Field 8: `date_sample`
+    #[serde(
+        rename = "dateSample",
+        alias = "date_sample",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub date_sample: u64,
+    /// Field 9: `high_ms`
+    #[serde(
+        rename = "highMs",
+        alias = "high_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub high_ms: u64,
+    /// Field 10: `low_ms`
+    #[serde(
+        rename = "lowMs",
+        alias = "low_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub low_ms: u64,
+    /// Field 11: `started`
+    #[serde(
+        rename = "started",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub started: u64,
+    /// Field 12: `busy_ms`
+    #[serde(
+        rename = "busyMs",
+        alias = "busy_ms",
+        with = "::buffa::json_helpers::uint64",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u64"
+    )]
+    pub busy_ms: u64,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for ScaleState {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("ScaleState")
+            .field("desired", &self.desired)
+            .field("active", &self.active)
+            .field("waiting", &self.waiting)
+            .field("load", &self.load)
+            .field("fresh", &self.fresh)
+            .field("date_activity", &self.date_activity)
+            .field("date_change", &self.date_change)
+            .field("date_sample", &self.date_sample)
+            .field("high_ms", &self.high_ms)
+            .field("low_ms", &self.low_ms)
+            .field("started", &self.started)
+            .field("busy_ms", &self.busy_ms)
+            .finish()
+    }
+}
+impl ScaleState {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.ScaleState";
+}
+::buffa::impl_default_instance!(ScaleState);
+impl ::buffa::MessageName for ScaleState {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "ScaleState";
+    const FULL_NAME: &'static str = "wafl.ScaleState";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.ScaleState";
+}
+impl ::buffa::Message for ScaleState {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.desired != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.desired) as u32;
+        }
+        if self.active != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.active) as u32;
+        }
+        if self.waiting != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.waiting) as u32;
+        }
+        if self.load.to_bits() != 0u64 {
+            size += 1u32 + ::buffa::types::FIXED64_ENCODED_LEN as u32;
+        }
+        if self.fresh {
+            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.date_activity != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.date_activity) as u32;
+        }
+        if self.date_change != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.date_change) as u32;
+        }
+        if self.date_sample != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.date_sample) as u32;
+        }
+        if self.high_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.high_ms) as u32;
+        }
+        if self.low_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.low_ms) as u32;
+        }
+        if self.started != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.started) as u32;
+        }
+        if self.busy_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.busy_ms) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if self.desired != 0u32 {
+            ::buffa::types::put_uint32_field(1u32, self.desired, buf);
+        }
+        if self.active != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.active, buf);
+        }
+        if self.waiting != 0u32 {
+            ::buffa::types::put_uint32_field(3u32, self.waiting, buf);
+        }
+        if self.load.to_bits() != 0u64 {
+            ::buffa::types::put_double_field(4u32, self.load, buf);
+        }
+        if self.fresh {
+            ::buffa::types::put_bool_field(5u32, self.fresh, buf);
+        }
+        if self.date_activity != 0u64 {
+            ::buffa::types::put_uint64_field(6u32, self.date_activity, buf);
+        }
+        if self.date_change != 0u64 {
+            ::buffa::types::put_uint64_field(7u32, self.date_change, buf);
+        }
+        if self.date_sample != 0u64 {
+            ::buffa::types::put_uint64_field(8u32, self.date_sample, buf);
+        }
+        if self.high_ms != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.high_ms, buf);
+        }
+        if self.low_ms != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.low_ms, buf);
+        }
+        if self.started != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.started, buf);
+        }
+        if self.busy_ms != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.busy_ms, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.desired = ::buffa::types::decode_uint32(buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.active = ::buffa::types::decode_uint32(buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.waiting = ::buffa::types::decode_uint32(buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Fixed64,
+                )?;
+                self.load = ::buffa::types::decode_double(buf)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.fresh = ::buffa::types::decode_bool(buf)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.date_activity = ::buffa::types::decode_uint64(buf)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.date_change = ::buffa::types::decode_uint64(buf)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.date_sample = ::buffa::types::decode_uint64(buf)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.high_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.low_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.started = ::buffa::types::decode_uint64(buf)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.busy_ms = ::buffa::types::decode_uint64(buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.desired = 0u32;
+        self.active = 0u32;
+        self.waiting = 0u32;
+        self.load = 0f64;
+        self.fresh = false;
+        self.date_activity = 0u64;
+        self.date_change = 0u64;
+        self.date_sample = 0u64;
+        self.high_ms = 0u64;
+        self.low_ms = 0u64;
+        self.started = 0u64;
+        self.busy_ms = 0u64;
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for ScaleState {
+    const PROTO_FQN: &'static str = "wafl.ScaleState";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for ScaleState {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __SCALE_STATE_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.ScaleState",
+    to_json: ::buffa::type_registry::any_to_json::<ScaleState>,
+    from_json: ::buffa::type_registry::any_from_json::<ScaleState>,
     is_wkt: false,
 };

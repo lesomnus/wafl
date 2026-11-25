@@ -31,6 +31,10 @@ service InstanceService {
   // endpoint reservation. Requires prior Drain and wafl-session/wafl-revision.
   // The supervisor completes even if the RPC caller disconnects.
   rpc Release(InstanceReleaseRequest) returns (Instance);
+  // Fence all future Add calls for this ID in the current runner session.
+  // Does not interrupt an already published execution; Drain/Release still
+  // apply. Allows safe Erase after release despite delayed controller calls.
+  rpc Seal(InstanceSealRequest) returns (InstanceSealResponse);
   // Read retained stdout/stderr, optionally following across Stop/Start.
   rpc Tail(InstanceTailRequest) returns (stream Log);
 }
@@ -158,6 +162,14 @@ message InstanceDrainRequest {
 message InstanceReleaseRequest {
   InstanceRef ref = 1;
   uint64 generation = 2 [features.field_presence = IMPLICIT];
+}
+
+message InstanceSealRequest {
+  bytes id = 1;
+}
+
+message InstanceSealResponse {
+  bool sealed = 1 [features.field_presence = IMPLICIT];
 }
 
 // In direct mode Drain only sets draining=true and returns immediately; the

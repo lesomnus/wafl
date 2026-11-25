@@ -16,6 +16,8 @@ use wafl_runner::{
     proxy,
     runner::{Execution, Runner},
 };
+#[path = "runner/seal.rs"]
+mod seal;
 
 fn guest(name: &str) -> PathBuf {
     let base = std::env::var_os("WAFL_TEST_GUEST_DIR")

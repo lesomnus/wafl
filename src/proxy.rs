@@ -1,7 +1,4 @@
-use crate::{
-    config::Protocol,
-    runner::{Lease, Runner},
-};
+use crate::{config::Protocol, runner::Runner};
 use bytes::Bytes;
 use http::{HeaderMap, Request, Response, StatusCode, Version, header};
 use http_body::{Body, Frame, SizeHint};
@@ -30,7 +27,7 @@ pub const INSTANCE_HEADER: &str = "wafl-instance";
 
 struct ResponseBody {
     inner: Incoming,
-    lease: Arc<Mutex<Option<Lease>>>,
+    lease: Arc<Mutex<Option<Box<dyn Send>>>>,
     expiry: Option<AbortHandle>,
     connection: AbortHandle,
     deadline: Option<Pin<Box<tokio::time::Sleep>>>,
@@ -115,7 +112,7 @@ impl Drop for Driver {
     }
 }
 
-fn reply(status: StatusCode, text: &'static str) -> Response<ProxyBody> {
+pub(crate) fn reply(status: StatusCode, text: &'static str) -> Response<ProxyBody> {
     Response::builder()
         .status(status)
         .body(
@@ -182,7 +179,7 @@ pub async fn forward(
     }
 }
 
-fn grpc_deadline(headers: &HeaderMap) -> Result<Option<tokio::time::Instant>, ()> {
+pub(crate) fn grpc_deadline(headers: &HeaderMap) -> Result<Option<tokio::time::Instant>, ()> {
     let mut values = headers.get_all("grpc-timeout").iter();
     let Some(value) = values.next() else {
         return Ok(None);
@@ -333,17 +330,44 @@ async fn forward_inner(
             ));
         }
     };
+    let address = lease.address;
+    Ok(upstream(address, app.spec.protocol, request, deadline, lease).await)
+}
+
+/// One streaming attempt. Admission ownership lasts through response trailers
+/// or cancellation; neither connection errors nor timeouts replay a request.
+pub(crate) async fn upstream(
+    address: std::net::SocketAddr,
+    protocol: Protocol,
+    mut request: Request<Incoming>,
+    deadline: Option<tokio::time::Instant>,
+    lease: impl Send + 'static,
+) -> Response<ProxyBody> {
+    let authority = request
+        .uri()
+        .authority()
+        .map(|a| a.as_str())
+        .or_else(|| {
+            request
+                .headers()
+                .get(header::HOST)
+                .and_then(|h| h.to_str().ok())
+        })
+        .unwrap_or("localhost")
+        .to_owned();
+    request.headers_mut().remove(INSTANCE_HEADER);
+    request.headers_mut().remove("wafl-session");
+    request.headers_mut().remove("wafl-revision");
     strip_hop_headers(request.headers_mut());
     let result: Result<_, BoxError> = async {
         let stream =
-            tokio::time::timeout(Duration::from_secs(5), TcpStream::connect(lease.address))
-                .await??;
+            tokio::time::timeout(Duration::from_secs(5), TcpStream::connect(address)).await??;
         stream.set_nodelay(true)?;
-        let (response, mut driver) = match app.spec.protocol {
+        let (response, mut driver) = match protocol {
             Protocol::Http => {
                 request
                     .headers_mut()
-                    .insert(header::HOST, authority.as_deref().unwrap().parse()?);
+                    .insert(header::HOST, authority.parse()?);
                 *request.version_mut() = Version::HTTP_11;
                 let path = request
                     .uri()
@@ -366,7 +390,7 @@ async fn forward_inner(
                 *request.version_mut() = Version::HTTP_2;
                 let mut parts = request.uri().clone().into_parts();
                 parts.scheme = Some(http::uri::Scheme::HTTP);
-                parts.authority = Some(authority.as_deref().unwrap().parse()?);
+                parts.authority = Some(authority.parse()?);
                 *request.uri_mut() = http::Uri::from_parts(parts)?;
                 request.headers_mut().remove(header::HOST);
                 let (mut sender, connection) = hyper::client::conn::http2::handshake(
@@ -390,7 +414,7 @@ async fn forward_inner(
             parts.headers.remove(header::CONTENT_LENGTH);
         }
         let connection = driver.0.take().unwrap();
-        let lease = Arc::new(Mutex::new(Some(lease)));
+        let lease = Arc::new(Mutex::new(Some(Box::new(lease) as Box<dyn Send>)));
         let expiry = deadline.map(|deadline| {
             let connection = connection.clone();
             let lease = lease.clone();
@@ -418,13 +442,13 @@ async fn forward_inner(
     }
     .await;
     // A request body may already have reached the application. Never replay it.
-    Ok(result.unwrap_or_else(|_| {
+    result.unwrap_or_else(|_| {
         reject(
             StatusCode::BAD_GATEWAY,
             "upstream",
             "app connection failed; delivery may have started\n",
         )
-    }))
+    })
 }
 
 fn strip_hop_headers(headers: &mut HeaderMap) {

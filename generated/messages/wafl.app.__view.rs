@@ -25,6 +25,14 @@ pub struct AppView<'a> {
     pub manifest: ::buffa::MessageFieldView<
         super::super::__buffa::view::ManifestView<'a>,
     >,
+    /// Optional request-concurrency autoscaling; replicas is used only without it.
+    ///
+    /// Field 17: `scaling`
+    pub scaling: ::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'a>>,
+    /// Field 18: `state`
+    pub state: ::buffa::MessageFieldView<
+        super::super::__buffa::view::ScaleStateView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
@@ -138,6 +146,48 @@ impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
                     }
                 }
             }
+            17u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.scaling.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.scaling = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ScalingView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            18u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.state.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.state = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ScaleStateView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -178,6 +228,22 @@ impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
                 Some(v) => {
                     ::buffa::MessageField::<
                         super::super::Manifest,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            scaling: match self.scaling.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Scaling,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            state: match self.state.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::ScaleState,
                     >::some(v.to_owned_from_source(__buffa_src)?)
                 }
                 None => ::buffa::MessageField::none(),
@@ -227,6 +293,22 @@ impl<'a> ::buffa::ViewEncode<'a> for AppView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.scaling.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.scaling.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.state.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.state.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -263,6 +345,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppView<'a> {
         if self.manifest.is_set() {
             ::buffa::types::put_len_delimited_header(16u32, __cache.consume_next(), buf);
             self.manifest.write_to(__cache, buf);
+        }
+        if self.scaling.is_set() {
+            ::buffa::types::put_len_delimited_header(17u32, __cache.consume_next(), buf);
+            self.scaling.write_to(__cache, buf);
+        }
+        if self.state.is_set() {
+            ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
+            self.state.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -319,6 +409,16 @@ impl<'__a> ::serde::Serialize for AppView<'__a> {
         {
             if let ::core::option::Option::Some(__v) = self.manifest.as_option() {
                 __map.serialize_entry("manifest", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.scaling.as_option() {
+                __map.serialize_entry("scaling", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.state.as_option() {
+                __map.serialize_entry("state", __v)?;
             }
         }
         __map.end()
@@ -452,6 +552,22 @@ impl AppOwnedView {
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ManifestView<'_>> {
         &self.0.reborrow().manifest
     }
+    /// Optional request-concurrency autoscaling; replicas is used only without it.
+    ///
+    /// Field 17: `scaling`
+    #[must_use]
+    pub fn scaling(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'_>> {
+        &self.0.reborrow().scaling
+    }
+    /// Field 18: `state`
+    #[must_use]
+    pub fn state(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScaleStateView<'_>> {
+        &self.0.reborrow().state
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppView<'static>>> for AppOwnedView {
     fn from(inner: ::buffa::OwnedView<AppView<'static>>) -> Self {
@@ -473,6 +589,982 @@ impl ::buffa::HasMessageView for super::super::App {
     type ViewHandle = AppOwnedView;
 }
 impl ::serde::Serialize for AppOwnedView {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        ::serde::Serialize::serialize(&self.0, __s)
+    }
+}
+#[derive(Clone, Debug, Default)]
+pub struct ScalingView<'a> {
+    /// Field 1: `min`
+    pub min: u32,
+    /// Field 2: `max`
+    pub max: u32,
+    /// Field 3: `target`
+    pub target: u32,
+    /// Field 4: `up_ms`
+    pub up_ms: u64,
+    /// Field 5: `down_ms`
+    pub down_ms: u64,
+    /// Field 6: `idle_ms`
+    pub idle_ms: u64,
+    /// Field 7: `waiting`
+    pub waiting: u32,
+    /// Field 8: `wait_ms`
+    pub wait_ms: u64,
+    pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
+}
+impl<'a> ::buffa::MessageView<'a> for ScalingView<'a> {
+    type Owned = super::super::Scaling;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.min = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.max = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.target = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.up_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.down_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.idle_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.waiting = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.wait_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                let span_len = before_tag.len() - cur.len();
+                view.__buffa_unknown_fields.push_record(before_tag, span_len, ctx)?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Scaling, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::Scaling, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::Scaling {
+            min: self.min,
+            max: self.max,
+            target: self.target,
+            up_ms: self.up_ms,
+            down_ms: self.down_ms,
+            idle_ms: self.idle_ms,
+            waiting: self.waiting,
+            wait_ms: self.wait_ms,
+            __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for ScalingView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.min != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.min) as u32;
+        }
+        if self.max != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.max) as u32;
+        }
+        if self.target != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.target) as u32;
+        }
+        if self.up_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.up_ms) as u32;
+        }
+        if self.down_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.down_ms) as u32;
+        }
+        if self.idle_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.idle_ms) as u32;
+        }
+        if self.waiting != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.waiting) as u32;
+        }
+        if self.wait_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.wait_ms) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if self.min != 0u32 {
+            ::buffa::types::put_uint32_field(1u32, self.min, buf);
+        }
+        if self.max != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.max, buf);
+        }
+        if self.target != 0u32 {
+            ::buffa::types::put_uint32_field(3u32, self.target, buf);
+        }
+        if self.up_ms != 0u64 {
+            ::buffa::types::put_uint64_field(4u32, self.up_ms, buf);
+        }
+        if self.down_ms != 0u64 {
+            ::buffa::types::put_uint64_field(5u32, self.down_ms, buf);
+        }
+        if self.idle_ms != 0u64 {
+            ::buffa::types::put_uint64_field(6u32, self.idle_ms, buf);
+        }
+        if self.waiting != 0u32 {
+            ::buffa::types::put_uint32_field(7u32, self.waiting, buf);
+        }
+        if self.wait_ms != 0u64 {
+            ::buffa::types::put_uint64_field(8u32, self.wait_ms, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+}
+/// Serializes this view as protobuf JSON.
+///
+/// Implicit-presence fields with default values are omitted, `required`
+/// fields are always emitted, explicit-presence (`optional`) fields are
+/// emitted only when set, bytes fields are base64-encoded, and enum
+/// values are their proto name strings.
+///
+/// This impl uses `serialize_map(None)` because the number of emitted
+/// fields depends on default-omission rules; serializers that require
+/// known map lengths (e.g. `bincode`) will return a runtime error.
+/// Use the owned message type for those formats.
+impl<'__a> ::serde::Serialize for ScalingView<'__a> {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        use ::serde::ser::SerializeMap as _;
+        let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.min) {
+            __map.serialize_entry("min", &::buffa::json_helpers::ProtoJson(&self.min))?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.max) {
+            __map.serialize_entry("max", &::buffa::json_helpers::ProtoJson(&self.max))?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.target) {
+            __map
+                .serialize_entry(
+                    "target",
+                    &::buffa::json_helpers::ProtoJson(&self.target),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.up_ms) {
+            __map
+                .serialize_entry(
+                    "upMs",
+                    &::buffa::json_helpers::ProtoJson(&self.up_ms),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.down_ms) {
+            __map
+                .serialize_entry(
+                    "downMs",
+                    &::buffa::json_helpers::ProtoJson(&self.down_ms),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.idle_ms) {
+            __map
+                .serialize_entry(
+                    "idleMs",
+                    &::buffa::json_helpers::ProtoJson(&self.idle_ms),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.waiting) {
+            __map
+                .serialize_entry(
+                    "waiting",
+                    &::buffa::json_helpers::ProtoJson(&self.waiting),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.wait_ms) {
+            __map
+                .serialize_entry(
+                    "waitMs",
+                    &::buffa::json_helpers::ProtoJson(&self.wait_ms),
+                )?;
+        }
+        __map.end()
+    }
+}
+impl<'a> ::buffa::MessageName for ScalingView<'a> {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "Scaling";
+    const FULL_NAME: &'static str = "wafl.Scaling";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.Scaling";
+}
+::buffa::impl_default_view_instance!(ScalingView);
+::buffa::impl_view_reborrow!(ScalingView);
+/** Self-contained, `'static` owned view of a `Scaling` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`ScalingView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`ScalingView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct ScalingOwnedView(::buffa::OwnedView<ScalingView<'static>>);
+impl ScalingOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(ScalingOwnedView(::buffa::OwnedView::decode(bytes)?))
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ScalingOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::Scaling,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ScalingOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`ScalingView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &ScalingView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if re-materializing preserved unknown fields
+    /// fails (e.g. the unknown-field limit is exceeded).
+    pub fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Scaling, ::buffa::DecodeError> {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Field 1: `min`
+    #[must_use]
+    pub fn min(&self) -> u32 {
+        self.0.reborrow().min
+    }
+    /// Field 2: `max`
+    #[must_use]
+    pub fn max(&self) -> u32 {
+        self.0.reborrow().max
+    }
+    /// Field 3: `target`
+    #[must_use]
+    pub fn target(&self) -> u32 {
+        self.0.reborrow().target
+    }
+    /// Field 4: `up_ms`
+    #[must_use]
+    pub fn up_ms(&self) -> u64 {
+        self.0.reborrow().up_ms
+    }
+    /// Field 5: `down_ms`
+    #[must_use]
+    pub fn down_ms(&self) -> u64 {
+        self.0.reborrow().down_ms
+    }
+    /// Field 6: `idle_ms`
+    #[must_use]
+    pub fn idle_ms(&self) -> u64 {
+        self.0.reborrow().idle_ms
+    }
+    /// Field 7: `waiting`
+    #[must_use]
+    pub fn waiting(&self) -> u32 {
+        self.0.reborrow().waiting
+    }
+    /// Field 8: `wait_ms`
+    #[must_use]
+    pub fn wait_ms(&self) -> u64 {
+        self.0.reborrow().wait_ms
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<ScalingView<'static>>>
+for ScalingOwnedView {
+    fn from(inner: ::buffa::OwnedView<ScalingView<'static>>) -> Self {
+        ScalingOwnedView(inner)
+    }
+}
+impl ::core::convert::From<ScalingOwnedView>
+for ::buffa::OwnedView<ScalingView<'static>> {
+    fn from(wrapper: ScalingOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<ScalingView<'static>>>
+for ScalingOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<ScalingView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::Scaling {
+    type View<'a> = ScalingView<'a>;
+    type ViewHandle = ScalingOwnedView;
+}
+impl ::serde::Serialize for ScalingOwnedView {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        ::serde::Serialize::serialize(&self.0, __s)
+    }
+}
+/// Controller observations and decisions. Times are Unix milliseconds.
+#[derive(Clone, Debug, Default)]
+pub struct ScaleStateView<'a> {
+    /// Field 1: `desired`
+    pub desired: u32,
+    /// Field 2: `active`
+    pub active: u32,
+    /// Field 3: `waiting`
+    pub waiting: u32,
+    /// Field 4: `load`
+    pub load: f64,
+    /// Field 5: `fresh`
+    pub fresh: bool,
+    /// Field 6: `date_activity`
+    pub date_activity: u64,
+    /// Field 7: `date_change`
+    pub date_change: u64,
+    /// Field 8: `date_sample`
+    pub date_sample: u64,
+    /// Field 9: `high_ms`
+    pub high_ms: u64,
+    /// Field 10: `low_ms`
+    pub low_ms: u64,
+    /// Field 11: `started`
+    pub started: u64,
+    /// Field 12: `busy_ms`
+    pub busy_ms: u64,
+    pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
+}
+impl<'a> ::buffa::MessageView<'a> for ScaleStateView<'a> {
+    type Owned = super::super::ScaleState;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.desired = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.active = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.waiting = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Fixed64,
+                )?;
+                view.load = ::buffa::types::decode_double(&mut cur)?;
+            }
+            5u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.fresh = ::buffa::types::decode_bool(&mut cur)?;
+            }
+            6u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.date_activity = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            7u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.date_change = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            8u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.date_sample = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.high_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            10u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.low_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.started = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.busy_ms = ::buffa::types::decode_uint64(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                let span_len = before_tag.len() - cur.len();
+                view.__buffa_unknown_fields.push_record(before_tag, span_len, ctx)?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::ScaleState, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::ScaleState, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::ScaleState {
+            desired: self.desired,
+            active: self.active,
+            waiting: self.waiting,
+            load: self.load,
+            fresh: self.fresh,
+            date_activity: self.date_activity,
+            date_change: self.date_change,
+            date_sample: self.date_sample,
+            high_ms: self.high_ms,
+            low_ms: self.low_ms,
+            started: self.started,
+            busy_ms: self.busy_ms,
+            __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for ScaleStateView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if self.desired != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.desired) as u32;
+        }
+        if self.active != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.active) as u32;
+        }
+        if self.waiting != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.waiting) as u32;
+        }
+        if self.load.to_bits() != 0u64 {
+            size += 1u32 + ::buffa::types::FIXED64_ENCODED_LEN as u32;
+        }
+        if self.fresh {
+            size += 1u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.date_activity != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.date_activity) as u32;
+        }
+        if self.date_change != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.date_change) as u32;
+        }
+        if self.date_sample != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.date_sample) as u32;
+        }
+        if self.high_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.high_ms) as u32;
+        }
+        if self.low_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.low_ms) as u32;
+        }
+        if self.started != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.started) as u32;
+        }
+        if self.busy_ms != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.busy_ms) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if self.desired != 0u32 {
+            ::buffa::types::put_uint32_field(1u32, self.desired, buf);
+        }
+        if self.active != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.active, buf);
+        }
+        if self.waiting != 0u32 {
+            ::buffa::types::put_uint32_field(3u32, self.waiting, buf);
+        }
+        if self.load.to_bits() != 0u64 {
+            ::buffa::types::put_double_field(4u32, self.load, buf);
+        }
+        if self.fresh {
+            ::buffa::types::put_bool_field(5u32, self.fresh, buf);
+        }
+        if self.date_activity != 0u64 {
+            ::buffa::types::put_uint64_field(6u32, self.date_activity, buf);
+        }
+        if self.date_change != 0u64 {
+            ::buffa::types::put_uint64_field(7u32, self.date_change, buf);
+        }
+        if self.date_sample != 0u64 {
+            ::buffa::types::put_uint64_field(8u32, self.date_sample, buf);
+        }
+        if self.high_ms != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.high_ms, buf);
+        }
+        if self.low_ms != 0u64 {
+            ::buffa::types::put_uint64_field(10u32, self.low_ms, buf);
+        }
+        if self.started != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.started, buf);
+        }
+        if self.busy_ms != 0u64 {
+            ::buffa::types::put_uint64_field(12u32, self.busy_ms, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+}
+/// Serializes this view as protobuf JSON.
+///
+/// Implicit-presence fields with default values are omitted, `required`
+/// fields are always emitted, explicit-presence (`optional`) fields are
+/// emitted only when set, bytes fields are base64-encoded, and enum
+/// values are their proto name strings.
+///
+/// This impl uses `serialize_map(None)` because the number of emitted
+/// fields depends on default-omission rules; serializers that require
+/// known map lengths (e.g. `bincode`) will return a runtime error.
+/// Use the owned message type for those formats.
+impl<'__a> ::serde::Serialize for ScaleStateView<'__a> {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        use ::serde::ser::SerializeMap as _;
+        let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.desired) {
+            __map
+                .serialize_entry(
+                    "desired",
+                    &::buffa::json_helpers::ProtoJson(&self.desired),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.active) {
+            __map
+                .serialize_entry(
+                    "active",
+                    &::buffa::json_helpers::ProtoJson(&self.active),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.waiting) {
+            __map
+                .serialize_entry(
+                    "waiting",
+                    &::buffa::json_helpers::ProtoJson(&self.waiting),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_f64(&self.load) {
+            __map
+                .serialize_entry("load", &::buffa::json_helpers::ProtoJson(&self.load))?;
+        }
+        if self.fresh {
+            __map.serialize_entry("fresh", &self.fresh)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.date_activity) {
+            __map
+                .serialize_entry(
+                    "dateActivity",
+                    &::buffa::json_helpers::ProtoJson(&self.date_activity),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.date_change) {
+            __map
+                .serialize_entry(
+                    "dateChange",
+                    &::buffa::json_helpers::ProtoJson(&self.date_change),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.date_sample) {
+            __map
+                .serialize_entry(
+                    "dateSample",
+                    &::buffa::json_helpers::ProtoJson(&self.date_sample),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.high_ms) {
+            __map
+                .serialize_entry(
+                    "highMs",
+                    &::buffa::json_helpers::ProtoJson(&self.high_ms),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.low_ms) {
+            __map
+                .serialize_entry(
+                    "lowMs",
+                    &::buffa::json_helpers::ProtoJson(&self.low_ms),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.started) {
+            __map
+                .serialize_entry(
+                    "started",
+                    &::buffa::json_helpers::ProtoJson(&self.started),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.busy_ms) {
+            __map
+                .serialize_entry(
+                    "busyMs",
+                    &::buffa::json_helpers::ProtoJson(&self.busy_ms),
+                )?;
+        }
+        __map.end()
+    }
+}
+impl<'a> ::buffa::MessageName for ScaleStateView<'a> {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "ScaleState";
+    const FULL_NAME: &'static str = "wafl.ScaleState";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.ScaleState";
+}
+::buffa::impl_default_view_instance!(ScaleStateView);
+::buffa::impl_view_reborrow!(ScaleStateView);
+/** Self-contained, `'static` owned view of a `ScaleState` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`ScaleStateView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`ScaleStateView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct ScaleStateOwnedView(::buffa::OwnedView<ScaleStateView<'static>>);
+impl ScaleStateOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ScaleStateOwnedView(::buffa::OwnedView::decode(bytes)?),
+        )
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ScaleStateOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::ScaleState,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ScaleStateOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`ScaleStateView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &ScaleStateView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if re-materializing preserved unknown fields
+    /// fails (e.g. the unknown-field limit is exceeded).
+    pub fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::ScaleState, ::buffa::DecodeError> {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Field 1: `desired`
+    #[must_use]
+    pub fn desired(&self) -> u32 {
+        self.0.reborrow().desired
+    }
+    /// Field 2: `active`
+    #[must_use]
+    pub fn active(&self) -> u32 {
+        self.0.reborrow().active
+    }
+    /// Field 3: `waiting`
+    #[must_use]
+    pub fn waiting(&self) -> u32 {
+        self.0.reborrow().waiting
+    }
+    /// Field 4: `load`
+    #[must_use]
+    pub fn load(&self) -> f64 {
+        self.0.reborrow().load
+    }
+    /// Field 5: `fresh`
+    #[must_use]
+    pub fn fresh(&self) -> bool {
+        self.0.reborrow().fresh
+    }
+    /// Field 6: `date_activity`
+    #[must_use]
+    pub fn date_activity(&self) -> u64 {
+        self.0.reborrow().date_activity
+    }
+    /// Field 7: `date_change`
+    #[must_use]
+    pub fn date_change(&self) -> u64 {
+        self.0.reborrow().date_change
+    }
+    /// Field 8: `date_sample`
+    #[must_use]
+    pub fn date_sample(&self) -> u64 {
+        self.0.reborrow().date_sample
+    }
+    /// Field 9: `high_ms`
+    #[must_use]
+    pub fn high_ms(&self) -> u64 {
+        self.0.reborrow().high_ms
+    }
+    /// Field 10: `low_ms`
+    #[must_use]
+    pub fn low_ms(&self) -> u64 {
+        self.0.reborrow().low_ms
+    }
+    /// Field 11: `started`
+    #[must_use]
+    pub fn started(&self) -> u64 {
+        self.0.reborrow().started
+    }
+    /// Field 12: `busy_ms`
+    #[must_use]
+    pub fn busy_ms(&self) -> u64 {
+        self.0.reborrow().busy_ms
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<ScaleStateView<'static>>>
+for ScaleStateOwnedView {
+    fn from(inner: ::buffa::OwnedView<ScaleStateView<'static>>) -> Self {
+        ScaleStateOwnedView(inner)
+    }
+}
+impl ::core::convert::From<ScaleStateOwnedView>
+for ::buffa::OwnedView<ScaleStateView<'static>> {
+    fn from(wrapper: ScaleStateOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<ScaleStateView<'static>>>
+for ScaleStateOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<ScaleStateView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::ScaleState {
+    type View<'a> = ScaleStateView<'a>;
+    type ViewHandle = ScaleStateOwnedView;
+}
+impl ::serde::Serialize for ScaleStateOwnedView {
     fn serialize<__S: ::serde::Serializer>(
         &self,
         __s: __S,

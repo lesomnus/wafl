@@ -38,6 +38,8 @@ message Placement {
   // leave no Instance on the runner; retries keep the same ID and back off.
   uint32 failures = 22;
   uint64 date_retry = 23;
+  // Every route to this placement enforces the Traffic admission/drain protocol.
+  bool managed = 24 [(orm.field) = {immutable: true}];
 }
 enum PlacementPhase {
   PLACEMENT_PHASE_UNSPECIFIED = 0;

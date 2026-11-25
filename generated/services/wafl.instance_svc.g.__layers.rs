@@ -127,6 +127,23 @@ pub trait InstanceServiceLayer<N: InstanceService>: Send + Sync + 'static {
     > + Send {
         next.release(ctx, request)
     }
+    fn seal<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceSealRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::InstanceSealResponse,
+            > + Send + use<'a, Self, N>,
+        >,
+    > + Send {
+        next.seal(ctx, request)
+    }
     fn tail(
         &self,
         next: &N,
@@ -271,6 +288,22 @@ for InstanceServiceOverlay<N, L> {
         >,
     > + Send {
         self.layer.release(&self.next, ctx, request)
+    }
+    fn seal<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceSealRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::InstanceSealResponse,
+            > + Send + use<'a, N, L>,
+        >,
+    > + Send {
+        self.layer.seal(&self.next, ctx, request)
     }
     fn tail(
         &self,
@@ -431,6 +464,25 @@ impl InstanceService for InstanceServiceUnimplemented {
             Err(
                 ::connectrpc::ConnectError::unimplemented(
                     concat!(stringify!(InstanceService), ".", stringify!(release)),
+                ),
+            )
+        }
+    }
+    fn seal<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceSealRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<crate::proto::wafl::InstanceSealResponse>,
+    > + Send {
+        let _ = (ctx, request);
+        async {
+            Err(
+                ::connectrpc::ConnectError::unimplemented(
+                    concat!(stringify!(InstanceService), ".", stringify!(seal)),
                 ),
             )
         }

@@ -571,6 +571,8 @@ pub struct CapacityView<'a> {
     ///
     /// Field 10: `compilations`
     pub compilations: u64,
+    /// Field 11: `tombstones`
+    pub tombstones: u64,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for CapacityView<'a> {
@@ -670,6 +672,13 @@ impl<'a> ::buffa::MessageView<'a> for CapacityView<'a> {
                 )?;
                 view.compilations = ::buffa::types::decode_uint64(&mut cur)?;
             }
+            11u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.tombstones = ::buffa::types::decode_uint64(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -702,6 +711,7 @@ impl<'a> ::buffa::MessageView<'a> for CapacityView<'a> {
             queue_ms: self.queue_ms,
             drain_ms: self.drain_ms,
             compilations: self.compilations,
+            tombstones: self.tombstones,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -743,6 +753,9 @@ impl<'a> ::buffa::ViewEncode<'a> for CapacityView<'a> {
         if self.compilations != 0u64 {
             size += 1u32 + ::buffa::types::uint64_encoded_len(self.compilations) as u32;
         }
+        if self.tombstones != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.tombstones) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -783,6 +796,9 @@ impl<'a> ::buffa::ViewEncode<'a> for CapacityView<'a> {
         }
         if self.compilations != 0u64 {
             ::buffa::types::put_uint64_field(10u32, self.compilations, buf);
+        }
+        if self.tombstones != 0u64 {
+            ::buffa::types::put_uint64_field(11u32, self.tombstones, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -873,6 +889,13 @@ impl<'__a> ::serde::Serialize for CapacityView<'__a> {
                 .serialize_entry(
                     "compilations",
                     &::buffa::json_helpers::ProtoJson(&self.compilations),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.tombstones) {
+            __map
+                .serialize_entry(
+                    "tombstones",
+                    &::buffa::json_helpers::ProtoJson(&self.tombstones),
                 )?;
         }
         __map.end()
@@ -1016,6 +1039,11 @@ impl CapacityOwnedView {
     pub fn compilations(&self) -> u64 {
         self.0.reborrow().compilations
     }
+    /// Field 11: `tombstones`
+    #[must_use]
+    pub fn tombstones(&self) -> u64 {
+        self.0.reborrow().tombstones
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<CapacityView<'static>>>
 for CapacityOwnedView {
@@ -1071,6 +1099,8 @@ pub struct UsageView<'a> {
     ///
     /// Field 8: `compilations`
     pub compilations: u64,
+    /// Field 9: `tombstones`
+    pub tombstones: u64,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for UsageView<'a> {
@@ -1156,6 +1186,13 @@ impl<'a> ::buffa::MessageView<'a> for UsageView<'a> {
                 )?;
                 view.compilations = ::buffa::types::decode_uint64(&mut cur)?;
             }
+            9u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.tombstones = ::buffa::types::decode_uint64(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1186,6 +1223,7 @@ impl<'a> ::buffa::MessageView<'a> for UsageView<'a> {
             requests: self.requests,
             waiting: self.waiting,
             compilations: self.compilations,
+            tombstones: self.tombstones,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1221,6 +1259,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UsageView<'a> {
         if self.compilations != 0u64 {
             size += 1u32 + ::buffa::types::uint64_encoded_len(self.compilations) as u32;
         }
+        if self.tombstones != 0u64 {
+            size += 1u32 + ::buffa::types::uint64_encoded_len(self.tombstones) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1255,6 +1296,9 @@ impl<'a> ::buffa::ViewEncode<'a> for UsageView<'a> {
         }
         if self.compilations != 0u64 {
             ::buffa::types::put_uint64_field(8u32, self.compilations, buf);
+        }
+        if self.tombstones != 0u64 {
+            ::buffa::types::put_uint64_field(9u32, self.tombstones, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1331,6 +1375,13 @@ impl<'__a> ::serde::Serialize for UsageView<'__a> {
                 .serialize_entry(
                     "compilations",
                     &::buffa::json_helpers::ProtoJson(&self.compilations),
+                )?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u64(&self.tombstones) {
+            __map
+                .serialize_entry(
+                    "tombstones",
+                    &::buffa::json_helpers::ProtoJson(&self.tombstones),
                 )?;
         }
         __map.end()
@@ -1463,6 +1514,11 @@ impl UsageOwnedView {
     #[must_use]
     pub fn compilations(&self) -> u64 {
         self.0.reborrow().compilations
+    }
+    /// Field 9: `tombstones`
+    #[must_use]
+    pub fn tombstones(&self) -> u64 {
+        self.0.reborrow().tombstones
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<UsageView<'static>>> for UsageOwnedView {

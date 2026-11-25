@@ -87,17 +87,23 @@ impl Control {
     ) -> Result<Vec<Placement>, ConnectError> {
         let config = self.config.clone();
         self.db.transaction(move |tx| {
-            let apps = all::<App>(tx, "App")?;
+            let mut apps = all::<App>(tx, "App")?;
+            let traffic = all::<Traffic>(tx, "Traffic")?;
             let mut placements = all::<Placement>(tx, "Placement")?;
             placements.sort_by(|a,b| a.id.cmp(&b.id));
             let date = now();
+            scaling::reconcile(tx,&mut apps,&traffic,date,config.traffic.as_ref().map_or(5000,|t|t.fresh_ms))?;
             for app in apps {
                 let mut kept = 0;
+                let desired=scaling::desired(&app);
+                // Keep busy placements first so an ordinary scale-in chooses an
+                // idle execution. Revision changes still retire every old copy.
+                placements.sort_by_key(|p| (std::cmp::Reverse(traffic.iter().filter(|t|t.placement.id==p.id).map(|t|u64::from(t.active)).sum::<u64>()),p.id.clone()));
                 for p in placements.iter_mut().filter(|p| p.app.id == app.id && active(p)) {
                     let owner = runners.get(&p.runner);
                     let stale = date.saturating_sub(p.date_seen) > config.fresh_ms;
                     let unavailable = owner.is_none_or(|r| r.id != p.session);
-                    if p.revision != app.revision || kept >= app.replicas || stale && (unavailable || p.phase == PlacementPhase::Ready) {
+                    if p.revision != app.revision || kept >= desired || stale && (unavailable || p.phase == PlacementPhase::Ready) {
                         *p = patch(tx, &p.id, json!({"phase":PlacementPhase::Retiring}))?;
                     } else {
                         kept += 1;
@@ -108,7 +114,7 @@ impl Control {
                         }
                     }
                 }
-                if kept >= app.replicas || placements.iter().any(|p| p.app.id == app.id && p.phase == PlacementPhase::Pending)
+                if kept >= desired || placements.iter().any(|p| p.app.id == app.id && p.phase == PlacementPhase::Pending)
                     || placements.iter().filter(|p| p.phase == PlacementPhase::Pending).count() >= config.max_pending { continue; }
                 // Do not turn a bad bundle into a tight crash loop or accumulate
                 // unbounded executions while gateway withdrawal is unconfirmed.
@@ -123,8 +129,10 @@ impl Control {
                     let allocated_memory = allocated.iter().fold(0u64, |n,p| n.saturating_add(p.manifest.memory_bytes));
                     // A concurrent controller may have recorded Ready since our
                     // probe. Account for durable reservations as well as usage.
-                    r.accepting && r.usage.running.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.running
-                        && r.usage.instances.saturating_add(pending.len() as u64).max(owned.len() as u64) < r.capacity.instances
+                    let managed=app.scaling.as_option().is_some();
+                    (!managed || r.capabilities.iter().any(|c|c=="sealed-instance-v1") && r.usage.tombstones.saturating_add(allocated.len() as u64)<r.capacity.tombstones)
+                        && r.accepting && r.usage.running.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.running
+                        && r.usage.instances.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.instances
                         && r.usage.memory_bytes.saturating_add(pending_memory).max(allocated_memory).saturating_add(memory) <= r.capacity.memory_bytes
                 }).collect();
                 candidates.sort_by_key(|(endpoint,r)| {
@@ -137,9 +145,18 @@ impl Control {
                     "id":encode(&paydirt::mint(11)), "tenant":{"id":encode(&app.tenant.id)},
                     "app":{"id":encode(&app.id)}, "revision":app.revision.to_string(),
                     "runner":endpoint, "session":encode(&r.id), "instance":encode(&paydirt::mint(7)),
-                    "manifest":app.manifest, "phase":PlacementPhase::Pending,"dateSeen":date.to_string()
+                    "manifest":app.manifest, "phase":PlacementPhase::Pending,"dateSeen":date.to_string(),"managed":app.scaling.as_option().is_some()
                 }))?)?;
                 placements.push(p);
+            }
+            for p in placements.iter_mut().filter(|p|p.managed && p.phase==PlacementPhase::Retiring && !p.withdrawn) {
+                let observers:Vec<_>=traffic.iter().filter(|t|t.placement.id==p.id).collect();
+                for t in &observers {
+                    if !t.draining { super::traffic::patch(tx,&t.id,json!({"draining":true}))?; }
+                }
+                if observers.iter().all(|t|t.closed && t.active==0) {
+                    *p=patch(tx,&p.id,json!({"withdrawn":true}))?;
+                }
             }
             Ok(placements.into_iter().filter(|p| p.phase != PlacementPhase::Released).collect())
         }).await
@@ -206,7 +223,7 @@ impl Control {
             if current.execution.revision > execution.revision { return Ok(()); }
             let app: App = decode(call(tx, "App", "Get", json!({"ref":{"id":encode(&p.app.id)}}))?)?;
             let mut phase = PlacementPhase::Retiring;
-            if active(&current) && app.revision == p.revision && app.replicas > 0 {
+            if active(&current) && app.revision == p.revision && scaling::desired(&app) > 0 {
                 if execution.phase == Phase::Running && !execution.draining { phase = PlacementPhase::Ready; }
                 else if execution.phase == Phase::Preparing || execution.phase == Phase::Starting { phase = PlacementPhase::Pending; }
             }
@@ -302,6 +319,13 @@ impl Control {
             HttpClient::plaintext(),
             client(&p.runner, Some(&p.session), None, self.config.operation_ms),
         );
+        if p.managed && p.phase == PlacementPhase::Retiring {
+            ic.seal(InstanceSealRequest {
+                id: Some(p.instance.clone()),
+                ..Default::default()
+            })
+            .await?;
+        }
         let execution = match ic
             .get(InstanceGetRequest {
                 r#ref: Some(reference(&p)).into(),
@@ -335,6 +359,14 @@ impl Control {
                         .into_owned(),
                     Err(e) => return Err(e),
                 }
+            }
+            Err(e)
+                if e.code == ErrorCode::NotFound
+                    && p.managed
+                    && p.phase == PlacementPhase::Retiring
+                    && p.withdrawn =>
+            {
+                return self.released(&p).await;
             }
             Err(e) => return Err(e),
         };
@@ -382,6 +414,10 @@ impl Control {
                 ..Default::default()
             })
             .await?;
+        }
+        if p.managed {
+            // Seal makes Erase safe: a delayed Add cannot recreate this identity.
+            ic.erase(reference(&p)).await?;
         }
         self.released(&p).await
     }

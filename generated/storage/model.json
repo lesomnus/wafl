@@ -183,6 +183,20 @@
           "number": 16,
           "kind": "JSON",
           "nullable": true
+        },
+        {
+          "name": "scaling",
+          "json": "scaling",
+          "number": 17,
+          "kind": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "state",
+          "json": "state",
+          "number": 18,
+          "kind": "JSON",
+          "nullable": true
         }
       ],
       "indexes": []
@@ -935,6 +949,13 @@
           "json": "dateRetry",
           "number": 23,
           "kind": "UINT64"
+        },
+        {
+          "name": "managed",
+          "json": "managed",
+          "number": 24,
+          "kind": "BOOL",
+          "immutable": true
         }
       ],
       "indexes": []
@@ -1179,6 +1200,108 @@
           ]
         }
       ]
+    },
+    {
+      "name": "wafl.Traffic",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant",
+          "json": "tenant",
+          "number": 2,
+          "kind": "MESSAGE",
+          "target": "wafl.Tenant",
+          "immutable": true
+        },
+        {
+          "name": "app",
+          "json": "app",
+          "number": 8,
+          "kind": "MESSAGE",
+          "target": "wafl.App",
+          "immutable": true
+        },
+        {
+          "name": "placement",
+          "json": "placement",
+          "number": 9,
+          "kind": "MESSAGE",
+          "target": "wafl.Placement",
+          "nullable": true
+        },
+        {
+          "name": "session",
+          "json": "session",
+          "number": 10,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "sequence",
+          "json": "sequence",
+          "number": 11,
+          "kind": "UINT64"
+        },
+        {
+          "name": "active",
+          "json": "active",
+          "number": 12,
+          "kind": "UINT32"
+        },
+        {
+          "name": "started",
+          "json": "started",
+          "number": 16,
+          "kind": "UINT64"
+        },
+        {
+          "name": "busy_ms",
+          "json": "busyMs",
+          "number": 17,
+          "kind": "UINT64"
+        },
+        {
+          "name": "closed",
+          "json": "closed",
+          "number": 18,
+          "kind": "BOOL"
+        },
+        {
+          "name": "draining",
+          "json": "draining",
+          "number": 19,
+          "kind": "BOOL"
+        },
+        {
+          "name": "date_seen",
+          "json": "dateSeen",
+          "number": 20,
+          "kind": "UINT64"
+        },
+        {
+          "name": "revision",
+          "json": "revision",
+          "number": 21,
+          "kind": "UINT64",
+          "immutable": true
+        },
+        {
+          "name": "activation",
+          "json": "activation",
+          "number": 22,
+          "kind": "BOOL"
+        }
+      ],
+      "indexes": []
     }
   ]
 }

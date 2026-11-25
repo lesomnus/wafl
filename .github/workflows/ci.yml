@@ -47,6 +47,12 @@ jobs:
           WAFL_TEST_CONTROLLER_DATABASE_URL: postgresql://postgres:wafl-test@localhost:5432/wafl
           WAFL_TEST_TRAEFIK: /tmp/wafl-traefik/traefik
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache: false
+      - run: go test -race ./...
+        working-directory: plugins/traefik
   generated:
     runs-on: ubuntu-latest
     steps:
