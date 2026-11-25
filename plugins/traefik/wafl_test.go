@@ -1,6 +1,7 @@
 package traefik
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -11,6 +12,15 @@ import (
 	"testing"
 	"time"
 )
+
+func activationServer(handler http.Handler) *httptest.Server {
+	server := httptest.NewUnstartedServer(handler)
+	server.Config.Protocols = new(http.Protocols)
+	server.Config.Protocols.SetHTTP1(true)
+	server.Config.Protocols.SetUnencryptedHTTP2(true)
+	server.Start()
+	return server
+}
 
 func eventually(t *testing.T, f func() bool) {
 	t.Helper()
@@ -51,7 +61,7 @@ func TestAdmissionSurvivesReloadDrainsStreamsAndNeverReplays(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(report)
 	}))
 	defer cp.Close()
-	activation := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	activation := activationServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fallback.Add(1)
 		if r.Host != "app.example" {
 			t.Error("Host changed")
@@ -121,6 +131,40 @@ func TestAdmissionSurvivesReloadDrainsStreamsAndNeverReplays(t *testing.T) {
 	third.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest("GET", "http://app.example/", nil))
 	if upstream.Load() != 1 || fallback.Load() != 2 || registrations.Load() != 2 {
 		t.Fatal("late registration bypassed retirement")
+	}
+}
+
+func TestClosedGateFallbackPreservesHTTP2AndUnannouncedGRPCTrailers(t *testing.T) {
+	data := []byte{0, 0, 0, 0, 1, 42}
+	backend := activationServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.ProtoMajor != 2 {
+			t.Error("fallback downgraded HTTP/2")
+		}
+		w.Header().Set("Content-Type", "application/grpc")
+		_, _ = w.Write(data)
+		w.Header().Set(http.TrailerPrefix+"Grpc-Status", "0")
+		w.Header().Set(http.TrailerPrefix+"X-Completion", "end")
+	}))
+	defer backend.Close()
+	id := make([]byte, 16)
+	id[8] = 0x80
+	id[9] = 11
+	id[15] = 2
+	h, e := New(context.Background(), http.HandlerFunc(func(http.ResponseWriter, *http.Request) { t.Error("closed gate forwarded to endpoint") }), &Config{Control: backend.URL, Activate: backend.URL, Placement: base64.StdEncoding.EncodeToString(id), IntervalMs: 100}, "grpc-fallback")
+	if e != nil {
+		t.Fatal(e)
+	}
+	m := h.(*middleware)
+	m.gate.closed = true
+	defer m.gate.forget()
+	response := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "http://grpc.example/echo", bytes.NewReader(data))
+	request.Header.Set("Content-Type", "application/grpc")
+	h.ServeHTTP(response, request)
+	result := response.Result()
+	defer result.Body.Close()
+	if result.StatusCode != 200 || !bytes.Equal(response.Body.Bytes(), data) || result.Trailer.Get("Grpc-Status") != "0" || result.Trailer.Get("X-Completion") != "end" {
+		t.Fatalf("fallback lost body or trailers: %v %v", result.StatusCode, result.Trailer)
 	}
 }
 

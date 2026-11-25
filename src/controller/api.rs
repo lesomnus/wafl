@@ -228,7 +228,7 @@ impl<N: AppService> AppServiceLayer<N> for Control {
         }
         let config = self.config.clone();
         let mut request = value(&req);
-        if request.get("state").is_some() {
+        if request.get("state").is_some() || request.get("stateNull").is_some() {
             return Err(ConnectError::invalid_argument("state is server-set"));
         }
         request.as_object_mut().unwrap().remove("revision");

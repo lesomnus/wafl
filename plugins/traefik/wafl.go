@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -44,6 +45,7 @@ type gate struct {
 	registered, closed      bool
 	active                  uint32
 	started, sequence, busy uint64
+	fraction                uint64
 	date                    time.Time
 }
 type middleware struct {
@@ -95,10 +97,36 @@ func New(_ context.Context, next http.Handler, config *Config, _ string) (http.H
 	}
 	registry.Unlock()
 	proxy := httputil.NewSingleHostReverseProxy(target)
+	// Activators accept h2c. Keep fallback streaming and arbitrary gRPC trailers
+	// on HTTP/2 as well; an HTTP/1 hop cannot announce unknown trailers in advance.
+	transport, e := activationTransport()
+	if e != nil {
+		return nil, e
+	}
+	proxy.Transport = transport
 	director := proxy.Director
 	proxy.Director = func(r *http.Request) { host := r.Host; director(r); r.Host = host }
 	proxy.FlushInterval = -1
 	return &middleware{next: next, fallback: proxy, gate: g}, nil
+}
+
+func activationTransport() (*http.Transport, error) {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	// Go 1.24 added Transport.Protocols. Traefik's Yaegi symbol catalogue still
+	// omits the named Protocols type, even when the host runtime supports it.
+	// Reflect only this public API; no unsafe access or internal HTTP/2 types.
+	field := reflect.ValueOf(transport).Elem().FieldByName("Protocols")
+	if !field.IsValid() || !field.CanSet() || field.Kind() != reflect.Ptr {
+		return nil, errors.New("WAFL activation requires Go HTTP/2 protocol selection")
+	}
+	protocols := reflect.New(field.Type().Elem())
+	enable := protocols.MethodByName("SetUnencryptedHTTP2")
+	if !enable.IsValid() {
+		return nil, errors.New("Go runtime lacks unencrypted HTTP/2")
+	}
+	enable.Call([]reflect.Value{reflect.ValueOf(true)})
+	field.Set(protocols)
+	return transport, nil
 }
 
 type observation struct {
@@ -186,7 +214,16 @@ func (g *gate) integrate() {
 	elapsed := now.Sub(g.date).Nanoseconds()
 	g.date = now
 	if elapsed > 0 {
-		g.busy += uint64(elapsed) * uint64(g.active)
+		// Store milliseconds, carrying sub-millisecond work across samples.
+		// Accumulating active*nanoseconds wraps after only months under load.
+		fraction := uint64(elapsed%1000000)*uint64(g.active) + g.fraction
+		addition := uint64(elapsed/1000000)*uint64(g.active) + fraction/1000000
+		g.fraction = fraction % 1000000
+		if addition > ^uint64(0)-g.busy {
+			g.busy = ^uint64(0)
+		} else {
+			g.busy += addition
+		}
 	}
 }
 func (g *gate) enter() bool {
@@ -214,7 +251,7 @@ func (g *gate) reports() {
 		g.mu.Lock()
 		g.integrate()
 		g.sequence++
-		snapshot := observation{Sequence: g.sequence, Active: g.active, Started: g.started, Busy: g.busy / 1000000, Closed: g.closed}
+		snapshot := observation{Sequence: g.sequence, Active: g.active, Started: g.started, Busy: g.busy, Closed: g.closed}
 		g.mu.Unlock()
 		result, e := g.rpc("Report", struct {
 			Ref      map[string]string `json:"ref"`

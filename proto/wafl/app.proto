@@ -7,7 +7,7 @@ import "wafl/payday/tenant.proto";
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 option features.field_presence = IMPLICIT;
 
-// Controller-owned desired state. Each manifest change creates a new revision;
+// Controller-owned desired state. A manifest or fixed/scaling mode change creates a new revision;
 // placements retain that revision's manifest until explicitly released.
 message App {
   option (orm.message) = {rpc: {add: {}, get: {}, patch: {}, erase: {}}};
@@ -26,7 +26,7 @@ message App {
   Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
   // Optional request-concurrency autoscaling; replicas is used only without it.
   Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON, nullable: true}];
-  ScaleState state = 18 [(orm.field) = {type: TYPE_JSON}, (payday.field) = {stamped: true}];
+  ScaleState state = 18 [(orm.field) = {type: TYPE_JSON, nullable: true}, (payday.field) = {stamped: true}];
 }
 
 message Scaling {

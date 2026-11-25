@@ -125,7 +125,7 @@ wafl --json app get @load
 wafl placement list --app @load
 ```
 
-**gRPC 스트리밍:** `manifest.protocol: h2c`를 지정합니다. TLS는 Traefik에서 종료하고 WASM에는 HTTP/2 prior knowledge로 연결합니다. 한 스트림은 종료/취소까지 활성 요청 하나입니다. 열린 스트림이 있으면 0개로 축소하지 않습니다. 배포 변경으로 Placement가 퇴역해도 기존 스트림이 끝날 때까지 실행을 유지합니다.
+**gRPC 스트리밍:** `manifest.protocol: h2c`를 지정합니다. TLS는 Traefik에서 종료하고 WASM에는 HTTP/2 prior knowledge로 연결합니다. 한 스트림은 종료/취소까지 활성 요청 하나입니다. 열린 스트림이 있으면 0개로 축소하지 않습니다. 배포 변경으로 Placement가 퇴역해도 기존 스트림이 끝날 때까지 실행을 유지합니다. 기존 gateway의 요청 본문 읽기·응답 쓰기 timeout도 스트림 길이에 맞게 설정합니다. Compose 예제는 `entryPoints.web.transport.respondingTimeouts`의 `readTimeout`과 `writeTimeout`을 `0s`로 두고 클라이언트 gRPC deadline을 사용합니다.
 
 **외부 DB:** 앱이 사용하는 이름으로 connection string을 `manifest.env`에 넣습니다. 일반 DB 클라이언트가 외부 TCP/DNS로 연결합니다. DB 생성·credential 공급은 운영 환경에서 담당하며 WAFL은 특정 환경변수 이름을 강제하지 않습니다. [DB 예제](network.md)를 참고하세요.
 
@@ -152,7 +152,7 @@ controller replicas는 같은 PostgreSQL과 공유 설정을 사용합니다. `t
 
 ## 안전한 축소와 복구
 
-Placement를 Retiring으로 바꾸고 새 경로에서 제거합니다. 관측자는 수신 gate를 영구적으로 닫고 기존 요청이 0개가 되었음을 보고합니다. 오래된 경로에 들어온 새 요청은 WASM에 전달하기 전에 activator로 보냅니다. 모든 관측자가 확인하면 controller가 runner에 `Seal → Drain → Release → Erase`를 수행합니다. `Seal`은 같은 session에서 지연 도착한 Add가 회수된 ID를 재생성하는 것을 막습니다.
+Placement를 Retiring으로 바꾸고 새 경로에서 제거하며 runner에 `Seal → Drain`을 보냅니다. 관측자는 수신 gate를 영구적으로 닫고 기존 요청이 0개가 되었음을 보고합니다. 오래된 경로에 들어온 새 요청은 WASM에 전달하기 전에 activator로 보냅니다. 모든 관측자가 확인하면 `Release → Erase`로 실행과 포트를 회수합니다. `Seal`은 같은 session에서 지연 도착한 Add가 회수된 ID를 재생성하는 것을 막습니다.
 
 보고가 끊겼다는 이유만으로 포트를 회수하지 않습니다. 오래된 관측이 있으면 자동 축소를 멈추고 Retiring 실행을 유지합니다. gateway/activator 장애 후에는 **해당 프로세스와 그 연결이 모두 종료되었음을 확인한 뒤** 관측자를 닫습니다.
 

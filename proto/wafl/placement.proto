@@ -39,7 +39,7 @@ message Placement {
   uint32 failures = 22;
   uint64 date_retry = 23;
   // Every route to this placement enforces the Traffic admission/drain protocol.
-  bool managed = 24 [(orm.field) = {immutable: true}];
+  bool managed = 24 [(orm.field) = {immutable: true, default: ""}];
 }
 enum PlacementPhase {
   PLACEMENT_PHASE_UNSPECIFIED = 0;

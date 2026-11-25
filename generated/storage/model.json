@@ -955,7 +955,8 @@
           "json": "managed",
           "number": 24,
           "kind": "BOOL",
-          "immutable": true
+          "immutable": true,
+          "default": ""
         }
       ],
       "indexes": []

@@ -563,12 +563,7 @@ async fn postgres_replicas_reconcile_real_runners_and_traefik_routes_http_and_gr
         success(cli(&c1.endpoint, &["app", "erase", alias]).await);
     }
     assert!(placements(&c2.endpoint).await.is_empty());
-    assert!(
-        snapshot(c2.endpoint.clone()).await["http"]["routers"]
-            .as_object()
-            .unwrap()
-            .is_empty()
-    );
+    assert_eq!(snapshot(c2.endpoint.clone()).await, json!({}));
     assert_ne!(alpha.id, beta.id);
     // A bad revision remains inspectable, without creating a new failed
     // execution every reconciliation tick. Changing the manifest permits repair.

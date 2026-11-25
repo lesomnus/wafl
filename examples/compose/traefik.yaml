@@ -1,6 +1,10 @@
 entryPoints:
   web:
     address: :8080
+    transport:
+      respondingTimeouts:
+        readTimeout: 0s
+        writeTimeout: 0s
 experimental:
   localPlugins:
     wafl:

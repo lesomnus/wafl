@@ -183,10 +183,66 @@ async fn yaml_first_request_load_scaling_idle_zero_and_cold_restart() {
         peak.iter()
             .any(|p| p.runner == format!("{}/", runner2.endpoint))
     );
+    // A gateway that stops reporting cannot prove its admission gate closed.
+    let observer = paydirt::mint(13);
+    let registration = json!({"id":STANDARD.encode(observer),"placement":{"id":STANDARD.encode(&peak.iter().find(|p|p.phase==PlacementPhase::Ready).unwrap().id)},"session":"dead-observer"});
+    let (status, row) = rpc(&c1.endpoint, "TrafficService", "Add", registration.clone()).await;
+    assert_eq!(status, 200, "{row}");
+    let reference = json!({"id":STANDARD.encode(observer)});
+    let (status, row) = rpc(
+        &c1.endpoint,
+        "TrafficService",
+        "Report",
+        json!({"ref":reference,"sequence":"1","active":1,"started":"1"}),
+    )
+    .await;
+    assert_eq!(status, 200, "{row}");
+    let (_, row) = rpc(
+        &c1.endpoint,
+        "TrafficService",
+        "Report",
+        json!({"ref":reference,"sequence":"0","active":0,"started":"0"}),
+    )
+    .await;
+    assert_eq!(row["active"], 1);
+    let (status, row) = rpc(
+        &c1.endpoint,
+        "TrafficService",
+        "Report",
+        json!({"ref":reference,"sequence":"2","active":0,"started":"1"}),
+    )
+    .await;
+    assert_eq!(status, 200, "{row}");
     loaded.store(true, Ordering::SeqCst);
     while let Some(result) = requests.join_next().await {
         result.unwrap();
     }
+    tokio::time::sleep(Duration::from_millis(2700)).await;
+    let stale = app(&c1.endpoint, &["get", "@autoscale"]).await;
+    assert!(!stale.state.fresh);
+    assert_eq!(stale.state.desired, 3);
+    success(
+        cli(
+            &c1.endpoint,
+            &[
+                "traffic",
+                "close",
+                &paydirt::format_id(&observer).unwrap(),
+                "--withdrawn",
+            ],
+        )
+        .await,
+    );
+    let (status, row) = rpc(
+        &c1.endpoint,
+        "TrafficService",
+        "Report",
+        json!({"ref":reference,"sequence":"3","active":1,"started":"2"}),
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert_eq!(row["closed"], true);
+    assert!(row.get("active").is_none());
     until(&c1.endpoint, |p| {
         !p.is_empty() && p.iter().all(|p| p.phase == PlacementPhase::Released)
     })
@@ -233,6 +289,25 @@ async fn yaml_first_request_load_scaling_idle_zero_and_cold_restart() {
     .await;
     success(cli(&c1.endpoint, &["app", "erase", "@autoscale"]).await);
     grpc_streams(root.path(), &c1.endpoint, entry).await;
+    activation_limits(root.path(), &c1.endpoint, activation, &assets.url).await;
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if client
+                .get(&address)
+                .header("host", "waiting.example")
+                .send()
+                .await
+                .unwrap()
+                .status()
+                == 404
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    })
+    .await
+    .expect("Traefik retained routes after the last App was erased");
     gateway.kill().await.unwrap();
     gateway.wait().await.unwrap();
     c1.stop().await;
@@ -243,6 +318,88 @@ async fn yaml_first_request_load_scaling_idle_zero_and_cold_restart() {
         .await
         .unwrap();
     database_task.abort();
+}
+
+async fn activation_limits(root: &Path, controller: &str, activation: u16, bundle: &str) {
+    let yaml = root.join("waiting.yaml");
+    std::fs::write(&yaml,format!("alias: waiting\ndomain: waiting.example\nmanifest:\n  bundle: {{url: '{bundle}'}}\n  env: {{MODE: delay, DELAY_MS: '5000'}}\nscaling: {{min: 0, max: 1, waiting: 1, wait_ms: 1000}}\n")).unwrap();
+    let created = app(controller, &["add", yaml.to_str().unwrap()]).await;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .build()
+        .unwrap();
+    let url = format!("http://127.0.0.1:{activation}/");
+    let task = {
+        let client = client.clone();
+        let url = url.clone();
+        tokio::spawn(async move {
+            client
+                .get(url)
+                .header("host", "waiting.example")
+                .send()
+                .await
+                .unwrap()
+        })
+    };
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if observations(controller)
+                .await
+                .iter()
+                .any(|t| t.app.id == created.id && t.active == 1)
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+        client
+            .get(&url)
+            .header("host", "waiting.example")
+            .send()
+            .await
+            .unwrap()
+            .status(),
+        429
+    );
+    assert_eq!(task.await.unwrap().status(), 504);
+    tokio::time::timeout(Duration::from_secs(5), async {
+        loop {
+            if observations(controller)
+                .await
+                .iter()
+                .filter(|t| t.app.id == created.id)
+                .all(|t| t.closed && t.active == 0)
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await
+    .unwrap();
+    let response = client
+        .post(&url)
+        .header("host", "waiting.example")
+        .header("content-type", "application/grpc")
+        .header("grpc-timeout", "20m")
+        .body("")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 200);
+    assert_eq!(response.headers()["grpc-status"], "4");
+    app(controller, &["patch", "@waiting", "--fixed"]).await;
+    until(controller, |p| {
+        p.iter()
+            .filter(|p| p.app.id == created.id)
+            .all(|p| p.phase == PlacementPhase::Released)
+    })
+    .await;
+    success(cli(controller, &["app", "erase", "@waiting"]).await);
 }
 
 async fn grpc_streams(root: &Path, controller: &str, entry: u16) {
