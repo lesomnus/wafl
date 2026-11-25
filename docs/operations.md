@@ -4,6 +4,8 @@
 
 아래 트래픽·Drain·자동 재기동 설명은 기본 proxy 모드 기준입니다. [직결 모드](direct.md)에서는 `Instance.endpoint`로 연결하며 HTTP 요청·유휴 상태는 외부에서 판단합니다. `Drain`은 표시만 바꾸고 실행을 유지하며, gateway 철회·연결 정리 후 `Release`로 포트를 반환합니다. 실행·메모리·준비 한도는 동일하게 적용합니다.
 
+직결 runner 프로세스의 장애 후에는 [Reservation 조회·회수](reservations.md)를 사용합니다. 세션의 OS 잠금과 배정 token을 확인하며, 외부 철회가 끝났다는 명시적인 확인을 받아 예약을 반환합니다.
+
 ## 시작과 관측
 
 ```sh

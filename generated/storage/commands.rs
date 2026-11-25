@@ -415,6 +415,58 @@ async fn dispatch(
                 emit(serde_json::to_value(msg.to_owned_message())?)?;
             }
         }
+        ("wafl.Reservation", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#ReservationGetRequest,
+                <proto::r#wafl::r#Reservation as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.ReservationService",
+                    "Get",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Reservation", "List") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#ReservationListRequest,
+                <proto::r#wafl::r#ReservationListResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.ReservationService",
+                    "List",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Reservation", "Release") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#ReservationReleaseRequest,
+                <proto::r#wafl::r#ReservationReleaseResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.ReservationService",
+                    "Release",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Runner", "Get") => {
             let res = call_unary::<
                 _,

@@ -8,4 +8,5 @@ include!("wafl.payday.holder_svc.g.__connect.rs");
 include!("wafl.payday.outbox_svc.g.__connect.rs");
 include!("wafl.payday.owed_svc.g.__connect.rs");
 include!("wafl.payday.rowseal_svc.g.__connect.rs");
+include!("wafl.reservation_svc.g.__connect.rs");
 include!("wafl.runner_svc.g.__connect.rs");

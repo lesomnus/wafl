@@ -1,0 +1,28 @@
+edition = "2023";
+package wafl;
+
+import "wafl/reservation.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+
+// Get/List are generated from the global entity. Release reclaims an orphan
+// only; live sessions must use InstanceService.Drain/Release instead.
+service ReservationService {
+  rpc Release(ReservationReleaseRequest) returns (ReservationReleaseResponse);
+}
+
+message ReservationReleaseRequest {
+  ReservationRef ref = 1;
+  // Exact token observed BEFORE withdrawing this allocation's routes. Never
+  // fetch a newer token and automatically retry after ABORTED.
+  string token = 2 [features.field_presence = IMPLICIT];
+  // Caller confirms ALL routes/pools/connections for this allocation have been
+  // withdrawn/drained. A config ACK or a dead owner alone is insufficient.
+  bool withdrawn = 3 [features.field_presence = IMPLICIT];
+}
+message ReservationReleaseResponse {
+  // False if already absent. A different current token returns ABORTED.
+  bool released = 1 [features.field_presence = IMPLICIT];
+}
+// Optional wafl-session refers to the receiving runner, not the dead owner.
+// wafl-revision is not accepted; immutable allocation token is the CAS condition.

@@ -9,6 +9,9 @@ use wafl_runner::{
     services::wafl::{InstanceServiceClient, RunnerServiceClient},
 };
 
+#[path = "wafl/reservations.rs"]
+mod reservations;
+
 #[derive(Parser)]
 #[command(version, about = "Run WASM socket servers and manage runner instances")]
 struct Cli {
@@ -33,6 +36,11 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Inspect durable direct-port reservations and reclaim orphan allocations.
+    Reservation {
+        #[command(subcommand)]
+        action: reservations::Command,
+    },
     /// Inspect the current runner session and capacity.
     Runner {
         #[command(subcommand)]
@@ -273,6 +281,14 @@ impl Add {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
     let action = match cli.command {
+        Command::Reservation { action } => {
+            return reservations::run(
+                action,
+                client_config(&cli.endpoint, cli.session.as_deref(), cli.revision)?,
+                cli.json,
+            )
+            .await;
+        }
         Command::Serve {
             role: Serve::Runner(args),
         } => {

@@ -13,6 +13,9 @@ pub trait Server {
     fn wafl_instance(&self) -> impl crate::services::r#wafl::r#InstanceService {
         crate::services::r#wafl::r#InstanceServiceUnimplemented
     }
+    fn wafl_reservation(&self) -> impl crate::services::r#wafl::r#ReservationService {
+        crate::services::r#wafl::r#ReservationServiceUnimplemented
+    }
     fn wafl_runner(&self) -> impl crate::services::r#wafl::r#RunnerService {
         crate::services::r#wafl::r#RunnerServiceUnimplemented
     }
@@ -47,6 +50,12 @@ pub trait Layer<N: Server + ?Sized> {
     ) -> impl crate::services::r#wafl::r#InstanceService {
         next.wafl_instance()
     }
+    fn wafl_reservation(
+        &self,
+        next: &N,
+    ) -> impl crate::services::r#wafl::r#ReservationService {
+        next.wafl_reservation()
+    }
     fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::r#RunnerService {
         next.wafl_runner()
     }
@@ -72,6 +81,9 @@ impl<N: Server, L: Layer<N>> Server for Overlay<N, L> {
     fn wafl_instance(&self) -> impl crate::services::r#wafl::r#InstanceService {
         self.layer.wafl_instance(&self.next)
     }
+    fn wafl_reservation(&self) -> impl crate::services::r#wafl::r#ReservationService {
+        self.layer.wafl_reservation(&self.next)
+    }
     fn wafl_runner(&self) -> impl crate::services::r#wafl::r#RunnerService {
         self.layer.wafl_runner(&self.next)
     }
@@ -91,6 +103,9 @@ impl<T: Server + ?Sized> Server for ::std::sync::Arc<T> {
     }
     fn wafl_instance(&self) -> impl crate::services::r#wafl::r#InstanceService {
         self.as_ref().wafl_instance()
+    }
+    fn wafl_reservation(&self) -> impl crate::services::r#wafl::r#ReservationService {
+        self.as_ref().wafl_reservation()
     }
     fn wafl_runner(&self) -> impl crate::services::r#wafl::r#RunnerService {
         self.as_ref().wafl_runner()
@@ -132,6 +147,12 @@ pub fn mount_if(
     if include("wafl.InstanceService") {
         router = crate::services::r#wafl::r#InstanceServiceExt::register(
             ::std::sync::Arc::new(server.wafl_instance()),
+            router,
+        );
+    }
+    if include("wafl.ReservationService") {
+        router = crate::services::r#wafl::r#ReservationServiceExt::register(
+            ::std::sync::Arc::new(server.wafl_reservation()),
             router,
         );
     }

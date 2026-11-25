@@ -93,6 +93,16 @@ CREATE TABLE "pd_wafl__Owed" (
   "f9" TEXT NOT NULL,
   "f15" TEXT NOT NULL
 );
+CREATE TABLE "pd_wafl__Reservation" (
+  "f1" BLOB NOT NULL PRIMARY KEY,
+  "f8" TEXT NOT NULL,
+  "f9" TEXT NOT NULL,
+  "f10" BLOB NOT NULL,
+  "f11" BLOB NOT NULL,
+  "f12" TEXT NOT NULL,
+  "f16" TEXT NOT NULL,
+  "f17" TEXT NOT NULL
+);
 CREATE TABLE "pd_wafl__RowSeal" (
   "f1" BLOB NOT NULL PRIMARY KEY,
   "f2" BLOB NOT NULL,
@@ -140,6 +150,7 @@ CREATE UNIQUE INDEX "pd_wafl__Holder__slug" ON "pd_wafl__Holder" ("f4", "f2") WH
 CREATE UNIQUE INDEX "pd_wafl__Instance__field_4" ON "pd_wafl__Instance" ("f4");
 CREATE INDEX "pd_wafl__Outbox__queue" ON "pd_wafl__Outbox" ("f1");
 CREATE INDEX "pd_wafl__Owed__owed" ON "pd_wafl__Owed" ("f15", "f1");
+CREATE UNIQUE INDEX "pd_wafl__Reservation__field_8" ON "pd_wafl__Reservation" ("f8");
 CREATE UNIQUE INDEX "pd_wafl__Runner__field_4" ON "pd_wafl__Runner" ("f4");
 CREATE INDEX "pd_wafl__Tenant__page" ON "pd_wafl__Tenant" ("f15", "f1");
 CREATE UNIQUE INDEX "pd_wafl__Tenant__field_4" ON "pd_wafl__Tenant" ("f4");
