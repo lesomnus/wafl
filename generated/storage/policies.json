@@ -63,6 +63,80 @@
       }
     }
   },
+  "wafl.App": {
+    "entity": {
+      "domain": 10,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          }
+        ],
+        "filters": 64,
+        "max": 1000,
+        "order": [
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 100
+      }
+    },
+    "fields": {
+      "revision": {
+        "stamped": true
+      }
+    },
+    "methods": {
+      "Add": {
+        "client_stream": false,
+        "input": ".wafl.AppAddRequest",
+        "output": ".wafl.App",
+        "policy": null,
+        "server_stream": false
+      },
+      "Apply": {
+        "client_stream": false,
+        "input": ".wafl.AppApplyRequest",
+        "output": ".wafl.App",
+        "policy": null,
+        "server_stream": false
+      },
+      "Erase": {
+        "client_stream": false,
+        "input": ".wafl.AppRef",
+        "output": ".wafl.AppEraseResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.AppGetRequest",
+        "output": ".wafl.App",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.AppListRequest",
+        "output": ".wafl.AppListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Patch": {
+        "client_stream": false,
+        "input": ".wafl.AppPatchRequest",
+        "output": ".wafl.App",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
   "wafl.Archived": {
     "entity": {
       "domain": 5,
@@ -166,6 +240,30 @@
         "client_stream": false,
         "input": ".wafl.AuditPatchRequest",
         "output": ".wafl.Audit",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
+  "wafl.Controller": {
+    "entity": {
+      "domain": 12,
+      "erase": {
+        "hard": {}
+      },
+      "global": {},
+      "trail": {
+        "off": {
+          "why": "Controller bootstrap configuration and short transaction serialization."
+        }
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.ControllerGetRequest",
+        "output": ".wafl.Controller",
         "policy": null,
         "server_stream": false
       }
@@ -412,6 +510,63 @@
     },
     "fields": {},
     "methods": {}
+  },
+  "wafl.Placement": {
+    "entity": {
+      "domain": 11,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          },
+          {
+            "name": "app"
+          }
+        ],
+        "filters": 64,
+        "max": 1000,
+        "order": [
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 100
+      },
+      "trail": {
+        "off": {
+          "why": "Controller reconciliation journal; lifecycle retained until app removal."
+        }
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.PlacementGetRequest",
+        "output": ".wafl.Placement",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.PlacementListRequest",
+        "output": ".wafl.PlacementListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Release": {
+        "client_stream": false,
+        "input": ".wafl.PlacementReleaseRequest",
+        "output": ".wafl.Placement",
+        "policy": null,
+        "server_stream": false
+      }
+    }
   },
   "wafl.Reservation": {
     "entity": {

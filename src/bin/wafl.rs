@@ -9,11 +9,13 @@ use wafl_runner::{
     services::wafl::{InstanceServiceClient, RunnerServiceClient},
 };
 
+#[path = "wafl/apps.rs"]
+mod apps;
 #[path = "wafl/reservations.rs"]
 mod reservations;
 
 #[derive(Parser)]
-#[command(version, about = "Run WASM socket servers and manage runner instances")]
+#[command(version, about = "Run WASM applications, controllers and runners")]
 struct Cli {
     #[arg(
         long,
@@ -36,6 +38,16 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Manage controller-owned applications.
+    App {
+        #[command(subcommand)]
+        action: apps::AppCommand,
+    },
+    /// Inspect placements and acknowledge completed gateway withdrawal.
+    Placement {
+        #[command(subcommand)]
+        action: apps::PlacementCommand,
+    },
     /// Inspect durable direct-port reservations and reclaim orphan allocations.
     Reservation {
         #[command(subcommand)]
@@ -64,6 +76,14 @@ enum RunnerCommand {
 #[derive(Subcommand)]
 enum Serve {
     Runner(RunnerArgs),
+    Controller(ControllerArgs),
+}
+#[derive(Args)]
+struct ControllerArgs {
+    #[arg(long)]
+    config: PathBuf,
+    #[arg(long)]
+    listen: Option<SocketAddr>,
 }
 #[derive(Args)]
 struct RunnerArgs {
@@ -281,6 +301,30 @@ impl Add {
 async fn main() -> Result<()> {
     let cli = Cli::parse();
     let action = match cli.command {
+        Command::Serve {
+            role: Serve::Controller(args),
+        } => {
+            let mut config = wafl_runner::controller::Config::read(&args.config)?;
+            if let Some(listen) = args.listen {
+                config.listen = listen;
+            }
+            return wafl_runner::controller::serve(config).await;
+        }
+        Command::App { action } => {
+            ensure!(
+                cli.session.is_none() && cli.revision.is_none(),
+                "controller commands use --expect-revision, not runner session/revision flags"
+            );
+            return apps::app(action, client_config(&cli.endpoint, None, None)?, cli.json).await;
+        }
+        Command::Placement { action } => {
+            ensure!(
+                cli.session.is_none() && cli.revision.is_none(),
+                "placement identity includes its immutable runner session"
+            );
+            return apps::placement(action, client_config(&cli.endpoint, None, None)?, cli.json)
+                .await;
+        }
         Command::Reservation { action } => {
             return reservations::run(
                 action,

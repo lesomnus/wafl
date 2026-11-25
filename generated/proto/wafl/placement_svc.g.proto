@@ -1,0 +1,94 @@
+edition = "2023";
+package wafl;
+
+import "orm.proto";
+import "wafl/app_svc.g.proto";
+import "wafl/payday/tenant_svc.g.proto";
+import "wafl/placement.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+
+service PlacementService {
+  // Get retrieves a Placement
+  rpc Get(PlacementGetRequest) returns (Placement);
+  // List reads Placements a page at a time.
+  rpc List(PlacementListRequest) returns (PlacementListResponse);
+  // Record withdrawal acknowledgement for an already retiring placement.
+  // Reconciliation then completes the session/generation-specific release.
+  rpc Release(PlacementReleaseRequest) returns (Placement);
+}
+
+message PlacementGetRequest {
+  PlacementRef ref = 1;
+  PlacementSelect select = 2;
+}
+
+message PlacementRef {
+  oneof key {
+    bytes id = 1 [(orm.field) = {type: TYPE_UUID}];
+  }
+}
+
+message PlacementSelect {
+  bool all = 1;
+  TenantSelect tenant = 2;
+  AppSelect app = 8;
+  bool revision = 9;
+  bool runner = 10;
+  bool session = 11;
+  bool instance = 12;
+  bool phase = 16;
+  bool manifest = 17;
+  bool execution = 18;
+  bool withdrawn = 19;
+  bool error = 20;
+  bool date_seen = 21;
+  bool failures = 22;
+  bool date_retry = 23;
+}
+
+message PlacementListRequest {
+  // Bounded because the work is: each filter is a predicate in the same query,
+  // so this is what says how much of the database one request may read.
+  repeated PlacementFilter filters = 1;
+
+  // How many to answer with. Nothing said is what the schema declared, and more
+  // than the cap is the cap -- a caller asking for more than there is meant no
+  // harm, so it is not an error and it is not the whole table either.
+  int32 size = 2 [features.field_presence = IMPLICIT];
+
+  // Where to carry on from: the "next" of the answer before. It names the last
+  // row of that page rather than counting rows from the start, so a row added
+  // ahead of the page does not shift it and a caller reading through never sees
+  // one twice or misses one.
+  string after = 3 [features.field_presence = IMPLICIT];
+
+  // Read the order the other way round, every column of it at once -- newest
+  // first where it is oldest first -- which the index the order walks walks
+  // from the other end. A cursor is of the way it was read, so the next page
+  // carries on that way, and one of the other way is refused.
+  bool reverse = 4 [features.field_presence = IMPLICIT];
+}
+
+message PlacementListResponse {
+  repeated Placement items = 1;
+
+  // What to ask for next, and empty when this was the last of them.
+  //
+  // Empty means there is no more *for now*: a list is read as it is, and one
+  // that has grown since answers a fresh call. It is not empty merely because
+  // the page came back short -- a page is short when the last row of it was the
+  // last row there was, which is a thing the server can only know by having
+  // looked.
+  string next = 2 [features.field_presence = IMPLICIT];
+}
+
+message PlacementFilter {
+  PlacementRef ref = 1;
+  AppRef app = 2;
+}
+
+message PlacementReleaseRequest {
+  PlacementRef ref = 1;
+  bool withdrawn = 2 [features.field_presence = IMPLICIT];
+}

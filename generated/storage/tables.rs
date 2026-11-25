@@ -31,6 +31,27 @@
     }
 }
 ::diesel::table! {
+    #[sql_name = "pd_wafl__App"]
+    pd_wafl_app (f1) {
+        /// wafl.App.id
+        f1 -> Binary,
+        /// wafl.App.tenant
+        f2 -> Binary,
+        /// wafl.App.alias
+        f4 -> Text,
+        /// wafl.App.name
+        f5 -> Text,
+        /// wafl.App.domain
+        f8 -> Text,
+        /// wafl.App.replicas
+        f9 -> BigInt,
+        /// wafl.App.revision
+        f10 -> Text,
+        /// wafl.App.manifest
+        f16 -> Nullable<Text>,
+    }
+}
+::diesel::table! {
     #[sql_name = "pd_wafl__Archived"]
     pd_wafl_archived (f1) {
         /// wafl.Archived.id
@@ -98,6 +119,17 @@
         f24 -> Nullable<Binary>,
         /// wafl.Audit.presence
         f25 -> Nullable<Text>,
+    }
+}
+::diesel::table! {
+    #[sql_name = "pd_wafl__Controller"]
+    pd_wafl_controller (f1) {
+        /// wafl.Controller.id
+        f1 -> Binary,
+        /// wafl.Controller.alias
+        f4 -> Text,
+        /// wafl.Controller.configuration
+        f8 -> Text,
     }
 }
 ::diesel::table! {
@@ -194,6 +226,41 @@
         f9 -> Text,
         /// wafl.Owed.date_created
         f15 -> Text,
+    }
+}
+::diesel::table! {
+    #[sql_name = "pd_wafl__Placement"]
+    pd_wafl_placement (f1) {
+        /// wafl.Placement.id
+        f1 -> Binary,
+        /// wafl.Placement.tenant
+        f2 -> Binary,
+        /// wafl.Placement.app
+        f8 -> Binary,
+        /// wafl.Placement.revision
+        f9 -> Text,
+        /// wafl.Placement.runner
+        f10 -> Text,
+        /// wafl.Placement.session
+        f11 -> Binary,
+        /// wafl.Placement.instance
+        f12 -> Binary,
+        /// wafl.Placement.phase
+        f16 -> Text,
+        /// wafl.Placement.manifest
+        f17 -> Nullable<Text>,
+        /// wafl.Placement.execution
+        f18 -> Nullable<Text>,
+        /// wafl.Placement.withdrawn
+        f19 -> Bool,
+        /// wafl.Placement.error
+        f20 -> Text,
+        /// wafl.Placement.date_seen
+        f21 -> Text,
+        /// wafl.Placement.failures
+        f22 -> BigInt,
+        /// wafl.Placement.date_retry
+        f23 -> Text,
     }
 }
 ::diesel::table! {

@@ -42,6 +42,106 @@ async fn dispatch(
                 .await?;
             emit(serde_json::to_value(res.into_owned())?)?;
         }
+        ("wafl.App", "Add") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppAddRequest,
+                <proto::r#wafl::r#App as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Add",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.App", "Apply") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppApplyRequest,
+                <proto::r#wafl::r#App as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Apply",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.App", "Erase") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppRef,
+                <proto::r#wafl::r#AppEraseResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Erase",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.App", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppGetRequest,
+                <proto::r#wafl::r#App as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Get",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.App", "List") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppListRequest,
+                <proto::r#wafl::r#AppListResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "List",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.App", "Patch") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppPatchRequest,
+                <proto::r#wafl::r#App as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Patch",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Audit", "Add") => {
             let res = call_unary::<
                 _,
@@ -136,6 +236,22 @@ async fn dispatch(
                     config,
                     "wafl.AuditService",
                     "Patch",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Controller", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#ControllerGetRequest,
+                <proto::r#wafl::r#Controller as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.ControllerService",
+                    "Get",
                     serde_json::from_value(request)?,
                     Default::default(),
                 )
@@ -414,6 +530,56 @@ async fn dispatch(
             while let Some(msg) = stream.message::<proto::r#wafl::r#Log>().await? {
                 emit(serde_json::to_value(msg.to_owned_message())?)?;
             }
+        }
+        ("wafl.Placement", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#PlacementGetRequest,
+                <proto::r#wafl::r#Placement as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.PlacementService",
+                    "Get",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Placement", "List") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#PlacementListRequest,
+                <proto::r#wafl::r#PlacementListResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.PlacementService",
+                    "List",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.Placement", "Release") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#PlacementReleaseRequest,
+                <proto::r#wafl::r#Placement as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.PlacementService",
+                    "Release",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
         }
         ("wafl.Reservation", "Get") => {
             let res = call_unary::<
