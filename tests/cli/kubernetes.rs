@@ -61,6 +61,8 @@ async fn gateway(root: &Path, controller: &str, entry: u16) -> Child {
         .current_dir(root)
         .args([
             format!("--entrypoints.web.address=127.0.0.1:{entry}"),
+            "--entrypoints.web.transport.respondingtimeouts.readtimeout=0s".into(),
+            "--entrypoints.web.transport.respondingtimeouts.writetimeout=0s".into(),
             format!("--providers.http.endpoint={controller}/traefik"),
             "--providers.http.pollinterval=100ms".into(),
             "--providers.providersthrottleduration=100ms".into(),

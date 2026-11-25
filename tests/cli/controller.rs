@@ -372,6 +372,8 @@ async fn postgres_replicas_reconcile_real_runners_and_traefik_routes_http_and_gr
     let mut gateway = Command::new(traefik)
         .args([
             format!("--entrypoints.web.address={gateway_address}"),
+            "--entrypoints.web.transport.respondingtimeouts.readtimeout=0s".into(),
+            "--entrypoints.web.transport.respondingtimeouts.writetimeout=0s".into(),
             format!("--providers.http.endpoint={}/traefik", c2.endpoint),
             "--providers.http.pollinterval=100ms".into(),
             "--providers.http.polltimeout=2s".into(),

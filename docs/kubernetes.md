@@ -13,7 +13,7 @@ kubectl apply -f deploy/kubernetes/apps.json
 kubectl apply -f deploy/kubernetes/rbac.yaml
 ```
 
-`apps.json`은 protobuf descriptor에서 생성한 CRD이며 `kubectl`이 JSON을 그대로 읽습니다. 예제 RBAC는 `wafl-system/wafl-controller` ServiceAccount에 `demo` namespace의 App 조회·감시·finalizer/status patch만 허용합니다. controller Pod의 `spec.serviceAccountName`을 `wafl-controller`로 지정합니다. 감시 namespace를 늘리려면 해당 namespace에도 Role/RoleBinding을 설치하세요.
+`apps.json`은 protobuf descriptor에서 생성한 CRD이며 `kubectl`이 JSON을 그대로 읽습니다. 예제 RBAC는 `wafl-system/wafl-controller` ServiceAccount에 `demo` namespace의 App 조회·감시·patch와 status patch를 허용합니다. provider는 App patch를 finalizer 변경에 사용하지만, RBAC 자체가 변경 가능한 필드를 제한하지는 않습니다. controller Pod의 `spec.serviceAccountName`을 `wafl-controller`로 지정합니다. 감시 namespace를 늘리려면 해당 namespace에도 Role/RoleBinding을 설치하세요.
 
 controller의 기존 JSON 설정에 다음 필드를 추가합니다.
 
