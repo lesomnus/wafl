@@ -74,6 +74,10 @@ async fn yaml_first_request_load_scaling_idle_zero_and_cold_restart() {
         .current_dir(root.path())
         .args([
             format!("--entrypoints.web.address=127.0.0.1:{entry}"),
+            // Match the documented streaming gateway; the gRPC deadline also
+            // covers cold compilation, which can outlive the HTTP read timeout.
+            "--entrypoints.web.transport.respondingtimeouts.readtimeout=0s".into(),
+            "--entrypoints.web.transport.respondingtimeouts.writetimeout=0s".into(),
             format!("--providers.http.endpoint={}/traefik", c1.endpoint),
             "--providers.http.pollinterval=100ms".into(),
             "--providers.providersthrottleduration=100ms".into(),
