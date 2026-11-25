@@ -155,6 +155,17 @@ def cpu_counters(groups):
     return counters
 
 
+def tcp_connections(ports):
+    pairs = set()
+    for line in Path("/proc/net/tcp").read_text().splitlines()[1:]:
+        fields = line.split()
+        if fields[3] == "0A":  # Exclude listening sockets.
+            continue
+        if any(int(address.rsplit(":", 1)[1], 16) in ports for address in fields[1:3]):
+            pairs.add(tuple(sorted(fields[1:3])))
+    return pairs
+
+
 def metrics(samples, elapsed, traffic, cpu):
     return {"cpu_seconds": cpu, "cpu_pct": 100 * cpu / elapsed,
             "pss_mib": statistics.median(s["pss_kib"] for s in samples) / 1024,
@@ -164,7 +175,7 @@ def metrics(samples, elapsed, traffic, cpu):
             "cpu_ms_request": 1000 * cpu / traffic["ok"] if traffic and traffic["ok"] else None}
 
 
-async def measure(groups, targets, seconds, name, rate=0, path="/"):
+async def measure(groups, targets, seconds, name, rate=0, path="/", connection_ports=None):
     # Reading smaps_rollup can block on kernel memory accounting. Never let it
     # stall the event loop that schedules the offered request rate.
     sampling_ms = []
@@ -175,6 +186,7 @@ async def measure(groups, targets, seconds, name, rate=0, path="/"):
         sampling_ms.append((time.monotonic() - before) * 1000)
         return value
 
+    connections_before = await asyncio.to_thread(tcp_connections, connection_ports) if connection_ports else None
     initial = await take_snapshot()
     cpu_start = cpu_counters(groups)
     start = time.monotonic()
@@ -202,6 +214,7 @@ async def measure(groups, targets, seconds, name, rate=0, path="/"):
         stop.set()
         await sampling
     final = await take_snapshot()
+    connections_after = await asyncio.to_thread(tcp_connections, connection_ports) if connection_ports else None
     samples.append({"time": elapsed, **final})
     cpu = {name: cpu_end[name] - cpu_start[name] for name in groups}
     group_metrics = {name: metrics([s["groups"][name] for s in samples], elapsed, traffic, cpu[name])
@@ -209,6 +222,9 @@ async def measure(groups, targets, seconds, name, rate=0, path="/"):
     return {"phase": name, "elapsed": elapsed, **metrics(samples, elapsed, traffic, sum(cpu.values())),
             "groups": group_metrics, "traffic": traffic, "samples": samples,
             "sampling_ms": sampling_ms,
+            "connections": None if connections_before is None else {
+                "ports": connection_ports, "initial": len(connections_before),
+                "final": len(connections_after), "new_tuples": len(connections_after - connections_before)},
             "cpu_start": cpu_start, "cpu_end": cpu_end,
             "cgroup_cpu_start": cgroup_start, "cgroup_cpu_end": cgroup_end}
 
@@ -281,6 +297,7 @@ async def trial(args, case, memory, repeat, bundles, directory):
                 else:
                     targets.append((ingress, instance, "bench.local"))
         await ready(processes, targets)
+        connection_ports = sorted({port for port, _, _ in targets}) if args.connections else None
         if args.gateway:
             gateway_port = ports(1)[0]
             dynamic = folder / "routes"
@@ -301,12 +318,12 @@ async def trial(args, case, memory, repeat, bundles, directory):
             await ready(processes, targets)
         startup = time.monotonic() - start
         await asyncio.sleep(2)
-        phases = [await measure(groups, targets, args.seconds, "idle")]
+        phases = [await measure(groups, targets, args.seconds, "idle", connection_ports=connection_ports)]
         for name, rate, path in [("http", args.rps, "/"), ("work", args.work_rps, "/work")]:
             warmup = await load(targets, 2, rate, path)
             if warmup["errors"]:
                 raise RuntimeError(f"warmup errors: {warmup['errors'][:3]}")
-            phases.append(await measure(groups, targets, args.seconds, name, rate, path))
+            phases.append(await measure(groups, targets, args.seconds, name, rate, path, connection_ports))
         result = {"case": case, "memory_mib_per_guest": memory, "repeat": repeat,
                   "startup_seconds": startup, "pids": [p.pid for p in processes], "commands": commands,
                   "instances": instances, "gateway": args.gateway, "phases": phases}
@@ -335,6 +352,7 @@ async def main():
         parser.add_argument(f"--{name}", required=True)
     parser.add_argument("--traefik", help="Traefik binary, required with --gateway")
     parser.add_argument("--gateway", action="store_true", help="Put a Traefik gateway in front of each case")
+    parser.add_argument("--connections", action="store_true", help="Diagnostic: observe new backend TCP tuples via /proc/net/tcp")
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--seconds", type=float, default=10)
     parser.add_argument("--rps", type=int, default=500)

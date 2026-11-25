@@ -58,6 +58,11 @@ proxy 구성에는 `wafl-instance` 헤더를 주입한다. 별도 서비스의 �
 측정기·부하 생성기 CPU는 포함하지 않는다. 모든 구간 뒤 gateway부터 종료하고 완전히
 종료한 후 backend를 종료한다. 다음 trial에 이전 경로나 연결 pool을 남기지 않는다.
 
+`--connections`는 별도 진단 실행에서 사용할 수 있다. 각 phase 전후 `/proc/net/tcp`에서
+gateway의 backend 주소에 대한 TCP tuple을 관찰한다. `connections.new_tuples`는 새로 관찰한
+주소 쌍 수이며 ESTABLISHED·TIME_WAIT 등을 포함하고 LISTEN은 제외한다. 만료·tuple 재사용으로
+놓칠 수 있으므로 정확한 connect syscall 횟수는 아니다. 이 진단은 주 성능 표와 별도 결과에 저장한다.
+
 ## 공정한 조건과 해석 범위
 
 - proxy/direct는 동일한 runner release 바이너리다. 차이는 `direct` 설정, endpoint 선택,
@@ -67,8 +72,8 @@ proxy 구성에는 `wafl-instance` 헤더를 주입한다. 별도 서비스의 �
   executor가 runner와 완전히 같지는 않으며 두 프로세스 대 한 프로세스의 비교다.
 - 프로세스마다 `TOKIO_WORKER_THREADS=2`, `RAYON_NUM_THREADS=2`, `GOMAXPROCS=2`를
   사용한다. CPU/fuel quota는 없고, runner는 취소를 위한 기존 10 ms epoch clock을 유지한다.
-- 모든 수신 주소는 loopback이다. 각 요청은 새 TCP 연결이며 guest는 `Connection: close`로
-  응답한다. 이 조건은 이전 실험과 같고 keep-alive, HTTP/2, gRPC, TLS, 큰 body, 실제 Pod 간
+- 모든 수신 주소는 loopback이다. 부하 생성기는 각 요청에 새 TCP 연결을 열고 guest는 `Connection: close`로
+  응답한다. Traefik→runner 구간에는 pooling이 가능하다. 이 조건은 이전 실험과 같고 keep-alive를 지원하는 guest, HTTP/2, gRPC, TLS, 큰 body, 실제 Pod 간
   네트워크나 최대 처리량을 대표하지 않는다. 직결 mode의 gRPC 동작은 별도 통합 테스트에서 검증한다.
 - OTLP export·DB·앱별 요청 로그는 끈다. compilation·bundle 다운로드·Add는 측정 구간 밖이다.
   JSON의 startup_seconds는 준비 시간을 참고로 기록한 값이며 cold-start 비교에 사용하지 않는다.
