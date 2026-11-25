@@ -80,6 +80,10 @@ proxy 구성에는 `wafl-instance` 헤더를 주입한다. 별도 서비스의 �
 - 고정 도착률로 요청을 생성하며 task 시작 지연 `schedule_p95_ms`, 실제 처리율과 실패를 기록한다.
   응답 latency는 task 시작부터 body 완료까지다. shared host의 다른 부하와 scheduler 영향을 받는다.
   `cgroup_cpu_start/end`는 이 실험 밖 프로세스도 포함한 cgroup 상태로, 서버 CPU와 분리해서 해석한다.
+- `/proc` 표본은 별도 thread에서 읽어 kernel memory accounting 지연이 요청 생성 event loop를
+  멈추지 않게 한다. `sampling_ms`에 각 표본 수집 소요 시간을 남긴다. 목표 처리율을 유지하지
+  못하거나 task 시작 지연이 큰 구간은 정상 부하의 latency 비교로 사용하지 않는다.
+  CPU/time의 구간 경계는 빠른 `/proc/stat` counter로 별도로 잡고 마지막 memory 표본 대기를 포함하지 않는다.
 
 ## 결과 보존
 

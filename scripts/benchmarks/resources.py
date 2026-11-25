@@ -144,8 +144,18 @@ def cgroup_cpu():
     return dict((key, int(value)) for key, value in (line.split() for line in text.splitlines())) if text else {}
 
 
-def metrics(initial, final, samples, elapsed, traffic):
-    cpu = final["cpu_seconds"] - initial["cpu_seconds"]
+def cpu_counters(groups):
+    counters = {}
+    for name, processes in groups.items():
+        total = 0
+        for process in processes:
+            stat = Path(f"/proc/{process.pid}/stat").read_text().rsplit(")", 1)[1].split()
+            total += int(stat[11]) + int(stat[12])
+        counters[name] = total / os.sysconf("SC_CLK_TCK")
+    return counters
+
+
+def metrics(samples, elapsed, traffic, cpu):
     return {"cpu_seconds": cpu, "cpu_pct": 100 * cpu / elapsed,
             "pss_mib": statistics.median(s["pss_kib"] for s in samples) / 1024,
             "rss_mib": statistics.median(s["rss_kib"] for s in samples) / 1024,
@@ -155,9 +165,20 @@ def metrics(initial, final, samples, elapsed, traffic):
 
 
 async def measure(groups, targets, seconds, name, rate=0, path="/"):
+    # Reading smaps_rollup can block on kernel memory accounting. Never let it
+    # stall the event loop that schedules the offered request rate.
+    sampling_ms = []
+
+    async def take_snapshot():
+        before = time.monotonic()
+        value = await asyncio.to_thread(grouped_snapshot, groups)
+        sampling_ms.append((time.monotonic() - before) * 1000)
+        return value
+
+    initial = await take_snapshot()
+    cpu_start = cpu_counters(groups)
     start = time.monotonic()
     cgroup_start = cgroup_cpu()
-    initial = grouped_snapshot(groups)
     samples = [{"time": 0, **initial}]
     stop = asyncio.Event()
 
@@ -166,7 +187,8 @@ async def measure(groups, targets, seconds, name, rate=0, path="/"):
             try:
                 await asyncio.wait_for(stop.wait(), .5)
             except asyncio.TimeoutError:
-                samples.append({"time": time.monotonic() - start, **grouped_snapshot(groups)})
+                value = await take_snapshot()
+                samples.append({"time": time.monotonic() - start, **value})
 
     sampling = asyncio.create_task(sampler())
     try:
@@ -174,17 +196,21 @@ async def measure(groups, targets, seconds, name, rate=0, path="/"):
         if not rate:
             await asyncio.sleep(seconds)
     finally:
+        elapsed = time.monotonic() - start
+        cpu_end = cpu_counters(groups)
+        cgroup_end = cgroup_cpu()
         stop.set()
         await sampling
-    final = grouped_snapshot(groups)
-    elapsed = time.monotonic() - start
+    final = await take_snapshot()
     samples.append({"time": elapsed, **final})
-    group_metrics = {name: metrics(initial["groups"][name], final["groups"][name],
-                                  [s["groups"][name] for s in samples], elapsed, traffic)
+    cpu = {name: cpu_end[name] - cpu_start[name] for name in groups}
+    group_metrics = {name: metrics([s["groups"][name] for s in samples], elapsed, traffic, cpu[name])
                      for name in groups}
-    return {"phase": name, "elapsed": elapsed, **metrics(initial, final, samples, elapsed, traffic),
+    return {"phase": name, "elapsed": elapsed, **metrics(samples, elapsed, traffic, sum(cpu.values())),
             "groups": group_metrics, "traffic": traffic, "samples": samples,
-            "cgroup_cpu_start": cgroup_start, "cgroup_cpu_end": cgroup_cpu()}
+            "sampling_ms": sampling_ms,
+            "cpu_start": cpu_start, "cpu_end": cpu_end,
+            "cgroup_cpu_start": cgroup_start, "cgroup_cpu_end": cgroup_end}
 
 
 async def trial(args, case, memory, repeat, bundles, directory):
