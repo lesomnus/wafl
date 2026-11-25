@@ -134,6 +134,8 @@ Manifest 수치 필드의 0은 기본값을 선택합니다. runner의 `capacity
 
 HTTP 경로는 `/wafl.InstanceService/<동사>`입니다. 모두 인증 없이 호출하며 tenant에 따른 접근 범위를 제한하지 않습니다. `tenant`는 entity 소속 정보입니다. 관리 RPC와 앱 트래픽 모두 별도의 토큰 설정이 없습니다.
 
+직결의 `ReservationService.Get/List/Release`는 프로세스 장애로 남은 영속 포트 예약을 다룹니다. `Reservation`은 전역 entity이며 Get/List는 생성된 RPC입니다. Release는 `{ref, token, withdrawn}`을 받아 소유 세션의 종료와 관측한 배정을 확인합니다. 정상 Instance의 Release와 대상·조건이 다르며 [예약 복구 계약](reservations.md)에 정의합니다.
+
 ```sh
 curl -H 'Content-Type: application/json' -H 'Connect-Protocol-Version: 1' \
   -d '{}' http://127.0.0.1:8081/wafl.InstanceService/List

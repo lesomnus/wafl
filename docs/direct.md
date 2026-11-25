@@ -136,11 +136,11 @@ gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합
 
 `direct.directory`는 **절대 경로의 영속 상태**이며 삭제 가능한 bundle cache와 서로 포함되지 않는 별도 디렉터리여야 합니다. 같은 advertise IP를 사용하는 모든 runner 프로세스는 같은 상태 디렉터리를 공유합니다. 포트 풀은 WAFL 전용으로 운영하고 OS ephemeral/client 포트·다른 서버의 listener 범위와 겹치지 않게 배치합니다. runner가 OS 네트워크 설정을 변경하지는 않습니다.
 
-예약은 `v1/<advertise-IP>/<port>.json`에 token/session/instance/generation을 저장합니다. `create_new`로 프로세스 간 배정을 조정하고 파일·디렉터리를 동기화한 뒤 실제 WASI 소켓이 bind합니다. OS가 사용 중인 포트는 다른 후보를 시도합니다. probe 후 소켓을 닫고 재bind하는 방식은 쓰지 않습니다. 상태 저장소는 로컬 POSIX 파일 생성·동기화 의미를 제공해야 합니다. NFS/object storage 분산 잠금은 이 계약에 포함하지 않습니다.
+예약은 `v1/<advertise-IP>/<port>.json`에 version/token/session/instance/generation을 저장합니다. 풀의 `catalog.lock`과 `create_new`로 프로세스 간 배정·반환을 조정하고 파일·디렉터리를 동기화한 뒤 실제 WASI 소켓이 bind합니다. OS가 사용 중인 포트는 다른 후보를 시도합니다. probe 후 소켓을 닫고 재bind하는 방식은 쓰지 않습니다. 세션별 파일의 OS 잠금으로 소유자의 생존 여부를 확인합니다. 상태 저장소는 로컬 POSIX 파일 생성·동기화·잠금 의미를 제공해야 합니다. NFS/object storage 분산 잠금은 이 계약에 포함하지 않습니다.
 
 공개된 예약은 시간 경과, 죽은 PID, runner 재시작, bundle GC로 회수하지 않습니다. IP가 재사용될 수 있는 Pod 교체도 이전 IP의 예약 상태를 잃으면 안 됩니다. Kubernetes에서는 IP 재사용과 gateway 철회를 제어평면이 조정하고 상태 볼륨의 수명을 그에 맞춰야 합니다. 단순 `emptyDir`만으로 재생성된 Pod까지 보호하지 못합니다.
 
-충돌 후 Instance 목록은 복원되지 않으므로 이전 예약에는 이 프로세스의 Release를 호출할 수 없습니다. 현재는 운영자가 **이전 세션이 끝났고 해당 endpoint를 참조하는 모든 경로·연결이 철회됐음을 확인한 뒤** 대응하는 예약 파일만 정리해야 합니다. 실행 중인 runner나 다른 세션의 파일은 지우지 않습니다. 파일명과 owner 내용으로 대상을 식별합니다. 재시작마다 상태 디렉터리를 비우는 방식은 사용하지 않습니다. 자동 orphan 조정 API와 gateway 확인 프로토콜은 #10의 후속 범위입니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
+충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 이전 저널의 업그레이드 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. 자동 조정 루프와 gateway 확인 프로토콜은 #10의 후속 범위입니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
 
 ## 제한과 메트릭
 
@@ -155,7 +155,7 @@ gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합
 | `wafl-instance`, `wafl-session` 앱 트래픽 헤더 | 선택 기능 없음. 필요한 외부 헤더 정책은 L7에서 처리 |
 | scale-to-zero의 첫 요청 | 외부 activator가 실행을 준비하고 endpoint를 공개한 뒤 전달해야 함 |
 
-`Runner.ingress`는 빈 문자열이고 capabilities에 `direct-endpoint-v1`, `external-drain-v1`을 제공합니다. 기본 proxy 모드는 `proxy-ingress`, `drain`을 제공합니다. runner의 `capacity.requests`와 `usage.requests`는 직결 HTTP 부하 제한·관측으로 사용할 수 없습니다. CPU/fuel quota를 추가하지 않았으며 메모리 제한도 process RSS 전체 제한과는 다릅니다.
+`Runner.ingress`는 빈 문자열이고 capabilities에 `direct-endpoint-v1`, `external-drain-v1`, `reservation-recovery-v1`을 제공합니다. 기본 proxy 모드는 `proxy-ingress`, `drain`을 제공합니다. runner의 `capacity.requests`와 `usage.requests`는 직결 HTTP 부하 제한·관측으로 사용할 수 없습니다. CPU/fuel quota를 추가하지 않았으며 메모리 제한도 process RSS 전체 제한과는 다릅니다.
 
 ## 검증 시나리오
 
@@ -169,5 +169,6 @@ cargo test --locked --lib endpoint::
 - HTTP 응답 body·gRPC stream 도중 Drain해도 연결이 유지되고 Release 뒤 포트가 반환됩니다.
 - session/revision/generation이 다른 Release를 거절하고, 공유 상태를 쓰는 별도 runner 프로세스가 주소를 중복 배정하지 않습니다.
 - runner를 강제 종료·재시작해도 이전 주소를 새 앱에 재사용하지 않습니다.
+- 이전 세션의 예약을 조건부 회수한 뒤 같은 포트를 재사용하고, 오래된 token의 재시도가 새 앱을 건드리지 않는지 검증합니다.
 
 Traefik 예제는 실제 file provider와 두 backend로 수동 검증합니다. CI는 외부 프록시 다운로드 없이 runner/CLI와 실제 WASM 소켓 계약을 검증합니다.
