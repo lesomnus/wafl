@@ -129,7 +129,7 @@ impl Control {
                     let allocated_memory = allocated.iter().fold(0u64, |n,p| n.saturating_add(p.manifest.memory_bytes));
                     // A concurrent controller may have recorded Ready since our
                     // probe. Account for durable reservations as well as usage.
-                    let managed=app.scaling.as_option().is_some();
+                    let managed=managed(&app);
                     (!managed || r.capabilities.iter().any(|c|c=="sealed-instance-v1") && r.usage.tombstones.saturating_add(allocated.len() as u64)<r.capacity.tombstones)
                         && r.accepting && r.usage.running.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.running
                         && r.usage.instances.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.instances
@@ -145,7 +145,7 @@ impl Control {
                     "id":encode(&paydirt::mint(11)), "tenant":{"id":encode(&app.tenant.id)},
                     "app":{"id":encode(&app.id)}, "revision":app.revision.to_string(),
                     "runner":endpoint, "session":encode(&r.id), "instance":encode(&paydirt::mint(7)),
-                    "manifest":app.manifest, "phase":PlacementPhase::Pending,"dateSeen":date.to_string(),"managed":app.scaling.as_option().is_some()
+                    "manifest":app.manifest, "phase":PlacementPhase::Pending,"dateSeen":date.to_string(),"managed":managed(&app)
                 }))?)?;
                 placements.push(p);
             }

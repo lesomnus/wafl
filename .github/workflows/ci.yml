@@ -40,12 +40,19 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: sudo apt-get update && sudo apt-get install -y libpq-dev
       - run: bash scripts/install-traefik.sh /tmp/wafl-traefik
+      - name: Create disposable Kubernetes API for App provider tests
+        run: |
+          curl -fsSL --retry 3 -o /tmp/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
+          echo 'aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  /tmp/kind' | sha256sum --check
+          chmod +x /tmp/kind
+          /tmp/kind create cluster --name wafl-test --kubeconfig /tmp/wafl-kubeconfig --wait 90s
       - run: cargo fmt --all -- --check
       - run: bash scripts/test.sh --tests -- --include-ignored
         env:
           WAFL_TEST_DATABASE_URL: redis://localhost:6379/0
           WAFL_TEST_CONTROLLER_DATABASE_URL: postgresql://postgres:wafl-test@localhost:5432/wafl
           WAFL_TEST_TRAEFIK: /tmp/wafl-traefik/traefik
+          WAFL_TEST_KUBECONFIG: /tmp/wafl-kubeconfig
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - uses: actions/setup-go@v5
         with:

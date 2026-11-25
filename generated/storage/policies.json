@@ -91,6 +91,9 @@
       "revision": {
         "stamped": true
       },
+      "source": {
+        "stamped": true
+      },
       "state": {
         "stamped": true
       }
@@ -135,6 +138,53 @@
         "client_stream": false,
         "input": ".wafl.AppPatchRequest",
         "output": ".wafl.App",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
+  "wafl.AppSource": {
+    "entity": {
+      "domain": 14,
+      "erase": {
+        "hard": {}
+      },
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          }
+        ],
+        "filters": 64,
+        "max": 1000,
+        "order": [
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 100
+      },
+      "trail": {
+        "off": {
+          "why": "Provider ownership journal and permanent deletion fence; written only by controller reconciliation."
+        }
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.AppSourceGetRequest",
+        "output": ".wafl.AppSource",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.AppSourceListRequest",
+        "output": ".wafl.AppSourceListResponse",
         "policy": null,
         "server_stream": false
       }

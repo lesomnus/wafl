@@ -1,7 +1,11 @@
 use anyhow::{Result, ensure};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, net::SocketAddr, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    net::SocketAddr,
+    path::{Path, PathBuf},
+};
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -28,6 +32,29 @@ pub struct Config {
     pub entrypoint: String,
     #[serde(default)]
     pub traffic: Option<TrafficConfig>,
+    #[serde(default)]
+    pub providers: Providers,
+}
+#[derive(Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct Providers {
+    pub kubernetes: Option<KubernetesConfig>,
+}
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct KubernetesConfig {
+    /// Stable identity of the Kubernetes cluster, shared by controller replicas.
+    pub cluster: String,
+    /// Explicit namespace -> existing WAFL tenant UUID bindings.
+    pub namespaces: BTreeMap<String, String>,
+    /// Omit for in-cluster credentials or the default KUBECONFIG.
+    pub kubeconfig: Option<PathBuf>,
+    pub context: Option<String>,
+    #[serde(default = "provider_interval")]
+    pub interval_ms: u64,
+}
+fn provider_interval() -> u64 {
+    2000
 }
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -87,6 +114,44 @@ impl Config {
         Ok(value)
     }
     pub fn validate(&self) -> Result<()> {
+        if let Some(k) = &self.providers.kubernetes {
+            ensure!(
+                self.traffic.is_some(),
+                "Kubernetes apps require traffic configuration for automatic drain"
+            );
+            ensure!(
+                !k.cluster.is_empty()
+                    && k.cluster.len() <= 128
+                    && k.cluster
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || matches!(c, b'-' | b'_' | b'.')),
+                "invalid Kubernetes cluster identity"
+            );
+            ensure!(
+                !k.namespaces.is_empty() && k.namespaces.len() <= 64,
+                "configure 1..64 Kubernetes namespace bindings"
+            );
+            ensure!(
+                (500..=60000).contains(&k.interval_ms),
+                "invalid Kubernetes reconciliation interval"
+            );
+            for (namespace, tenant) in &k.namespaces {
+                ensure!(
+                    !namespace.is_empty()
+                        && namespace.len() <= 63
+                        && !namespace.starts_with('-')
+                        && !namespace.ends_with('-')
+                        && namespace
+                            .bytes()
+                            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == b'-'),
+                    "invalid Kubernetes namespace"
+                );
+                ensure!(
+                    paydirt::parse_id(tenant).is_some_and(|id| paydirt::has_domain(&id, 1)),
+                    "Kubernetes namespace must reference a tenant UUID"
+                );
+            }
+        }
         if let Some(t) = &self.traffic {
             for endpoint in [&t.control, &t.activate] {
                 let url = reqwest::Url::parse(endpoint)?;
@@ -173,6 +238,11 @@ impl Config {
             .collect();
         runners.sort();
         let traffic=self.traffic.as_ref().map(|t|serde_json::json!({"control":t.control,"activate":t.activate,"interval":t.interval_ms,"fresh":t.fresh_ms,"waiting":t.waiting}));
-        format!("{:x}", Sha256::digest(serde_json::to_vec(&serde_json::json!({"format":2,"runners":runners,"pending":self.max_pending,"retiring":self.max_retiring,"replicas":self.max_replicas,"fresh":self.fresh_ms,"entrypoint":self.entrypoint,"traffic":traffic})).unwrap()))
+        let mut shared = serde_json::json!({"format":2,"runners":runners,"pending":self.max_pending,"retiring":self.max_retiring,"replicas":self.max_replicas,"fresh":self.fresh_ms,"entrypoint":self.entrypoint,"traffic":traffic});
+        if let Some(k) = &self.providers.kubernetes {
+            shared["kubernetes"] =
+                serde_json::json!({"cluster":k.cluster,"namespaces":k.namespaces});
+        }
+        format!("{:x}", Sha256::digest(serde_json::to_vec(&shared).unwrap()))
     }
 }

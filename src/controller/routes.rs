@@ -21,11 +21,14 @@ impl Control {
                         && p.execution.phase == Phase::Running && !p.execution.draining && p.execution.direct
                 }).take(scaling::desired(&app) as usize).collect();
                 routers.insert(name.clone(), json!({"rule":format!("Host(`{}`)",app.domain),"entryPoints":[config.entrypoint],"service":name}));
-                if app.scaling.as_option().is_some() {
+                if managed(&app) {
                     let t=config.traffic.as_ref().ok_or_else(||paydirt_store::Fault::precondition("traffic configuration missing"))?;
                     if ready.is_empty() {
-                        let url=if app.manifest.protocol=="h2c" {t.activate.replacen("http://","h2c://",1)} else {t.activate.clone()};
-                        services.insert(name,json!({"loadBalancer":{"servers":[{"url":url}],"passHostHeader":true}}));
+                        let servers=if app.scaling.as_option().is_some() {
+                            let url=if app.manifest.protocol=="h2c" {t.activate.replacen("http://","h2c://",1)} else {t.activate.clone()};
+                            vec![json!({"url":url})]
+                        } else {Vec::new()};
+                        services.insert(name,json!({"loadBalancer":{"servers":servers,"passHostHeader":true}}));
                     } else {
                         let mut weighted=Vec::new();
                         for p in ready {

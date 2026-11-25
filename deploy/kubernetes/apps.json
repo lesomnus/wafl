@@ -1,0 +1,336 @@
+{
+  "apiVersion": "apiextensions.k8s.io/v1",
+  "kind": "CustomResourceDefinition",
+  "metadata": {
+    "name": "apps.wafl.opt.td"
+  },
+  "spec": {
+    "group": "wafl.opt.td",
+    "names": {
+      "kind": "App",
+      "plural": "apps",
+      "shortNames": [
+        "wapp"
+      ],
+      "singular": "app"
+    },
+    "scope": "Namespaced",
+    "versions": [
+      {
+        "additionalPrinterColumns": [
+          {
+            "jsonPath": ".spec.domain",
+            "name": "Domain",
+            "type": "string"
+          },
+          {
+            "jsonPath": ".status.desired",
+            "name": "Desired",
+            "type": "integer"
+          },
+          {
+            "jsonPath": ".status.ready",
+            "name": "Running",
+            "type": "integer"
+          },
+          {
+            "jsonPath": ".status.conditions[?(@.type=='Ready')].status",
+            "name": "Ready",
+            "type": "string"
+          },
+          {
+            "jsonPath": ".metadata.creationTimestamp",
+            "name": "Age",
+            "type": "date"
+          }
+        ],
+        "name": "v1alpha1",
+        "schema": {
+          "openAPIV3Schema": {
+            "properties": {
+              "apiVersion": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "metadata": {
+                "type": "object"
+              },
+              "spec": {
+                "properties": {
+                  "domain": {
+                    "maxLength": 253,
+                    "minLength": 1,
+                    "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$",
+                    "type": "string",
+                    "x-kubernetes-validations": [
+                      {
+                        "message": "domain is immutable; create a new App",
+                        "rule": "self == oldSelf"
+                      }
+                    ]
+                  },
+                  "manifest": {
+                    "properties": {
+                      "abi": {
+                        "enum": [
+                          "",
+                          "wasip2"
+                        ],
+                        "type": "string"
+                      },
+                      "bindings": {
+                        "items": {
+                          "properties": {
+                            "port": {
+                              "format": "int64",
+                              "maximum": 65535,
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "target": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "port",
+                            "target"
+                          ],
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
+                      "bundle": {
+                        "properties": {
+                          "digest": {
+                            "pattern": "^$|^sha256:[0-9a-f]{64}$",
+                            "type": "string"
+                          },
+                          "url": {
+                            "maxLength": 8192,
+                            "minLength": 1,
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "url"
+                        ],
+                        "type": "object"
+                      },
+                      "env": {
+                        "additionalProperties": {
+                          "type": "string"
+                        },
+                        "type": "object"
+                      },
+                      "idleMs": {
+                        "format": "int64",
+                        "maximum": 0,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "maxActive": {
+                        "format": "int64",
+                        "maximum": 0,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "memoryBytes": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "port": {
+                        "default": 8080,
+                        "format": "int64",
+                        "maximum": 65535,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "protocol": {
+                        "enum": [
+                          "",
+                          "http",
+                          "h2c"
+                        ],
+                        "type": "string"
+                      },
+                      "runtime": {
+                        "enum": [
+                          "",
+                          "wasmtime"
+                        ],
+                        "type": "string"
+                      },
+                      "startupMs": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "bundle"
+                    ],
+                    "type": "object"
+                  },
+                  "name": {
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  "replicas": {
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "scaling": {
+                    "properties": {
+                      "downMs": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "idleMs": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "max": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "min": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "target": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "upMs": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "waitMs": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "waiting": {
+                        "format": "int64",
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "domain",
+                  "manifest"
+                ],
+                "type": "object",
+                "x-kubernetes-validations": [
+                  {
+                    "message": "replicas must be omitted or zero with scaling",
+                    "rule": "!has(self.scaling) || !has(self.replicas) || self.replicas == 0"
+                  }
+                ]
+              },
+              "status": {
+                "properties": {
+                  "alias": {
+                    "type": "string"
+                  },
+                  "app": {
+                    "type": "string"
+                  },
+                  "conditions": {
+                    "items": {
+                      "properties": {
+                        "lastTransitionTime": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "observedGeneration": {
+                          "format": "int64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "reason": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "True",
+                            "False",
+                            "Unknown"
+                          ],
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "status",
+                        "reason",
+                        "message",
+                        "lastTransitionTime",
+                        "observedGeneration"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array",
+                    "x-kubernetes-list-map-keys": [
+                      "type"
+                    ],
+                    "x-kubernetes-list-type": "map"
+                  },
+                  "desired": {
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "observedGeneration": {
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "ready": {
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  },
+                  "revision": {
+                    "format": "int64",
+                    "minimum": 0,
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "spec"
+            ],
+            "type": "object"
+          }
+        },
+        "served": true,
+        "storage": true,
+        "subresources": {
+          "status": {}
+        }
+      }
+    ]
+  }
+}

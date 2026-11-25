@@ -3,6 +3,7 @@ package wafl;
 import "payday.proto";
 import "orm.proto";
 import "wafl/manifest.proto";
+import "wafl/app_source.proto";
 import "wafl/payday/tenant.proto";
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 option features.field_presence = IMPLICIT;
@@ -27,6 +28,8 @@ message App {
   // Optional request-concurrency autoscaling; replicas is used only without it.
   Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON, nullable: true}];
   ScaleState state = 18 [(orm.field) = {type: TYPE_JSON, nullable: true}, (payday.field) = {stamped: true}];
+  // Set only by a configured provider. Such apps are read-only through AppService.
+  AppSource source = 19 [(orm.edge) = {nullable: true, immutable: true}, (payday.field) = {stamped: true}];
 }
 
 message Scaling {

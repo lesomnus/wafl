@@ -197,6 +197,92 @@
           "number": 18,
           "kind": "JSON",
           "nullable": true
+        },
+        {
+          "name": "source",
+          "json": "source",
+          "number": 19,
+          "kind": "MESSAGE",
+          "target": "wafl.AppSource",
+          "nullable": true,
+          "immutable": true
+        }
+      ],
+      "indexes": []
+    },
+    {
+      "name": "wafl.AppSource",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "tenant",
+          "json": "tenant",
+          "number": 2,
+          "kind": "MESSAGE",
+          "target": "wafl.Tenant",
+          "immutable": true
+        },
+        {
+          "name": "name",
+          "json": "name",
+          "number": 5,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "provider",
+          "json": "provider",
+          "number": 8,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "cluster",
+          "json": "cluster",
+          "number": 9,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "namespace",
+          "json": "namespace",
+          "number": 10,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "uid",
+          "json": "uid",
+          "number": 12,
+          "kind": "STRING",
+          "immutable": true
+        },
+        {
+          "name": "generation",
+          "json": "generation",
+          "number": 16,
+          "kind": "UINT64"
+        },
+        {
+          "name": "deleting",
+          "json": "deleting",
+          "number": 17,
+          "kind": "BOOL"
+        },
+        {
+          "name": "released",
+          "json": "released",
+          "number": 18,
+          "kind": "BOOL"
         }
       ],
       "indexes": []

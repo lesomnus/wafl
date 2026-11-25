@@ -142,6 +142,40 @@ async fn dispatch(
                 .await?;
             emit(serde_json::to_value(res.into_owned())?)?;
         }
+        ("wafl.AppSource", "Get") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppSourceGetRequest,
+                <proto::r#wafl::r#AppSource as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppSourceService",
+                    "Get",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
+        ("wafl.AppSource", "List") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppSourceListRequest,
+                <proto::r#wafl::r#AppSourceListResponse as buffa::HasMessageView>::View<
+                    'static,
+                >,
+            >(
+                    client,
+                    config,
+                    "wafl.AppSourceService",
+                    "List",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Audit", "Add") => {
             let res = call_unary::<
                 _,

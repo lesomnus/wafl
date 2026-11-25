@@ -77,6 +77,14 @@ pub struct App {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub state: ::buffa::MessageField<ScaleState>,
+    /// Set only by a configured provider. Such apps are read-only through AppService.
+    ///
+    /// Field 19: `source`
+    #[serde(
+        rename = "source",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub source: ::buffa::MessageField<AppSource>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -94,6 +102,7 @@ impl ::core::fmt::Debug for App {
             .field("manifest", &self.manifest)
             .field("scaling", &self.scaling)
             .field("state", &self.state)
+            .field("source", &self.source)
             .finish()
     }
 }
@@ -172,6 +181,14 @@ impl ::buffa::Message for App {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.source.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.source.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -215,6 +232,10 @@ impl ::buffa::Message for App {
         if self.state.is_set() {
             ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
             self.state.write_to(__cache, buf);
+        }
+        if self.source.is_set() {
+            ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
+            self.source.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -315,6 +336,17 @@ impl ::buffa::Message for App {
                     ctx,
                 )?;
             }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.source.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -333,6 +365,7 @@ impl ::buffa::Message for App {
         self.manifest = ::buffa::MessageField::none();
         self.scaling = ::buffa::MessageField::none();
         self.state = ::buffa::MessageField::none();
+        self.source = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }

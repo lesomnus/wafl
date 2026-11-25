@@ -2,8 +2,10 @@
 
 include!("wafl.manifest.rs");
 include!("wafl.payday.tenant.rs");
+include!("wafl.app_source.rs");
 include!("wafl.app.rs");
 include!("wafl.payday.tenant_svc.g.rs");
+include!("wafl.app_source_svc.g.rs");
 include!("wafl.app_svc.g.rs");
 include!("wafl.controller.rs");
 include!("wafl.controller_svc.g.rs");
@@ -47,8 +49,10 @@ pub mod __buffa {
         use super::*;
         include!("wafl.manifest.__view.rs");
         include!("wafl.payday.tenant.__view.rs");
+        include!("wafl.app_source.__view.rs");
         include!("wafl.app.__view.rs");
         include!("wafl.payday.tenant_svc.g.__view.rs");
+        include!("wafl.app_source_svc.g.__view.rs");
         include!("wafl.app_svc.g.__view.rs");
         include!("wafl.controller.__view.rs");
         include!("wafl.controller_svc.g.__view.rs");
@@ -78,6 +82,7 @@ pub mod __buffa {
             use super::*;
             include!("wafl.manifest.__view_oneof.rs");
             include!("wafl.payday.tenant_svc.g.__view_oneof.rs");
+            include!("wafl.app_source_svc.g.__view_oneof.rs");
             include!("wafl.app_svc.g.__view_oneof.rs");
             include!("wafl.controller_svc.g.__view_oneof.rs");
             include!("wafl.instance_svc.g.__view_oneof.rs");
@@ -95,6 +100,7 @@ pub mod __buffa {
         use super::*;
         include!("wafl.manifest.__oneof.rs");
         include!("wafl.payday.tenant_svc.g.__oneof.rs");
+        include!("wafl.app_source_svc.g.__oneof.rs");
         include!("wafl.app_svc.g.__oneof.rs");
         include!("wafl.controller_svc.g.__oneof.rs");
         include!("wafl.instance_svc.g.__oneof.rs");
@@ -112,6 +118,7 @@ pub mod __buffa {
         reg.register_json_any(super::__ASSET_JSON_ANY);
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_JSON_ANY);
         reg.register_json_any(super::__APP_JSON_ANY);
         reg.register_json_any(super::__SCALING_JSON_ANY);
         reg.register_json_any(super::__SCALE_STATE_JSON_ANY);
@@ -125,6 +132,12 @@ pub mod __buffa {
         reg.register_json_any(super::__TENANT_LIST_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_LIST_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__TENANT_FILTER_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_REF_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_SELECT_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_LIST_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_LIST_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__APP_SOURCE_FILTER_JSON_ANY);
         reg.register_json_any(super::__APP_ADD_REQUEST_JSON_ANY);
         reg.register_json_any(super::__APP_GET_REQUEST_JSON_ANY);
         reg.register_json_any(super::__APP_REF_JSON_ANY);
@@ -249,6 +262,10 @@ pub use self::__buffa::view::TenantView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantOwnedView;
 #[doc(inline)]
+pub use self::__buffa::view::AppSourceView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceOwnedView;
+#[doc(inline)]
 pub use self::__buffa::view::AppView;
 #[doc(inline)]
 pub use self::__buffa::view::AppOwnedView;
@@ -300,6 +317,30 @@ pub use self::__buffa::view::TenantListResponseOwnedView;
 pub use self::__buffa::view::TenantFilterView;
 #[doc(inline)]
 pub use self::__buffa::view::TenantFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceRefView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceListRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceListRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceListResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceListResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceFilterView;
+#[doc(inline)]
+pub use self::__buffa::view::AppSourceFilterOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::AppAddRequestView;
 #[doc(inline)]

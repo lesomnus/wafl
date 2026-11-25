@@ -17,3 +17,4 @@ if [[ ! -f "$tools_dir/revision" ]] || [[ $(cat "$tools_dir/revision") != "$revi
 fi
 export PATH="$tools_dir/bin:$PATH"
 paydirt gen "$@"
+(cd scripts/crd && go run . "$@")

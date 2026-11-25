@@ -1,0 +1,30 @@
+edition = "2023";
+package wafl;
+import "payday.proto";
+import "orm.proto";
+import "wafl/payday/tenant.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// Durable provider ownership and reconciliation fence. Retained after App
+// removal so a delayed observation cannot recreate a deleted external object.
+// Only the controller's configured provider writes these records.
+message AppSource {
+  option (orm.message) = {rpc: {get: {}}};
+  option (payday.entity) = {
+    domain: 14 erase: {hard: {}}
+    trail: {off: {why: "Provider ownership journal and permanent deletion fence; written only by controller reconciliation."}}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}] size: 100 max: 1000 filters: 64}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  Tenant tenant = 2 [(orm.edge) = {immutable: true}];
+  reserved 3, 4, 6, 7, 11;
+  string name = 5 [(orm.field) = {immutable: true}];
+  string provider = 8 [(orm.field) = {immutable: true}];
+  string cluster = 9 [(orm.field) = {immutable: true}];
+  string namespace = 10 [(orm.field) = {immutable: true}];
+  string uid = 12 [(orm.field) = {immutable: true}];
+  uint64 generation = 16;
+  bool deleting = 17;
+  bool released = 18;
+}

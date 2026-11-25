@@ -53,6 +53,33 @@
         f17 -> Nullable<Text>,
         /// wafl.App.state
         f18 -> Nullable<Text>,
+        /// wafl.App.source
+        f19 -> Nullable<Binary>,
+    }
+}
+::diesel::table! {
+    #[sql_name = "pd_wafl__AppSource"]
+    pd_wafl_app_source (f1) {
+        /// wafl.AppSource.id
+        f1 -> Binary,
+        /// wafl.AppSource.tenant
+        f2 -> Binary,
+        /// wafl.AppSource.name
+        f5 -> Text,
+        /// wafl.AppSource.provider
+        f8 -> Text,
+        /// wafl.AppSource.cluster
+        f9 -> Text,
+        /// wafl.AppSource.namespace
+        f10 -> Text,
+        /// wafl.AppSource.uid
+        f12 -> Text,
+        /// wafl.AppSource.generation
+        f16 -> Text,
+        /// wafl.AppSource.deleting
+        f17 -> Bool,
+        /// wafl.AppSource.released
+        f18 -> Bool,
     }
 }
 ::diesel::table! {
