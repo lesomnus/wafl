@@ -131,6 +131,8 @@ wafl placement list --app @load
 
 ## 기존 Traefik과 Kubernetes
 
+Kubernetes 리소스로 앱을 선언하려면 [선택적 App provider](kubernetes.md)를 설정합니다. `wafl.opt.td/v1alpha1` App은 `kubectl apply`로 관리하며 기존 PostgreSQL·runner·Traefik을 사용합니다.
+
 기존 Traefik 3.8.0에도 `plugins/traefik`을 작업 디렉터리의 `plugins-local/src/github.com/lesomnus/wafl/traefik`으로 마운트할 수 있습니다. 다음은 재시작이 필요한 정적 설정입니다. 앱별 동적 설정은 controller가 생성합니다.
 
 ```yaml

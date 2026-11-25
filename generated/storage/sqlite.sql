@@ -23,7 +23,20 @@ CREATE TABLE "pd_wafl__App" (
   "f10" TEXT NOT NULL,
   "f16" TEXT,
   "f17" TEXT,
-  "f18" TEXT
+  "f18" TEXT,
+  "f19" BLOB REFERENCES "pd_wafl__AppSource" ("f1")
+);
+CREATE TABLE "pd_wafl__AppSource" (
+  "f1" BLOB NOT NULL PRIMARY KEY,
+  "f2" BLOB NOT NULL REFERENCES "pd_wafl__Tenant" ("f1"),
+  "f5" TEXT NOT NULL,
+  "f8" TEXT NOT NULL,
+  "f9" TEXT NOT NULL,
+  "f10" TEXT NOT NULL,
+  "f12" TEXT NOT NULL,
+  "f16" TEXT NOT NULL,
+  "f17" BOOLEAN NOT NULL,
+  "f18" BOOLEAN NOT NULL
 );
 CREATE TABLE "pd_wafl__Archived" (
   "f1" BLOB NOT NULL PRIMARY KEY,

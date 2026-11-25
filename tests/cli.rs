@@ -23,6 +23,8 @@ const CLI: &str = env!("CARGO_BIN_EXE_wafl");
 mod autoscale;
 #[path = "cli/controller.rs"]
 mod controller;
+#[path = "cli/kubernetes.rs"]
+mod kubernetes;
 fn command() -> Command {
     let mut command = Command::new(CLI);
     command

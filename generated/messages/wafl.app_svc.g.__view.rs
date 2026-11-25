@@ -29,6 +29,10 @@ pub struct AppAddRequestView<'a> {
     pub state: ::buffa::MessageFieldView<
         super::super::__buffa::view::ScaleStateView<'a>,
     >,
+    /// Field 19: `source`
+    pub source: ::buffa::MessageFieldView<
+        super::super::__buffa::view::AppSourceRefView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
@@ -184,6 +188,27 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                     }
                 }
             }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.source.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.source = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::AppSourceRefView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -240,6 +265,14 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                 Some(v) => {
                     ::buffa::MessageField::<
                         super::super::ScaleState,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            source: match self.source.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::AppSourceRef,
                     >::some(v.to_owned_from_source(__buffa_src)?)
                 }
                 None => ::buffa::MessageField::none(),
@@ -305,6 +338,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.source.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.source.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -349,6 +390,10 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
         if self.state.is_set() {
             ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
             self.state.write_to(__cache, buf);
+        }
+        if self.source.is_set() {
+            ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
+            self.source.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -415,6 +460,11 @@ impl<'__a> ::serde::Serialize for AppAddRequestView<'__a> {
         {
             if let ::core::option::Option::Some(__v) = self.state.as_option() {
                 __map.serialize_entry("state", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.source.as_option() {
+                __map.serialize_entry("source", __v)?;
             }
         }
         __map.end()
@@ -563,6 +613,13 @@ impl AppAddRequestOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScaleStateView<'_>> {
         &self.0.reborrow().state
+    }
+    /// Field 19: `source`
+    #[must_use]
+    pub fn source(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::AppSourceRefView<'_>> {
+        &self.0.reborrow().source
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppAddRequestView<'static>>>
@@ -1253,6 +1310,10 @@ pub struct AppSelectView<'a> {
     pub scaling: ::core::option::Option<bool>,
     /// Field 18: `state`
     pub state: ::core::option::Option<bool>,
+    /// Field 19: `source`
+    pub source: ::buffa::MessageFieldView<
+        super::super::__buffa::view::AppSourceSelectView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
@@ -1366,6 +1427,27 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
                 )?;
                 view.state = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.source.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.source = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::AppSourceSelectView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1405,6 +1487,14 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
             manifest: self.manifest,
             scaling: self.scaling,
             state: self.state,
+            source: match self.source.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::AppSourceSelect,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1451,6 +1541,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         if self.state.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.source.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.source.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1492,6 +1590,10 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         }
         if let Some(v) = self.state {
             ::buffa::types::put_bool_field(18u32, v, buf);
+        }
+        if self.source.is_set() {
+            ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
+            self.source.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1545,6 +1647,11 @@ impl<'__a> ::serde::Serialize for AppSelectView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.state {
             __map.serialize_entry("state", &__v)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.source.as_option() {
+                __map.serialize_entry("source", __v)?;
+            }
         }
         __map.end()
     }
@@ -1686,6 +1793,15 @@ impl AppSelectOwnedView {
     #[must_use]
     pub fn state(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().state
+    }
+    /// Field 19: `source`
+    #[must_use]
+    pub fn source(
+        &self,
+    ) -> &::buffa::MessageFieldView<
+        super::super::__buffa::view::AppSourceSelectView<'_>,
+    > {
+        &self.0.reborrow().source
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppSelectView<'static>>>

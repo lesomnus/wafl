@@ -2,6 +2,7 @@ mod activation;
 mod api;
 pub mod config;
 mod database;
+mod kubernetes;
 mod reconcile;
 mod routes;
 mod scaling;
@@ -29,6 +30,9 @@ fn now() -> u64 {
         .unwrap_or_default()
         .as_millis() as u64
 }
+fn managed(app: &App) -> bool {
+    app.scaling.as_option().is_some() || app.source.as_option().is_some()
+}
 impl Control {
     pub async fn open(config: Config) -> anyhow::Result<Self> {
         Self::configured(config, false).await
@@ -48,6 +52,7 @@ impl Control {
 pub async fn serve(config: Config, configure: bool) -> anyhow::Result<()> {
     use paydirt::spin::{Lease, Placement as WorkerPlacement, Workers};
     let controller = Control::configured(config, configure).await?;
+    let kubernetes = kubernetes::Provider::open(&controller).await?.map(Arc::new);
     let host = paydirt_server::Host::bind_with_routes(
         controller.config.listen,
         Default::default(),
@@ -59,6 +64,20 @@ pub async fn serve(config: Config, configure: bool) -> anyhow::Result<()> {
     .map_err(|e| anyhow::anyhow!("{e}"))?;
     eprintln!("wafl-controller control={}", host.local_addr()?);
     let mut workers = Workers::default();
+    if let Some(provider) = kubernetes {
+        let controller = controller.clone();
+        workers
+            .add(
+                "wafl.kubernetes",
+                WorkerPlacement::Everywhere,
+                move |stop| {
+                    let controller = controller.clone();
+                    let provider = provider.clone();
+                    async move { provider.run(controller, stop).await }
+                },
+            )
+            .map_err(anyhow::Error::msg)?;
+    }
     if let Some(t) = &controller.config.traffic {
         let listener = tokio::net::TcpListener::bind(t.listen).await?;
         eprintln!("wafl-controller activation={}", listener.local_addr()?);

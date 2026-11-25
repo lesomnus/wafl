@@ -4,6 +4,7 @@ package wafl;
 import "orm.proto";
 import "patch/patch.proto";
 import "wafl/app.proto";
+import "wafl/app_source_svc.g.proto";
 import "wafl/manifest.proto";
 import "wafl/payday/tenant_svc.g.proto";
 
@@ -35,6 +36,7 @@ message AppAddRequest {
   Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
   Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON}];
   ScaleState state = 18 [(orm.field) = {type: TYPE_JSON}];
+  AppSourceRef source = 19;
 }
 
 message AppGetRequest {
@@ -61,6 +63,7 @@ message AppSelect {
   bool manifest = 16;
   bool scaling = 17;
   bool state = 18;
+  AppSourceSelect source = 19;
 }
 
 message AppPatchRequest {

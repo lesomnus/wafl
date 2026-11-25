@@ -1,0 +1,27 @@
+apiVersion: wafl.opt.td/v1alpha1
+kind: App
+metadata:
+  name: hello
+  namespace: demo
+spec:
+  name: Hello WASM
+  domain: hello.example.com
+  manifest:
+    runtime: wasmtime
+    abi: wasip2
+    bundle:
+      url: https://assets.example.com/hello.tar.gz
+      # digest: sha256:<SHA-256 of the compressed bundle>
+    port: 8080
+    protocol: http
+    memoryBytes: 67108864
+    env:
+      GREETING: Hello
+  scaling:
+    min: 0
+    max: 4
+    target: 8
+    upMs: 1000
+    downMs: 10000
+    idleMs: 30000
+    waitMs: 120000

@@ -7,6 +7,9 @@ pub trait Server {
     fn wafl_app(&self) -> impl crate::services::r#wafl::r#AppService {
         crate::services::r#wafl::r#AppServiceUnimplemented
     }
+    fn wafl_app_source(&self) -> impl crate::services::r#wafl::r#AppSourceService {
+        crate::services::r#wafl::r#AppSourceServiceUnimplemented
+    }
     fn wafl_audit(&self) -> impl crate::services::r#wafl::r#AuditService {
         crate::services::r#wafl::r#AuditServiceUnimplemented
     }
@@ -52,6 +55,12 @@ pub trait Layer<N: Server + ?Sized> {
     }
     fn wafl_app(&self, next: &N) -> impl crate::services::r#wafl::r#AppService {
         next.wafl_app()
+    }
+    fn wafl_app_source(
+        &self,
+        next: &N,
+    ) -> impl crate::services::r#wafl::r#AppSourceService {
+        next.wafl_app_source()
     }
     fn wafl_audit(&self, next: &N) -> impl crate::services::r#wafl::r#AuditService {
         next.wafl_audit()
@@ -105,6 +114,9 @@ impl<N: Server, L: Layer<N>> Server for Overlay<N, L> {
     fn wafl_app(&self) -> impl crate::services::r#wafl::r#AppService {
         self.layer.wafl_app(&self.next)
     }
+    fn wafl_app_source(&self) -> impl crate::services::r#wafl::r#AppSourceService {
+        self.layer.wafl_app_source(&self.next)
+    }
     fn wafl_audit(&self) -> impl crate::services::r#wafl::r#AuditService {
         self.layer.wafl_audit(&self.next)
     }
@@ -139,6 +151,9 @@ impl<T: Server + ?Sized> Server for ::std::sync::Arc<T> {
     }
     fn wafl_app(&self) -> impl crate::services::r#wafl::r#AppService {
         self.as_ref().wafl_app()
+    }
+    fn wafl_app_source(&self) -> impl crate::services::r#wafl::r#AppSourceService {
+        self.as_ref().wafl_app_source()
     }
     fn wafl_audit(&self) -> impl crate::services::r#wafl::r#AuditService {
         self.as_ref().wafl_audit()
@@ -189,6 +204,12 @@ pub fn mount_if(
     if include("wafl.AppService") {
         router = crate::services::r#wafl::r#AppServiceExt::register(
             ::std::sync::Arc::new(server.wafl_app()),
+            router,
+        );
+    }
+    if include("wafl.AppSourceService") {
+        router = crate::services::r#wafl::r#AppSourceServiceExt::register(
+            ::std::sync::Arc::new(server.wafl_app_source()),
             router,
         );
     }

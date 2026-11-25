@@ -23,7 +23,20 @@ CREATE TABLE "pd_wafl__App" (
   "f10" TEXT NOT NULL,
   "f16" TEXT,
   "f17" TEXT,
-  "f18" TEXT
+  "f18" TEXT,
+  "f19" BYTEA
+);
+CREATE TABLE "pd_wafl__AppSource" (
+  "f1" BYTEA NOT NULL PRIMARY KEY,
+  "f2" BYTEA NOT NULL,
+  "f5" TEXT NOT NULL,
+  "f8" TEXT NOT NULL,
+  "f9" TEXT NOT NULL,
+  "f10" TEXT NOT NULL,
+  "f12" TEXT NOT NULL,
+  "f16" TEXT NOT NULL,
+  "f17" BOOLEAN NOT NULL,
+  "f18" BOOLEAN NOT NULL
 );
 CREATE TABLE "pd_wafl__Archived" (
   "f1" BYTEA NOT NULL PRIMARY KEY,
@@ -187,8 +200,10 @@ CREATE INDEX "pd_wafl__Access__by_actor" ON "pd_wafl__Access" ("f8", "f15");
 CREATE INDEX "pd_wafl__Access__by_actor_tenant" ON "pd_wafl__Access" ("f16", "f15");
 CREATE INDEX "pd_wafl__Access__by_time" ON "pd_wafl__Access" ("f15", "f1");
 ALTER TABLE "pd_wafl__App" ADD FOREIGN KEY ("f2") REFERENCES "pd_wafl__Tenant" ("f1");
+ALTER TABLE "pd_wafl__App" ADD FOREIGN KEY ("f19") REFERENCES "pd_wafl__AppSource" ("f1");
 CREATE UNIQUE INDEX "pd_wafl__App__field_4" ON "pd_wafl__App" ("f4");
 CREATE UNIQUE INDEX "pd_wafl__App__field_8" ON "pd_wafl__App" ("f8");
+ALTER TABLE "pd_wafl__AppSource" ADD FOREIGN KEY ("f2") REFERENCES "pd_wafl__Tenant" ("f1");
 CREATE INDEX "pd_wafl__Archived__blob" ON "pd_wafl__Archived" ("f8", "f9");
 CREATE INDEX "pd_wafl__Archived__state" ON "pd_wafl__Archived" ("f11");
 CREATE INDEX "pd_wafl__Audit__by_actor" ON "pd_wafl__Audit" ("f8", "f15");

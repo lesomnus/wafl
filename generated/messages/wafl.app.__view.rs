@@ -33,6 +33,12 @@ pub struct AppView<'a> {
     pub state: ::buffa::MessageFieldView<
         super::super::__buffa::view::ScaleStateView<'a>,
     >,
+    /// Set only by a configured provider. Such apps are read-only through AppService.
+    ///
+    /// Field 19: `source`
+    pub source: ::buffa::MessageFieldView<
+        super::super::__buffa::view::AppSourceView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
@@ -188,6 +194,27 @@ impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
                     }
                 }
             }
+            19u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.source.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.source = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::AppSourceView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -244,6 +271,14 @@ impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
                 Some(v) => {
                     ::buffa::MessageField::<
                         super::super::ScaleState,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            source: match self.source.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::AppSource,
                     >::some(v.to_owned_from_source(__buffa_src)?)
                 }
                 None => ::buffa::MessageField::none(),
@@ -309,6 +344,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.source.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.source.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -353,6 +396,10 @@ impl<'a> ::buffa::ViewEncode<'a> for AppView<'a> {
         if self.state.is_set() {
             ::buffa::types::put_len_delimited_header(18u32, __cache.consume_next(), buf);
             self.state.write_to(__cache, buf);
+        }
+        if self.source.is_set() {
+            ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
+            self.source.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -419,6 +466,11 @@ impl<'__a> ::serde::Serialize for AppView<'__a> {
         {
             if let ::core::option::Option::Some(__v) = self.state.as_option() {
                 __map.serialize_entry("state", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.source.as_option() {
+                __map.serialize_entry("source", __v)?;
             }
         }
         __map.end()
@@ -567,6 +619,15 @@ impl AppOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ScaleStateView<'_>> {
         &self.0.reborrow().state
+    }
+    /// Set only by a configured provider. Such apps are read-only through AppService.
+    ///
+    /// Field 19: `source`
+    #[must_use]
+    pub fn source(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::AppSourceView<'_>> {
+        &self.0.reborrow().source
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppView<'static>>> for AppOwnedView {
