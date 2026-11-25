@@ -16,6 +16,8 @@ include!("wafl.payday.holder_svc.g.rs");
 include!("wafl.payday.outbox.rs");
 include!("wafl.payday.owed.rs");
 include!("wafl.payday.rowseal.rs");
+include!("wafl.reservation.rs");
+include!("wafl.reservation_svc.g.rs");
 include!("wafl.runner.rs");
 include!("wafl.runner_svc.g.rs");
 #[allow(
@@ -51,6 +53,8 @@ pub mod __buffa {
         include!("wafl.payday.outbox.__view.rs");
         include!("wafl.payday.owed.__view.rs");
         include!("wafl.payday.rowseal.__view.rs");
+        include!("wafl.reservation.__view.rs");
+        include!("wafl.reservation_svc.g.__view.rs");
         include!("wafl.runner.__view.rs");
         include!("wafl.runner_svc.g.__view.rs");
         pub mod oneof {
@@ -62,6 +66,7 @@ pub mod __buffa {
             include!("wafl.payday.access_svc.g.__view_oneof.rs");
             include!("wafl.payday.audit_svc.g.__view_oneof.rs");
             include!("wafl.payday.holder_svc.g.__view_oneof.rs");
+            include!("wafl.reservation_svc.g.__view_oneof.rs");
             include!("wafl.runner_svc.g.__view_oneof.rs");
         }
     }
@@ -74,6 +79,7 @@ pub mod __buffa {
         include!("wafl.payday.access_svc.g.__oneof.rs");
         include!("wafl.payday.audit_svc.g.__oneof.rs");
         include!("wafl.payday.holder_svc.g.__oneof.rs");
+        include!("wafl.reservation_svc.g.__oneof.rs");
         include!("wafl.runner_svc.g.__oneof.rs");
     }
     /// Register this package's `Any` type entries and extension entries.
@@ -145,6 +151,15 @@ pub mod __buffa {
         reg.register_json_any(super::__OUTBOX_JSON_ANY);
         reg.register_json_any(super::__OWED_JSON_ANY);
         reg.register_json_any(super::__ROW_SEAL_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_GET_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_REF_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_SELECT_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_LIST_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_LIST_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_FILTER_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_RELEASE_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__RESERVATION_RELEASE_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__RUNNER_JSON_ANY);
         reg.register_json_any(super::__CAPACITY_JSON_ANY);
         reg.register_json_any(super::__USAGE_JSON_ANY);
@@ -424,6 +439,42 @@ pub use self::__buffa::view::OwedOwnedView;
 pub use self::__buffa::view::RowSealView;
 #[doc(inline)]
 pub use self::__buffa::view::RowSealOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationGetRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationGetRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationRefView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationRefOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationSelectView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationSelectOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationListRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationListRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationListResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationListResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationFilterView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationFilterOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationReleaseRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationReleaseRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationReleaseResponseView;
+#[doc(inline)]
+pub use self::__buffa::view::ReservationReleaseResponseOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::RunnerView;
 #[doc(inline)]

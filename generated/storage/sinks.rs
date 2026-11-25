@@ -700,6 +700,77 @@ impl<
     N: crate::services::r#wafl::RowSealService,
 > crate::services::r#wafl::RowSealServiceLayer<N> for crate::storage::intercept::Layer {}
 impl<
+    N: crate::services::r#wafl::ReservationService,
+> crate::services::r#wafl::ReservationServiceLayer<N>
+for crate::storage::intercept::Layer {
+    fn get<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::ReservationGetRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Reservation,
+            > + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.ReservationService/Get", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.get(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#Reservation, _>(reply)
+        }
+    }
+    fn list<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::ReservationListRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::ReservationListResponse,
+            > + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.ReservationService/List", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.list(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#ReservationListResponse, _>(reply)
+        }
+    }
+    fn release<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::ReservationReleaseRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::ReservationReleaseResponse,
+            > + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.ReservationService/Release", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.release(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#ReservationReleaseResponse, _>(reply)
+        }
+    }
+}
+impl<
     N: crate::services::r#wafl::RunnerService,
 > crate::services::r#wafl::RunnerServiceLayer<N> for crate::storage::intercept::Layer {
     fn get<'a>(
@@ -2908,6 +2979,334 @@ mod sink_wafl_instance {
         }
     }
 }
+mod sink_wafl_reservation {
+    use super::*;
+    pub struct Sink(pub Database);
+    #[allow(refining_impl_trait)]
+    impl<
+        N: crate::services::r#wafl::ReservationService,
+    > crate::services::r#wafl::ReservationServiceLayer<N> for Sink {
+        async fn get(
+            &self,
+            _: &N,
+            ctx: RequestContext,
+            request: ServiceRequest<'_, crate::proto::r#wafl::r#ReservationGetRequest>,
+        ) -> ServiceResult<crate::proto::r#wafl::r#Reservation> {
+            Response::ok(
+                self
+                    .0
+                    .rpc(&ctx, "wafl.Reservation", "Get", &request.to_owned_message())
+                    .await?,
+            )
+        }
+        async fn list(
+            &self,
+            _: &N,
+            ctx: RequestContext,
+            request: ServiceRequest<'_, crate::proto::r#wafl::r#ReservationListRequest>,
+        ) -> ServiceResult<crate::proto::r#wafl::r#ReservationListResponse> {
+            Response::ok(
+                self
+                    .0
+                    .rpc(&ctx, "wafl.Reservation", "List", &request.to_owned_message())
+                    .await?,
+            )
+        }
+    }
+    impl<
+        N: crate::services::r#wafl::ReservationService,
+    > crate::services::r#wafl::ReservationServiceLayer<N> for Gate {
+        fn get<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::ReservationGetRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Reservation,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.ReservationGetRequest",
+                    "wafl.Reservation",
+                    "/wafl.ReservationService/Get",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Reservation",
+                        "Get",
+                        self.public.contains(&"/wafl.ReservationService/Get"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.get(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#Reservation,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
+        fn list<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::ReservationListRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::ReservationListResponse,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.ReservationListRequest",
+                    "wafl.ReservationListResponse",
+                    "/wafl.ReservationService/List",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Reservation",
+                        "List",
+                        self.public.contains(&"/wafl.ReservationService/List"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.list(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#ReservationListResponse,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
+        fn release<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::ReservationReleaseRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::ReservationReleaseResponse,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.ReservationReleaseRequest",
+                    "wafl.ReservationReleaseResponse",
+                    "/wafl.ReservationService/Release",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.Reservation",
+                        "Release",
+                        self.public.contains(&"/wafl.ReservationService/Release"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.release(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<
+                        crate::proto::r#wafl::r#ReservationReleaseResponse,
+                        _,
+                    >(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
+    }
+    impl<
+        N: crate::services::r#wafl::ReservationService,
+    > crate::services::r#wafl::ReservationServiceLayer<N> for Audit {
+        fn get<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::ReservationGetRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Reservation,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Reservation",
+                        "Get",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.get(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+        fn list<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::ReservationListRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::ReservationListResponse,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Reservation",
+                        "List",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.list(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+        fn release<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<
+                '_,
+                crate::proto::wafl::ReservationReleaseRequest,
+            >,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::ReservationReleaseResponse,
+                > + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.Reservation",
+                        "Release",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.release(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+    }
+}
 mod sink_wafl_runner {
     use super::*;
     pub struct Sink(pub Database);
@@ -3674,6 +4073,14 @@ impl Next {
             layer: sink_wafl_instance::Sink(self.0.clone()),
         }
     }
+    pub fn wafl_reservation(
+        &self,
+    ) -> impl crate::services::r#wafl::ReservationService + use<> {
+        crate::services::r#wafl::ReservationServiceOverlay {
+            next: crate::services::r#wafl::ReservationServiceUnimplemented,
+            layer: sink_wafl_reservation::Sink(self.0.clone()),
+        }
+    }
     pub fn wafl_runner(&self) -> impl crate::services::r#wafl::RunnerService + use<> {
         crate::services::r#wafl::RunnerServiceOverlay {
             next: crate::services::r#wafl::RunnerServiceUnimplemented,
@@ -4159,6 +4566,96 @@ pub trait InstanceCalls: crate::services::r#wafl::InstanceService {
 }
 impl<N: crate::services::r#wafl::InstanceService> InstanceCalls for N {}
 #[allow(async_fn_in_trait)]
+pub trait ReservationCalls: crate::services::r#wafl::ReservationService {
+    async fn get_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#ReservationGetRequest,
+    ) -> Result<crate::proto::r#wafl::r#Reservation, ::connectrpc::ConnectError> {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#ReservationGetRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .get(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#Reservation::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+    fn list_all<'a>(
+        &'a self,
+        ctx: &'a RequestContext,
+        request: &crate::proto::r#wafl::r#ReservationListRequest,
+    ) -> impl ::paydirt::page::Stream<
+        Item = Result<crate::proto::r#wafl::Reservation, ::connectrpc::ConnectError>,
+    > + 'a {
+        ::paydirt::page::all(
+            request,
+            |q| &mut q.after,
+            move |q| async move {
+                let page = self.list_owned(ctx, q).await?;
+                Ok((page.items, page.next))
+            },
+            || ::connectrpc::ConnectError::internal("repeated continuation token"),
+        )
+    }
+    async fn list_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#ReservationListRequest,
+    ) -> Result<
+        crate::proto::r#wafl::r#ReservationListResponse,
+        ::connectrpc::ConnectError,
+    > {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#ReservationListRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .list(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#ReservationListResponse::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+    async fn release_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#ReservationReleaseRequest,
+    ) -> Result<
+        crate::proto::r#wafl::r#ReservationReleaseResponse,
+        ::connectrpc::ConnectError,
+    > {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#ReservationReleaseRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .release(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#ReservationReleaseResponse::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+}
+impl<N: crate::services::r#wafl::ReservationService> ReservationCalls for N {}
+#[allow(async_fn_in_trait)]
 pub trait RunnerCalls: crate::services::r#wafl::RunnerService {
     async fn get_owned(
         &self,
@@ -4339,6 +4836,12 @@ impl<N: server::Server> server::Layer<N> for Sink {
     fn wafl_instance(&self, _: &N) -> impl crate::services::r#wafl::InstanceService {
         Next(self.0.clone()).wafl_instance()
     }
+    fn wafl_reservation(
+        &self,
+        _: &N,
+    ) -> impl crate::services::r#wafl::ReservationService {
+        Next(self.0.clone()).wafl_reservation()
+    }
     fn wafl_runner(&self, _: &N) -> impl crate::services::r#wafl::RunnerService {
         Next(self.0.clone()).wafl_runner()
     }
@@ -4368,6 +4871,15 @@ impl<N: server::Server> server::Layer<N> for Gate {
     fn wafl_instance(&self, next: &N) -> impl crate::services::r#wafl::InstanceService {
         crate::services::r#wafl::InstanceServiceOverlay {
             next: next.wafl_instance(),
+            layer: self.clone(),
+        }
+    }
+    fn wafl_reservation(
+        &self,
+        next: &N,
+    ) -> impl crate::services::r#wafl::ReservationService {
+        crate::services::r#wafl::ReservationServiceOverlay {
+            next: next.wafl_reservation(),
             layer: self.clone(),
         }
     }
@@ -4409,6 +4921,15 @@ impl<N: server::Server> server::Layer<N> for Audit {
             layer: self.clone(),
         }
     }
+    fn wafl_reservation(
+        &self,
+        next: &N,
+    ) -> impl crate::services::r#wafl::ReservationService {
+        crate::services::r#wafl::ReservationServiceOverlay {
+            next: next.wafl_reservation(),
+            layer: self.clone(),
+        }
+    }
     fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::RunnerService {
         crate::services::r#wafl::RunnerServiceOverlay {
             next: next.wafl_runner(),
@@ -4444,6 +4965,15 @@ impl<N: server::Server> server::Layer<N> for intercept::Layer {
     fn wafl_instance(&self, next: &N) -> impl crate::services::r#wafl::InstanceService {
         crate::services::r#wafl::InstanceServiceOverlay {
             next: next.wafl_instance(),
+            layer: self.clone(),
+        }
+    }
+    fn wafl_reservation(
+        &self,
+        next: &N,
+    ) -> impl crate::services::r#wafl::ReservationService {
+        crate::services::r#wafl::ReservationServiceOverlay {
+            next: next.wafl_reservation(),
             layer: self.clone(),
         }
     }
@@ -4491,6 +5021,12 @@ pub trait Layers {
     ) -> impl crate::services::r#wafl::InstanceService {
         next
     }
+    fn wafl_reservation(
+        &self,
+        next: impl crate::services::r#wafl::ReservationService,
+    ) -> impl crate::services::r#wafl::ReservationService {
+        next
+    }
     fn wafl_runner(
         &self,
         next: impl crate::services::r#wafl::RunnerService,
@@ -4518,6 +5054,12 @@ impl<N: server::Server, L: Layers> server::Layer<N> for Application<'_, L> {
     fn wafl_instance(&self, next: &N) -> impl crate::services::r#wafl::InstanceService {
         self.0.wafl_instance(next.wafl_instance())
     }
+    fn wafl_reservation(
+        &self,
+        next: &N,
+    ) -> impl crate::services::r#wafl::ReservationService {
+        self.0.wafl_reservation(next.wafl_reservation())
+    }
     fn wafl_runner(&self, next: &N) -> impl crate::services::r#wafl::RunnerService {
         self.0.wafl_runner(next.wafl_runner())
     }
@@ -4543,6 +5085,7 @@ pub fn mount(router: Router, db: Database, layers: &impl Layers) -> Router {
             "wafl.AuditService" => crate::transport::access::OPTIONS.reads,
             "wafl.HolderService" => true,
             "wafl.InstanceService" => true,
+            "wafl.ReservationService" => true,
             "wafl.RunnerService" => true,
             "wafl.TenantService" => true,
             _ => false,

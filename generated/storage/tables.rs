@@ -197,6 +197,27 @@
     }
 }
 ::diesel::table! {
+    #[sql_name = "pd_wafl__Reservation"]
+    pd_wafl_reservation (f1) {
+        /// wafl.Reservation.id
+        f1 -> Binary,
+        /// wafl.Reservation.address
+        f8 -> Text,
+        /// wafl.Reservation.token
+        f9 -> Text,
+        /// wafl.Reservation.session
+        f10 -> Binary,
+        /// wafl.Reservation.instance
+        f11 -> Binary,
+        /// wafl.Reservation.generation
+        f12 -> Text,
+        /// wafl.Reservation.status
+        f16 -> Text,
+        /// wafl.Reservation.error
+        f17 -> Text,
+    }
+}
+::diesel::table! {
     #[sql_name = "pd_wafl__RowSeal"]
     pd_wafl_row_seal (f1) {
         /// wafl.RowSeal.id

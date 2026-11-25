@@ -734,6 +734,66 @@
       ]
     },
     {
+      "name": "wafl.Reservation",
+      "key": "id",
+      "fields": [
+        {
+          "name": "id",
+          "json": "id",
+          "number": 1,
+          "kind": "UUID",
+          "immutable": true,
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "address",
+          "json": "address",
+          "number": 8,
+          "kind": "STRING",
+          "unique": true,
+          "default": ""
+        },
+        {
+          "name": "token",
+          "json": "token",
+          "number": 9,
+          "kind": "STRING"
+        },
+        {
+          "name": "session",
+          "json": "session",
+          "number": 10,
+          "kind": "UUID"
+        },
+        {
+          "name": "instance",
+          "json": "instance",
+          "number": 11,
+          "kind": "UUID"
+        },
+        {
+          "name": "generation",
+          "json": "generation",
+          "number": 12,
+          "kind": "UINT64"
+        },
+        {
+          "name": "status",
+          "json": "status",
+          "number": 16,
+          "kind": "ENUM"
+        },
+        {
+          "name": "error",
+          "json": "error",
+          "number": 17,
+          "kind": "STRING"
+        }
+      ],
+      "indexes": []
+    },
+    {
       "name": "wafl.RowSeal",
       "key": "id",
       "fields": [

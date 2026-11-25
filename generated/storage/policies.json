@@ -413,6 +413,61 @@
     "fields": {},
     "methods": {}
   },
+  "wafl.Reservation": {
+    "entity": {
+      "domain": 9,
+      "erase": {
+        "hard": {}
+      },
+      "global": {},
+      "list": {
+        "by": [
+          {
+            "name": "ref"
+          }
+        ],
+        "filters": 64,
+        "max": 1000,
+        "order": [
+          {
+            "field": {
+              "name": "id"
+            }
+          }
+        ],
+        "size": 100
+      },
+      "trail": {
+        "off": {
+          "why": "Durable endpoint journal observation; reclamation is an explicit runtime operation."
+        }
+      }
+    },
+    "fields": {},
+    "methods": {
+      "Get": {
+        "client_stream": false,
+        "input": ".wafl.ReservationGetRequest",
+        "output": ".wafl.Reservation",
+        "policy": null,
+        "server_stream": false
+      },
+      "List": {
+        "client_stream": false,
+        "input": ".wafl.ReservationListRequest",
+        "output": ".wafl.ReservationListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Release": {
+        "client_stream": false,
+        "input": ".wafl.ReservationReleaseRequest",
+        "output": ".wafl.ReservationReleaseResponse",
+        "policy": null,
+        "server_stream": false
+      }
+    }
+  },
   "wafl.RowSeal": {
     "entity": {
       "domain": 255,

@@ -10,6 +10,7 @@ use std::{
 
 pub const INSTANCE_DOMAIN: u8 = 7;
 pub const TENANT_DOMAIN: u8 = 1;
+pub const RESERVATION_DOMAIN: u8 = 9;
 
 /// Process configuration. Instances arrive through InstanceService.Add.
 #[derive(Clone, Debug, Deserialize)]

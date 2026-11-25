@@ -488,6 +488,11 @@ impl Runner {
     pub fn direct(&self) -> bool {
         self.0.runtime.direct.is_some()
     }
+    pub(crate) fn ports(&self) -> Result<Arc<Ports>, ConnectError> {
+        self.0.runtime.direct.clone().ok_or_else(|| {
+            ConnectError::failed_precondition("reservation management requires direct mode")
+        })
+    }
     pub async fn start(
         &self,
         execution: &Arc<Execution>,
@@ -550,7 +555,9 @@ impl Runner {
                 "outbound-tcp",
             ]
             .map(String::from)
-            .to_vec(),
+            .into_iter()
+            .chain(self.direct().then(|| "reservation-recovery-v1".to_owned()))
+            .collect(),
             capacity: Some(crate::proto::wafl::Capacity {
                 instances: limits.instances as u64,
                 preparations: limits.preparations as u64,

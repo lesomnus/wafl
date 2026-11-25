@@ -1,0 +1,43 @@
+edition = "2023";
+package wafl;
+
+import "payday.proto";
+import "orm.proto";
+
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// An occupied address in this runner's configured direct IP/port pool. The
+// address-derived ID is stable across owners; token identifies one allocation.
+// The layer reads the durable journal, including records from earlier sessions.
+message Reservation {
+  option (orm.message) = {rpc: {get: {}}};
+  option (payday.entity) = {
+    domain: 9
+    global: {}
+    erase: {hard: {}}
+    trail: {off: {why: "Durable endpoint journal observation; reclamation is an explicit runtime operation."}}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}] size: 100 max: 1000 filters: 64}
+  };
+  bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
+  reserved 2, 3, 4, 5, 6, 7;
+  string address = 8 [(orm.field) = {unique: true, default: ""}];
+  // Opaque allocation identity, not an authentication credential.
+  string token = 9;
+  bytes session = 10 [(orm.field) = {type: TYPE_UUID}];
+  // Historical owner ID, not an edge requiring a live Instance record.
+  bytes instance = 11 [(orm.field) = {type: TYPE_UUID}];
+  uint64 generation = 12;
+  ReservationStatus status = 16;
+  string error = 17;
+}
+
+// Describes the owning SESSION, not whether its WASM is currently running.
+enum ReservationStatus {
+  RESERVATION_STATUS_UNSPECIFIED = 0;
+  RESERVATION_STATUS_ACTIVE = 1;
+  RESERVATION_STATUS_ORPHAN = 2;
+  // Legacy journal or missing/invalid session evidence; never auto-reclaimable.
+  RESERVATION_STATUS_UNKNOWN = 3;
+  RESERVATION_STATUS_CORRUPT = 4;
+}

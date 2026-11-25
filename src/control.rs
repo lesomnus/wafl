@@ -1,11 +1,12 @@
 use crate::{
-    config::INSTANCE_DOMAIN,
+    config::{INSTANCE_DOMAIN, RESERVATION_DOMAIN},
     proto::wafl::*,
     runner::{Condition, Execution, Runner},
     server::{self, Server},
     services::wafl::{
-        InstanceService, InstanceServiceLayer, InstanceServiceOverlay, RunnerService,
-        RunnerServiceLayer, RunnerServiceOverlay,
+        InstanceService, InstanceServiceLayer, InstanceServiceOverlay, ReservationService,
+        ReservationServiceLayer, ReservationServiceOverlay, RunnerService, RunnerServiceLayer,
+        RunnerServiceOverlay,
     },
 };
 use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
@@ -13,18 +14,29 @@ use connectrpc::{ConnectError, RequestContext, Response, ServiceRequest, Service
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+mod reservations;
+
 pub fn router(runner: Runner) -> connectrpc::Router {
     // Registration and layer composition use the normal entity contracts.
     // The runner supplies storage; this process does not select the DB Sink.
     let stack = server::Unimplemented.layer(Instances(runner));
     server::mount_if(connectrpc::Router::new(), &stack, |service| {
-        matches!(service, "wafl.InstanceService" | "wafl.RunnerService")
+        matches!(
+            service,
+            "wafl.InstanceService" | "wafl.RunnerService" | "wafl.ReservationService"
+        )
     })
 }
 
 #[derive(Clone)]
 struct Instances(Runner);
 impl<N: Server> server::Layer<N> for Instances {
+    fn wafl_reservation(&self, next: &N) -> impl ReservationService {
+        ReservationServiceOverlay {
+            next: next.wafl_reservation(),
+            layer: self.clone(),
+        }
+    }
     fn wafl_runner(&self, next: &N) -> impl RunnerService {
         RunnerServiceOverlay {
             next: next.wafl_runner(),
