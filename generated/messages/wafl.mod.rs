@@ -3,6 +3,7 @@
 include!("wafl.manifest.rs");
 include!("wafl.payday.tenant.rs");
 include!("wafl.app_source.rs");
+include!("wafl.secret.rs");
 include!("wafl.app.rs");
 include!("wafl.payday.tenant_svc.g.rs");
 include!("wafl.app_source_svc.g.rs");
@@ -50,6 +51,7 @@ pub mod __buffa {
         include!("wafl.manifest.__view.rs");
         include!("wafl.payday.tenant.__view.rs");
         include!("wafl.app_source.__view.rs");
+        include!("wafl.secret.__view.rs");
         include!("wafl.app.__view.rs");
         include!("wafl.payday.tenant_svc.g.__view.rs");
         include!("wafl.app_source_svc.g.__view.rs");
@@ -81,6 +83,7 @@ pub mod __buffa {
             #[allow(unused_imports)]
             use super::*;
             include!("wafl.manifest.__view_oneof.rs");
+            include!("wafl.secret.__view_oneof.rs");
             include!("wafl.payday.tenant_svc.g.__view_oneof.rs");
             include!("wafl.app_source_svc.g.__view_oneof.rs");
             include!("wafl.app_svc.g.__view_oneof.rs");
@@ -99,6 +102,7 @@ pub mod __buffa {
         #[allow(unused_imports)]
         use super::*;
         include!("wafl.manifest.__oneof.rs");
+        include!("wafl.secret.__oneof.rs");
         include!("wafl.payday.tenant_svc.g.__oneof.rs");
         include!("wafl.app_source_svc.g.__oneof.rs");
         include!("wafl.app_svc.g.__oneof.rs");
@@ -119,6 +123,8 @@ pub mod __buffa {
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
         reg.register_json_any(super::__APP_SOURCE_JSON_ANY);
+        reg.register_json_any(super::__SECRET_JSON_ANY);
+        reg.register_json_any(super::__SECRET_KEY_REF_JSON_ANY);
         reg.register_json_any(super::__APP_JSON_ANY);
         reg.register_json_any(super::__SCALING_JSON_ANY);
         reg.register_json_any(super::__SCALE_STATE_JSON_ANY);
@@ -265,6 +271,14 @@ pub use self::__buffa::view::TenantOwnedView;
 pub use self::__buffa::view::AppSourceView;
 #[doc(inline)]
 pub use self::__buffa::view::AppSourceOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::SecretView;
+#[doc(inline)]
+pub use self::__buffa::view::SecretOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::SecretKeyRefView;
+#[doc(inline)]
+pub use self::__buffa::view::SecretKeyRefOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::AppView;
 #[doc(inline)]

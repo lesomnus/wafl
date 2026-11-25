@@ -46,6 +46,7 @@ message PlacementSelect {
   bool failures = 22;
   bool date_retry = 23;
   bool managed = 24;
+  bool secrets = 25;
 }
 
 message PlacementListRequest {

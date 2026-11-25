@@ -64,10 +64,12 @@ impl Database {
             let mut store = Store::open(&url, MODEL, POLICIES)?.with_outbox(false);
             // Bootstrapping can race across replicas. Each seed transaction either
             // commits or rolls back; retry then verifies the shared configuration.
+            // Match normal transactions' lock order: coordinator before tenant.
+            // Reversing these deadlocks with a live placement's tenant FK check.
             for attempt in 0..3 {
                 match store.seed(vec![
-                    ("wafl.Tenant".into(), json!({"id":encode(&paydirt::parse_id(TENANT).unwrap()),"alias":"local","name":"Local development"})),
                     ("wafl.Controller".into(), json!({"id":encode(&paydirt::parse_id(COORDINATOR).unwrap()),"alias":"self","configuration":signature})),
+                    ("wafl.Tenant".into(), json!({"id":encode(&paydirt::parse_id(TENANT).unwrap()),"alias":"local","name":"Local development"})),
                 ]) {
                     Ok(()) => break,
                     Err(e) if e.code == "already_exists" && attempt < 2 => continue,
@@ -103,5 +105,84 @@ impl Database {
         .await
         .map_err(|_| ConnectError::internal("database worker failed"))?
         .map_err(fault)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    #[ignore = "requires WAFL_TEST_CONTROLLER_DATABASE_URL"]
+    async fn bootstrap_waits_for_coordinator_without_locking_the_tenant() {
+        let database = std::env::var("WAFL_TEST_CONTROLLER_DATABASE_URL").unwrap();
+        let (admin, driver) = tokio_postgres::connect(&database, tokio_postgres::NoTls)
+            .await
+            .unwrap();
+        let driver = tokio::spawn(driver);
+        let schema = format!("bootstrap_{}", uuid::Uuid::new_v4().simple());
+        admin
+            .batch_execute(&format!("CREATE SCHEMA {schema}"))
+            .await
+            .unwrap();
+        let mut url = reqwest::Url::parse(&database).unwrap();
+        url.query_pairs_mut()
+            .append_pair("options", &format!("-c search_path={schema}"));
+        let mut config: Config = serde_json::from_value(
+            json!({"database":url.as_str().replace('+',"%20"),"runners":["http://127.0.0.1:9"]}),
+        )
+        .unwrap();
+        let first = Database::open(&config, false).await.unwrap();
+        let (mut live, connection) =
+            tokio_postgres::connect(&config.database, tokio_postgres::NoTls)
+                .await
+                .unwrap();
+        let connection = tokio::spawn(connection);
+        let tx = live.transaction().await.unwrap();
+        // A live controller has acquired the coordinator and is about to
+        // insert a resource with a tenant FK, which needs KEY SHARE on Tenant.
+        tx.query_one(
+            "SELECT f1 FROM \"pd_wafl__Controller\" WHERE f4='self' FOR UPDATE",
+            &[],
+        )
+        .await
+        .unwrap();
+        let name = format!("joining-{schema}");
+        url.query_pairs_mut().append_pair("application_name", &name);
+        config.database = url.as_str().replace('+', "%20");
+        let joining = tokio::spawn(async move { Database::open(&config, false).await });
+        // Observe the real server lock wait instead of guessing with a sleep.
+        tokio::time::timeout(Duration::from_secs(10),async {
+            loop {
+                let row=admin.query_one("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name=$1 AND wait_event_type='Lock' AND query LIKE '%pd_wafl__Controller%FOR UPDATE%')",&[&name]).await.unwrap();
+                if row.get::<_,bool>(0) {break;}
+                tokio::time::sleep(Duration::from_millis(20)).await;
+            }
+        }).await.unwrap();
+        let tenant = tx
+            .query_one(
+                "SELECT f1 FROM \"pd_wafl__Tenant\" WHERE f4='local' FOR KEY SHARE NOWAIT",
+                &[],
+            )
+            .await;
+        tx.rollback().await.unwrap();
+        let joined = tokio::time::timeout(Duration::from_secs(10), joining)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        drop(joined);
+        drop(first);
+        drop(live);
+        connection.abort();
+        admin
+            .batch_execute(&format!("DROP SCHEMA {schema} CASCADE"))
+            .await
+            .unwrap();
+        driver.abort();
+        assert!(
+            tenant.is_ok(),
+            "joining controller held Tenant while waiting for Controller: {tenant:?}"
+        );
     }
 }

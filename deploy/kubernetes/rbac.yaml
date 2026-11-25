@@ -20,6 +20,9 @@ metadata:
   name: wafl-apps
   namespace: demo
 rules:
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
   - apiGroups: [wafl.opt.td]
     resources: [apps]
     verbs: [get, list, watch, patch]

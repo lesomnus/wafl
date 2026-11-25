@@ -206,6 +206,14 @@
           "target": "wafl.AppSource",
           "nullable": true,
           "immutable": true
+        },
+        {
+          "name": "secrets",
+          "json": "secrets",
+          "number": 20,
+          "kind": "JSON",
+          "collection": "list",
+          "default": ""
         }
       ],
       "indexes": []
@@ -791,6 +799,15 @@
           "json": "direct",
           "number": 22,
           "kind": "BOOL"
+        },
+        {
+          "name": "secrets",
+          "json": "secrets",
+          "number": 23,
+          "kind": "JSON",
+          "collection": "map",
+          "immutable": true,
+          "default": ""
         }
       ],
       "indexes": []
@@ -1041,6 +1058,15 @@
           "json": "managed",
           "number": 24,
           "kind": "BOOL",
+          "immutable": true,
+          "default": ""
+        },
+        {
+          "name": "secrets",
+          "json": "secrets",
+          "number": 25,
+          "kind": "JSON",
+          "collection": "list",
           "immutable": true,
           "default": ""
         }

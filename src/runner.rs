@@ -588,6 +588,7 @@ impl Runner {
                 "sealed-instance-v1",
                 "cache-v2",
                 "outbound-tcp",
+                "secret-env-v1",
             ]
             .map(String::from)
             .into_iter()
@@ -842,6 +843,16 @@ impl Execution {
             let error = result
                 .err()
                 .unwrap_or_else(|| ConnectError::unavailable("guest stopped"));
+            // A guest failure can embed stderr or guest-supplied strings. Do
+            // not copy these into public Instance/Placement errors or storage.
+            let error = if self.spec.secrets.0.is_empty() {
+                error
+            } else {
+                ConnectError::new(
+                    error.code,
+                    "secret-bearing guest execution failed; inspect application logs",
+                )
+            };
             state.error = error.message.clone().unwrap_or_default();
             state.failure = Some(error);
             state.address = None;

@@ -131,6 +131,7 @@ impl Control {
                     // probe. Account for durable reservations as well as usage.
                     let managed=managed(&app);
                     (!managed || r.capabilities.iter().any(|c|c=="sealed-instance-v1") && r.usage.tombstones.saturating_add(allocated.len() as u64)<r.capacity.tombstones)
+                        && (app.secrets.is_empty() || r.capabilities.iter().any(|c|c=="secret-env-v1"))
                         && r.accepting && r.usage.running.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.running
                         && r.usage.instances.saturating_add(pending.len() as u64).max(allocated.len() as u64) < r.capacity.instances
                         && r.usage.memory_bytes.saturating_add(pending_memory).max(allocated_memory).saturating_add(memory) <= r.capacity.memory_bytes
@@ -145,7 +146,7 @@ impl Control {
                     "id":encode(&paydirt::mint(11)), "tenant":{"id":encode(&app.tenant.id)},
                     "app":{"id":encode(&app.id)}, "revision":app.revision.to_string(),
                     "runner":endpoint, "session":encode(&r.id), "instance":encode(&paydirt::mint(7)),
-                    "manifest":app.manifest, "phase":PlacementPhase::Pending,"dateSeen":date.to_string(),"managed":managed(&app)
+                    "manifest":app.manifest, "secrets":app.secrets, "phase":PlacementPhase::Pending,"dateSeen":date.to_string(),"managed":managed(&app)
                 }))?)?;
                 placements.push(p);
             }
@@ -251,6 +252,7 @@ impl Control {
             || execution.session != p.session
             || execution.tenant.id != p.tenant.id
             || !execution.direct
+            || !execution.secrets.is_empty()
             || *execution.manifest != expected
             || p.execution.generation != 0 && execution.generation != p.execution.generation
         {
@@ -335,6 +337,13 @@ impl Control {
         {
             Ok(value) => value.into_owned(),
             Err(e) if e.code == ErrorCode::NotFound && p.phase == PlacementPhase::Pending => {
+                if !p.secrets.is_empty() && !owner.capabilities.iter().any(|c| c == "secret-env-v1")
+                {
+                    return Err(ConnectError::failed_precondition(
+                        "runner does not support secret environment injection",
+                    ));
+                }
+                let secrets = self.secret_values(&p).await?;
                 let added = ic
                     .add(InstanceAddRequest {
                         id: Some(p.instance.clone()),
@@ -345,6 +354,7 @@ impl Control {
                         .into(),
                         alias: Some(format!("p-{}", paydirt::format_id(&p.id).unwrap())),
                         manifest: p.manifest.clone(),
+                        secrets: secrets.0.into_iter().collect(),
                         ..Default::default()
                     })
                     .await;

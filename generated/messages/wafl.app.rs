@@ -85,6 +85,15 @@ pub struct App {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub source: ::buffa::MessageField<AppSource>,
+    /// Source references only; values are resolved when creating an Instance.
+    ///
+    /// Field 20: `secrets`
+    #[serde(
+        rename = "secrets",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub secrets: ::buffa::alloc::vec::Vec<Secret>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -103,6 +112,7 @@ impl ::core::fmt::Debug for App {
             .field("scaling", &self.scaling)
             .field("state", &self.state)
             .field("source", &self.source)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }
@@ -189,6 +199,14 @@ impl ::buffa::Message for App {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        for v in &self.secrets {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -236,6 +254,10 @@ impl ::buffa::Message for App {
         if self.source.is_set() {
             ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
             self.source.write_to(__cache, buf);
+        }
+        for v in &self.secrets {
+            ::buffa::types::put_len_delimited_header(20u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -347,6 +369,15 @@ impl ::buffa::Message for App {
                     ctx,
                 )?;
             }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.secrets.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -366,6 +397,7 @@ impl ::buffa::Message for App {
         self.scaling = ::buffa::MessageField::none();
         self.state = ::buffa::MessageField::none();
         self.source = ::buffa::MessageField::none();
+        self.secrets.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

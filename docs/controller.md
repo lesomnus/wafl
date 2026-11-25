@@ -10,7 +10,7 @@ Traefik ── 설정 조회 ─────→ GET /traefik
 사용자 ── Host/authority → Traefik ─────────→ Instance.endpoint
 ```
 
-이 문서는 고정 replica 운영을 설명합니다. 고정 방식의 `replicas=0`에는 503을 반환합니다. **YAML 등록, 요청 부하 기반 자동 증감과 최초 요청 기동은 [자동 증감 튜토리얼](autoscaling.md)**을 참고하세요. 앱은 Manifest의 env로 전달받은 DB에 직접 연결합니다. Kubernetes runner 발견과 앱 DB 자동 제공은 후속 범위입니다.
+이 문서는 고정 replica 운영을 설명합니다. 고정 방식의 `replicas=0`에는 503을 반환합니다. **YAML 등록, 요청 부하 기반 자동 증감과 최초 요청 기동은 [자동 증감 튜토리얼](autoscaling.md)**을 참고하세요. 앱은 환경 변수로 전달받은 DB에 직접 연결합니다. 민감한 값은 [App secret 참조](secrets.md)를 사용합니다. Kubernetes runner 발견과 앱 DB 자동 제공은 후속 범위입니다.
 
 ## 로컬에서 끝까지 실행
 
@@ -87,7 +87,7 @@ wafl app add https://files.example.com/grpc-v1.tar.gz \
   --alias grpc --domain grpc.example.com --protocol h2c
 ```
 
-Manifest 변경은 App revision을 증가시킵니다. replica 수나 표시 이름만 바꾸면 revision은 유지됩니다. `--expect-revision`은 Manifest revision의 비교 조건이므로 replica 수 변경끼리의 충돌을 감지하는 전체 resource version은 아닙니다. Manifest는 전체 교체이며 URL, env, memory 등 필요한 필드를 포함합니다. direct 모드에 맞게 `idleMs`·`maxActive`는 생략하거나 0이어야 합니다.
+Manifest 또는 secret 참조 목록 변경은 App revision을 증가시킵니다. replica 수나 표시 이름만 바꾸면 revision은 유지됩니다. `--expect-revision`은 Manifest revision의 비교 조건이므로 replica 수 변경끼리의 충돌을 감지하는 전체 resource version은 아닙니다. Manifest는 전체 교체이며 URL, env, memory 등 필요한 필드를 포함합니다. direct 모드에 맞게 `idleMs`·`maxActive`는 생략하거나 0이어야 합니다.
 
 기존 revision의 Placement는 철회 대상으로 바뀌고 새 revision이 배치됩니다. 현재는 준비 완료를 기다리는 rolling update 계약이 아니므로 변경 중 503이 발생할 수 있습니다. 이전 실행은 외부 연결 철회 확인 전까지 자원을 점유하므로 새 실행을 위한 여유 용량이 필요합니다.
 
@@ -122,7 +122,7 @@ controller들은 짧은 DB transaction으로 배치 결정을 직렬화하고 �
 
 이미 생성된 실행이 FAILED가 되면 해당 revision의 새로운 배치를 멈춥니다. 원인을 확인해 Manifest를 변경하거나 실패한 Placement를 철회·회수한 뒤 재시도합니다. 실행 전 Add 실패로 runner에 Instance가 남지 않으면 같은 Placement/Instance ID로 재시도하며, DB에 저장한 `failures`·`date_retry`에 따라 1초부터 최대 60초까지 지수형 대기를 적용합니다. runner 연결 상실은 `fresh_ms` 이후 이전 배치를 철회하고 살아 있는 runner에 대체 배치를 만듭니다. 철회 확인이 누적되어 앱별 `max_retiring`에 이르면 새 배치를 멈추므로 반복 장애가 실행을 무한히 늘리지 않습니다.
 
-`runners`는 **개별 프로세스의 안정적인 관리 URL** 목록입니다. 여러 runner에 임의 분산하는 Service 주소를 넣지 않습니다. 같은 runner가 재시작하면 같은 URL에서 새 session을 관측합니다. 이 초기 버전에서는 topology, freshness, 배치 한도와 entrypoint를 DB에 설정 fingerprint로 고정하며 서로 다른 설정의 controller 시작을 거절합니다. 운영 중 runner 목록 변경·Kubernetes 발견·설정 migration API는 후속 작업입니다. 임의 DB 수정이나 초기화로 살아 있는 배치 기록을 지우지 않습니다.
+`runners`는 **개별 프로세스의 안정적인 관리 URL** 목록입니다. 여러 runner에 임의 분산하는 Service 주소를 넣지 않습니다. 같은 runner가 재시작하면 같은 URL에서 새 session을 관측합니다. topology, freshness, 배치 한도와 entrypoint를 DB에 설정 fingerprint로 고정하며 서로 다른 설정의 controller 시작을 거절합니다. secret 지원 이전 버전에서 업그레이드할 때도 기존 controller를 모두 중지하고 새 버전 한 개를 `--configure`로 시작합니다. [secret 업그레이드 계약](secrets.md#한도와-값의-취급)을 참고하세요. Kubernetes runner 발견·설정 migration API는 후속 작업입니다. 임의 DB 수정이나 초기화로 살아 있는 배치 기록을 지우지 않습니다.
 
 controller replicas 앞에는 기존 load balancer를 둘 수 있습니다. Traefik의 provider endpoint를 그 주소로 지정하면 어느 controller에서든 같은 DB의 설정을 받습니다. 현재 한 DB 조정 행이 결정들을 직렬화하므로 controller replica 증가는 가용성과 작업 병렬성을 제공하며, DB 결정 처리량을 선형으로 늘리지는 않습니다.
 

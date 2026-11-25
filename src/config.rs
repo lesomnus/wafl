@@ -282,6 +282,7 @@ pub struct Spec {
     pub alias: String,
     pub name: String,
     pub manifest: Manifest,
+    pub(crate) secrets: crate::secrets::Values,
     pub url: reqwest::Url,
     pub port: u16,
     pub protocol: Protocol,
@@ -440,6 +441,7 @@ impl Spec {
                 target,
             });
         }
+        let secrets = crate::secrets::Values::parse(req.secrets, &manifest)?;
         Ok(Self {
             id,
             tenant,
@@ -454,6 +456,7 @@ impl Spec {
             memory_bytes,
             max_active: manifest.max_active,
             manifest,
+            secrets,
         })
     }
 }

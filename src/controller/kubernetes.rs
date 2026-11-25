@@ -29,6 +29,8 @@ struct Spec {
     manifest: Manifest,
     replicas: Option<u32>,
     scaling: Option<Scaling>,
+    #[serde(default)]
+    secrets: Vec<Secret>,
 }
 
 #[derive(Clone)]
@@ -115,29 +117,33 @@ pub(super) struct Provider {
     client: Client,
     config: KubernetesConfig,
 }
+pub(super) async fn client(config: &KubernetesConfig) -> anyhow::Result<Client> {
+    let options = kube::config::KubeConfigOptions {
+        context: config.context.clone(),
+        ..Default::default()
+    };
+    let mut connection = if let Some(path) = &config.kubeconfig {
+        kube::Config::from_custom_kubeconfig(kube::config::Kubeconfig::read_from(path)?, &options)
+            .await?
+    } else if config.context.is_some() {
+        kube::Config::from_kubeconfig(&options).await?
+    } else {
+        kube::Config::infer().await?
+    };
+    connection.connect_timeout = Some(Duration::from_secs(10));
+    connection.read_timeout = Some(Duration::from_secs(310));
+    Ok(Client::try_from(connection)?)
+}
 impl Provider {
     pub(super) async fn open(controller: &Control) -> anyhow::Result<Option<Self>> {
         let Some(config) = controller.config.providers.kubernetes.clone() else {
             return Ok(None);
         };
-        let options = kube::config::KubeConfigOptions {
-            context: config.context.clone(),
-            ..Default::default()
-        };
-        let mut connection = if let Some(path) = &config.kubeconfig {
-            kube::Config::from_custom_kubeconfig(
-                kube::config::Kubeconfig::read_from(path)?,
-                &options,
-            )
-            .await?
-        } else if config.context.is_some() {
-            kube::Config::from_kubeconfig(&options).await?
-        } else {
-            kube::Config::infer().await?
-        };
-        connection.connect_timeout = Some(Duration::from_secs(10));
-        connection.read_timeout = Some(Duration::from_secs(310));
-        let client = Client::try_from(connection)?;
+        let client = controller
+            .secrets
+            .kubernetes
+            .clone()
+            .expect("configured Kubernetes client");
         let tenants: Vec<_> = config.namespaces.values().cloned().collect();
         controller
             .db

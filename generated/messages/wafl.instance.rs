@@ -293,6 +293,19 @@ pub struct Instance {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
     )]
     pub direct: bool,
+    /// Write-only environment values supplied during Add. Kept only in runner
+    /// memory, separate from the public Manifest. Never returned by lifecycle RPCs.
+    ///
+    /// Field 23: `secrets`
+    #[serde(
+        rename = "secrets",
+        skip_serializing_if = "::buffa::__private::HashMap::is_empty",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub secrets: ::buffa::__private::HashMap<
+        ::buffa::alloc::string::String,
+        ::buffa::alloc::string::String,
+    >,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -314,6 +327,7 @@ impl ::core::fmt::Debug for Instance {
             .field("draining", &self.draining)
             .field("endpoint", &self.endpoint)
             .field("direct", &self.direct)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }
@@ -402,6 +416,12 @@ impl ::buffa::Message for Instance {
         if self.direct {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        size
+            += ::buffa::map_codec::field_len::<
+                ::buffa::map_codec::Str,
+                ::buffa::map_codec::Str,
+                _,
+            >(&self.secrets, 2u32);
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -460,6 +480,11 @@ impl ::buffa::Message for Instance {
         if self.direct {
             ::buffa::types::put_bool_field(22u32, self.direct, buf);
         }
+        ::buffa::map_codec::write_field::<
+            ::buffa::map_codec::Str,
+            ::buffa::map_codec::Str,
+            _,
+        >(&self.secrets, 23u32, buf);
         self.__buffa_unknown_fields.write_to(buf);
     }
     fn merge_field(
@@ -585,6 +610,17 @@ impl ::buffa::Message for Instance {
                 )?;
                 self.direct = ::buffa::types::decode_bool(buf)?;
             }
+            23u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::map_codec::merge_entry::<
+                    ::buffa::map_codec::Str,
+                    ::buffa::map_codec::Str,
+                    _,
+                >(&mut self.secrets, buf, ctx)?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -607,6 +643,7 @@ impl ::buffa::Message for Instance {
         self.draining = false;
         self.endpoint = ::buffa::MessageField::none();
         self.direct = false;
+        self.secrets.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

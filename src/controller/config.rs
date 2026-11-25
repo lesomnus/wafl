@@ -34,6 +34,15 @@ pub struct Config {
     pub traffic: Option<TrafficConfig>,
     #[serde(default)]
     pub providers: Providers,
+    #[serde(default)]
+    pub secrets: SecretConfig,
+}
+#[derive(Clone, Default, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SecretConfig {
+    /// Tenant UUID -> controller-local directory containing file sources.
+    #[serde(default)]
+    pub files: BTreeMap<String, PathBuf>,
 }
 #[derive(Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -114,6 +123,20 @@ impl Config {
         Ok(value)
     }
     pub fn validate(&self) -> Result<()> {
+        ensure!(
+            self.secrets.files.len() <= 64,
+            "configure at most 64 secret file roots"
+        );
+        for (tenant, root) in &self.secrets.files {
+            ensure!(
+                paydirt::parse_id(tenant).is_some_and(|id| paydirt::has_domain(&id, 1)),
+                "secret directory must reference a tenant UUID"
+            );
+            ensure!(
+                root.is_absolute(),
+                "secret directory must be an absolute controller path"
+            );
+        }
         if let Some(k) = &self.providers.kubernetes {
             ensure!(
                 self.traffic.is_some(),
@@ -238,10 +261,18 @@ impl Config {
             .collect();
         runners.sort();
         let traffic=self.traffic.as_ref().map(|t|serde_json::json!({"control":t.control,"activate":t.activate,"interval":t.interval_ms,"fresh":t.fresh_ms,"waiting":t.waiting}));
-        let mut shared = serde_json::json!({"format":2,"runners":runners,"pending":self.max_pending,"retiring":self.max_retiring,"replicas":self.max_replicas,"fresh":self.fresh_ms,"entrypoint":self.entrypoint,"traffic":traffic});
+        // Older controllers must not schedule secret-bearing Apps while
+        // silently ignoring their new fields. The DB checks this fence on
+        // every transaction, including controllers already running at upgrade.
+        let mut shared = serde_json::json!({"format":3,"runners":runners,"pending":self.max_pending,"retiring":self.max_retiring,"replicas":self.max_replicas,"fresh":self.fresh_ms,"entrypoint":self.entrypoint,"traffic":traffic});
         if let Some(k) = &self.providers.kubernetes {
             shared["kubernetes"] =
                 serde_json::json!({"cluster":k.cluster,"namespaces":k.namespaces});
+        }
+        if !self.secrets.files.is_empty() {
+            // Mount paths may differ across replicas; tenant bindings may not.
+            shared["secretFiles"] =
+                serde_json::json!(self.secrets.files.keys().collect::<Vec<_>>());
         }
         format!("{:x}", Sha256::digest(serde_json::to_vec(&shared).unwrap()))
     }

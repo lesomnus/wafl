@@ -1,7 +1,7 @@
 use super::controller::*;
 use super::*;
 use k8s_openapi::{
-    api::core::v1::Namespace,
+    api::core::v1::{Namespace, Secret},
     apiextensions_apiserver::pkg::apis::apiextensions::v1::CustomResourceDefinition,
 };
 use kube::{
@@ -146,10 +146,17 @@ async fn crd_replicas_restart_updates_stream_drain_and_zero_activation() {
     }
     let resource = ApiResource::from_gvk(&GroupVersionKind::gvk("wafl.opt.td", "v1alpha1", "App"));
     let api = Api::<DynamicObject>::namespaced_with(client.clone(), &ns, &resource);
-    let unwatched = Api::<DynamicObject>::namespaced_with(client, &other, &resource);
+    let unwatched = Api::<DynamicObject>::namespaced_with(client.clone(), &other, &resource);
+    let secrets = Api::<Secret>::namespaced(client.clone(), &ns);
+    let other_secrets = Api::<Secret>::namespaced(client, &other);
+    other_secrets.create(&PostParams::default(),&serde_json::from_value(json!({"metadata":{"name":"greeting"},"stringData":{"value":"wrong-namespace-secret"}})).unwrap()).await.unwrap();
     let assets = Assets::new(false).await;
     let desired = json!({"apiVersion":"wafl.opt.td/v1alpha1","kind":"App","metadata":{"name":"hello"},
-        "spec":{"domain":"hello.example","manifest":{"bundle":{"url":assets.url},"env":{"GREETING":"kubernetes"}}}});
+    "spec":{"domain":"hello.example","manifest":{"bundle":{"url":assets.url}},"secrets":[
+        {"env":"GREETING","secretKeyRef":{"name":"greeting","key":"value"}},
+        {"env":"OPTIONAL_SECRET","secretKeyRef":{"name":"absent","key":"value","optional":true}},
+        {"env":"OPTIONAL_KEY","secretKeyRef":{"name":"greeting","key":"absent","optional":true}}
+    ]}});
     let original = api
         .create(
             &PostParams::default(),
@@ -174,6 +181,21 @@ async fn crd_replicas_restart_updates_stream_drain_and_zero_activation() {
         .await
         .unwrap_err();
     assert!(matches!(invalid,kube::Error::Api(e) if e.code==422));
+    for bindings in [
+        json!([{"env":"PORT","secretKeyRef":{"name":"greeting","key":"value"}}]),
+        json!([{"env":"A","file":"token"}]),
+        json!([{"env":"A","secretKeyRef":{"name":"greeting","key":"value"}},{"env":"A","secretKeyRef":{"name":"greeting","key":"value"}}]),
+    ] {
+        let invalid = api
+            .patch(
+                "hello",
+                &PatchParams::default(),
+                &Patch::Merge(json!({"spec":{"secrets":bindings}})),
+            )
+            .await
+            .unwrap_err();
+        assert!(matches!(invalid,kube::Error::Api(e) if e.code==422));
+    }
     let invalid = api
         .patch(
             "hello",
@@ -214,10 +236,48 @@ async fn crd_replicas_restart_updates_stream_drain_and_zero_activation() {
     second["listen"] = json!("127.0.0.1:0");
     second["traffic"]["listen"] = json!("127.0.0.1:0");
     let mut c2 = Controller::start(root.path(), &second).await;
+    // The Secret in another namespace must not satisfy this required source.
+    let waiting = until(&c1.endpoint, |ps| ps.iter().any(|p| !p.error.is_empty())).await;
+    assert!(waiting.iter().all(|p| p.execution.id.is_empty()));
+    // Missing key is also required by default. Creating the key alone must
+    // unblock provisioning without changing the App spec/generation.
+    secrets
+        .create(
+            &PostParams::default(),
+            &serde_json::from_value(
+                json!({"metadata":{"name":"greeting"},"stringData":{"unused":"unused"}}),
+            )
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(1200)).await;
+    assert!(
+        placements(&c1.endpoint)
+            .await
+            .iter()
+            .all(|p| p.execution.id.is_empty())
+    );
+    secrets
+        .patch(
+            "greeting",
+            &PatchParams::default(),
+            &Patch::Merge(json!({"stringData":{"value":"synthetic-kubernetes-secret"}})),
+        )
+        .await
+        .unwrap();
     let ready = observed(&api, "hello", |o| o.data["status"]["ready"] == 1).await;
     assert_eq!(ready.data["status"]["observedGeneration"], 1);
     let alias = ready.data["status"]["alias"].as_str().unwrap().to_owned();
     let original_app = app(&c1.endpoint, &["get", &format!("@{alias}")]).await;
+    for text in [
+        serde_json::to_string(&original_app).unwrap(),
+        serde_json::to_string(&ready).unwrap(),
+        serde_json::to_string(&placements(&c1.endpoint).await).unwrap(),
+    ] {
+        assert!(!text.contains("synthetic-kubernetes-secret"));
+        assert!(!text.contains("wrong-namespace-secret"));
+    }
     assert_eq!(original_app.replicas, 1);
     assert_eq!(placements(&c1.endpoint).await.len(), 1);
     assert!(
@@ -299,7 +359,26 @@ async fn crd_replicas_restart_updates_stream_drain_and_zero_activation() {
             .text()
             .await
             .unwrap(),
-        "kubernetes:1"
+        "synthetic-kubernetes-secret:1"
+    );
+    secrets
+        .patch(
+            "greeting",
+            &PatchParams::default(),
+            &Patch::Merge(json!({"stringData":{"value":"synthetic-kubernetes-rotated"}})),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        http.get(&address)
+            .header("host", "hello.example")
+            .send()
+            .await
+            .unwrap()
+            .text()
+            .await
+            .unwrap(),
+        "synthetic-kubernetes-secret:2"
     );
     // Both watchers stop: the next initial LIST must recover the missed change.
     c1.stop().await;
@@ -432,8 +511,43 @@ async fn crd_replicas_restart_updates_stream_drain_and_zero_activation() {
         .await
         .unwrap();
     assert_eq!(response.status(), 200);
-    assert_eq!(response.text().await.unwrap(), "kubernetes:1");
+    assert_eq!(
+        response.text().await.unwrap(),
+        "synthetic-kubernetes-rotated:1"
+    );
     observed(&api, "hello", |o| o.data["status"]["ready"] == 1).await;
+    // Removing the declarative list must clear the stored repeated field and
+    // roll a revision, rather than silently retaining previous bindings.
+    let previous = app(
+        &c1.endpoint,
+        &[
+            "get",
+            &format!("@{}", cold.data["status"]["alias"].as_str().unwrap()),
+        ],
+    )
+    .await;
+    let changed = api
+        .patch(
+            "hello",
+            &PatchParams::default(),
+            &Patch::Merge(json!({"spec":{"secrets":[]}})),
+        )
+        .await
+        .unwrap();
+    observed(&api, "hello", |o| {
+        o.data["status"]["observedGeneration"] == changed.metadata.generation.unwrap()
+    })
+    .await;
+    let cleared = app(
+        &c1.endpoint,
+        &[
+            "get",
+            &format!("@{}", cold.data["status"]["alias"].as_str().unwrap()),
+        ],
+    )
+    .await;
+    assert!(cleared.secrets.is_empty());
+    assert_eq!(cleared.revision, previous.revision + 1);
     api.delete("hello", &DeleteParams::default()).await.unwrap();
     gone(&api, "hello").await;
     assert!(placements(&c1.endpoint).await.is_empty());
