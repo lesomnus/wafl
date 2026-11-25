@@ -1,0 +1,1222 @@
+[
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "cli",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 11.692648163310537,
+        "min": 10.29386041424497,
+        "max": 11.89367850632327
+      },
+      "total.cpu_ms_request": {
+        "median": 0.234,
+        "min": 0.20599999999999996,
+        "max": 0.238
+      },
+      "total.pss_mib": {
+        "median": 43.1640625,
+        "min": 42.576171875,
+        "max": 43.568359375
+      },
+      "total.rss_mib": {
+        "median": 66.61328125,
+        "min": 66.22265625,
+        "max": 69.26171875
+      },
+      "total.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "backend.cpu_pct": {
+        "median": 11.692648163310537,
+        "min": 10.29386041424497,
+        "max": 11.89367850632327
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.234,
+        "min": 0.20599999999999996,
+        "max": 0.238
+      },
+      "backend.pss_mib": {
+        "median": 43.1640625,
+        "min": 42.576171875,
+        "max": 43.568359375
+      },
+      "backend.rss_mib": {
+        "median": 66.61328125,
+        "min": 66.22265625,
+        "max": 69.26171875
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "achieved_rps": {
+        "median": 499.8662311468122,
+        "min": 499.8487723547796,
+        "max": 499.87624103632425
+      },
+      "latency_p50_ms": {
+        "median": 0.5167131312191486,
+        "min": 0.434687128290534,
+        "max": 0.5242170300334692
+      },
+      "latency_p95_ms": {
+        "median": 1.1151409707963467,
+        "min": 0.779072055593133,
+        "max": 1.685956958681345
+      },
+      "schedule_p95_ms": {
+        "median": 1.0784759651869535,
+        "min": 1.0745360050350428,
+        "max": 1.1197919957339764
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "cli",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "total.pss_mib": {
+        "median": 43.1640625,
+        "min": 42.5791015625,
+        "max": 43.556640625
+      },
+      "total.rss_mib": {
+        "median": 66.61328125,
+        "min": 66.22265625,
+        "max": 69.26171875
+      },
+      "total.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "backend.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "backend.pss_mib": {
+        "median": 43.1640625,
+        "min": 42.5791015625,
+        "max": 43.556640625
+      },
+      "backend.rss_mib": {
+        "median": 66.61328125,
+        "min": 66.22265625,
+        "max": 69.26171875
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "cli",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 15.49482253212008,
+        "min": 13.49739087319683,
+        "max": 15.695191572437235
+      },
+      "total.cpu_ms_request": {
+        "median": 0.7750000000000001,
+        "min": 0.6749999999999999,
+        "max": 0.7849999999999999
+      },
+      "total.pss_mib": {
+        "median": 43.1640625,
+        "min": 42.5869140625,
+        "max": 43.55859375
+      },
+      "total.rss_mib": {
+        "median": 66.61328125,
+        "min": 66.22265625,
+        "max": 69.26171875
+      },
+      "total.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "backend.cpu_pct": {
+        "median": 15.49482253212008,
+        "min": 13.49739087319683,
+        "max": 15.695191572437235
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.7750000000000001,
+        "min": 0.6749999999999999,
+        "max": 0.7849999999999999
+      },
+      "backend.pss_mib": {
+        "median": 43.1640625,
+        "min": 42.5869140625,
+        "max": 43.55859375
+      },
+      "backend.rss_mib": {
+        "median": 66.61328125,
+        "min": 66.22265625,
+        "max": 69.26171875
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "achieved_rps": {
+        "median": 199.97812529487808,
+        "min": 199.97236580157232,
+        "max": 199.9879124709039
+      },
+      "latency_p50_ms": {
+        "median": 1.1410198640078306,
+        "min": 0.9028569329530001,
+        "max": 1.175896031782031
+      },
+      "latency_p95_ms": {
+        "median": 1.6471429262310266,
+        "min": 1.5500981826335192,
+        "max": 2.5172277819365263
+      },
+      "schedule_p95_ms": {
+        "median": 1.1246588546782732,
+        "min": 1.0941962245851755,
+        "max": 1.22584099881351
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "direct",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 7.993088128843818,
+        "min": 7.295348025016035,
+        "max": 8.393144690053232
+      },
+      "total.cpu_ms_request": {
+        "median": 0.16,
+        "min": 0.146,
+        "max": 0.168
+      },
+      "total.pss_mib": {
+        "median": 32.1943359375,
+        "min": 32.0830078125,
+        "max": 32.3046875
+      },
+      "total.rss_mib": {
+        "median": 34.0859375,
+        "min": 33.9609375,
+        "max": 34.08984375
+      },
+      "total.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "backend.cpu_pct": {
+        "median": 7.993088128843818,
+        "min": 7.295348025016035,
+        "max": 8.393144690053232
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.16,
+        "min": 0.146,
+        "max": 0.168
+      },
+      "backend.pss_mib": {
+        "median": 32.1943359375,
+        "min": 32.0830078125,
+        "max": 32.3046875
+      },
+      "backend.rss_mib": {
+        "median": 34.0859375,
+        "min": 33.9609375,
+        "max": 34.08984375
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "achieved_rps": {
+        "median": 499.85600483143696,
+        "min": 499.7793743864924,
+        "max": 499.85611347748306
+      },
+      "latency_p50_ms": {
+        "median": 0.4153598565608263,
+        "min": 0.3880381118506193,
+        "max": 0.44498592615127563
+      },
+      "latency_p95_ms": {
+        "median": 0.81971799954772,
+        "min": 0.6495749112218618,
+        "max": 0.8221040479838848
+      },
+      "schedule_p95_ms": {
+        "median": 1.078590750694275,
+        "min": 1.0624751448631287,
+        "max": 1.0854529682546854
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "direct",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.19998164750488748,
+        "min": 0.1999710540696186,
+        "max": 0.19998478053944088
+      },
+      "total.pss_mib": {
+        "median": 32.3134765625,
+        "min": 32.2021484375,
+        "max": 32.4189453125
+      },
+      "total.rss_mib": {
+        "median": 34.11328125,
+        "min": 34.0234375,
+        "max": 34.1171875
+      },
+      "total.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "backend.cpu_pct": {
+        "median": 0.19998164750488748,
+        "min": 0.1999710540696186,
+        "max": 0.19998478053944088
+      },
+      "backend.pss_mib": {
+        "median": 32.3134765625,
+        "min": 32.2021484375,
+        "max": 32.4189453125
+      },
+      "backend.rss_mib": {
+        "median": 34.11328125,
+        "min": 34.0234375,
+        "max": 34.1171875
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "direct",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 14.3973002325651,
+        "min": 13.09742210366981,
+        "max": 14.596895679537736
+      },
+      "total.cpu_ms_request": {
+        "median": 0.72,
+        "min": 0.655,
+        "max": 0.7299999999999999
+      },
+      "total.pss_mib": {
+        "median": 32.1630859375,
+        "min": 32.0908203125,
+        "max": 32.3046875
+      },
+      "total.rss_mib": {
+        "median": 34.05859375,
+        "min": 33.9609375,
+        "max": 34.08984375
+      },
+      "total.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "backend.cpu_pct": {
+        "median": 14.3973002325651,
+        "min": 13.09742210366981,
+        "max": 14.596895679537736
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.72,
+        "min": 0.655,
+        "max": 0.7299999999999999
+      },
+      "backend.pss_mib": {
+        "median": 32.1630859375,
+        "min": 32.0908203125,
+        "max": 32.3046875
+      },
+      "backend.rss_mib": {
+        "median": 34.05859375,
+        "min": 33.9609375,
+        "max": 34.08984375
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "achieved_rps": {
+        "median": 199.99199702298912,
+        "min": 199.98555408366704,
+        "max": 199.99372197930376
+      },
+      "latency_p50_ms": {
+        "median": 1.0997920762747526,
+        "min": 0.9444260504096746,
+        "max": 1.1004430707544088
+      },
+      "latency_p95_ms": {
+        "median": 1.5080280136317015,
+        "min": 1.4766680542379618,
+        "max": 1.56115903519094
+      },
+      "schedule_p95_ms": {
+        "median": 1.109203090891242,
+        "min": 1.1044288985431194,
+        "max": 1.133966026827693
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "proxy",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 21.784845273982143,
+        "min": 19.78902993752628,
+        "max": 24.187640398960674
+      },
+      "total.cpu_ms_request": {
+        "median": 0.4359999999999999,
+        "min": 0.396,
+        "max": 0.484
+      },
+      "total.pss_mib": {
+        "median": 31.9248046875,
+        "min": 31.875,
+        "max": 32.37109375
+      },
+      "total.rss_mib": {
+        "median": 33.83984375,
+        "min": 33.70703125,
+        "max": 34.27734375
+      },
+      "total.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "backend.cpu_pct": {
+        "median": 21.784845273982143,
+        "min": 19.78902993752628,
+        "max": 24.187640398960674
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.4359999999999999,
+        "min": 0.396,
+        "max": 0.484
+      },
+      "backend.pss_mib": {
+        "median": 31.9248046875,
+        "min": 31.875,
+        "max": 32.37109375
+      },
+      "backend.rss_mib": {
+        "median": 33.83984375,
+        "min": 33.70703125,
+        "max": 34.27734375
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "achieved_rps": {
+        "median": 499.86406811826777,
+        "min": 499.82566945230496,
+        "max": 499.8875656779582
+      },
+      "latency_p50_ms": {
+        "median": 0.5876680370420218,
+        "min": 0.5319521296769381,
+        "max": 0.6729699671268463
+      },
+      "latency_p95_ms": {
+        "median": 1.1050219181925058,
+        "min": 0.9132670238614082,
+        "max": 1.4186380431056023
+      },
+      "schedule_p95_ms": {
+        "median": 1.0703851003199816,
+        "min": 1.0594699997454882,
+        "max": 1.0808540973812342
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "proxy",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.19997434902742103,
+        "min": 0.19997329992505883,
+        "max": 0.19997926582887615
+      },
+      "total.pss_mib": {
+        "median": 31.9892578125,
+        "min": 31.8583984375,
+        "max": 32.3916015625
+      },
+      "total.rss_mib": {
+        "median": 33.73828125,
+        "min": 33.63671875,
+        "max": 34.203125
+      },
+      "total.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "backend.cpu_pct": {
+        "median": 0.19997434902742103,
+        "min": 0.19997329992505883,
+        "max": 0.19997926582887615
+      },
+      "backend.pss_mib": {
+        "median": 31.9892578125,
+        "min": 31.8583984375,
+        "max": 32.3916015625
+      },
+      "backend.rss_mib": {
+        "median": 33.73828125,
+        "min": 33.63671875,
+        "max": 34.203125
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      }
+    }
+  },
+  {
+    "gateway": false,
+    "memory_mib_per_guest": 0,
+    "case": "proxy",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 21.79394794050222,
+        "min": 20.694078397617744,
+        "max": 22.794633454937152
+      },
+      "total.cpu_ms_request": {
+        "median": 1.09,
+        "min": 1.0350000000000001,
+        "max": 1.1400000000000001
+      },
+      "total.pss_mib": {
+        "median": 31.9208984375,
+        "min": 31.84375,
+        "max": 32.3720703125
+      },
+      "total.rss_mib": {
+        "median": 33.84375,
+        "min": 33.67578125,
+        "max": 34.28125
+      },
+      "total.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "backend.cpu_pct": {
+        "median": 21.79394794050222,
+        "min": 20.694078397617744,
+        "max": 22.794633454937152
+      },
+      "backend.cpu_ms_request": {
+        "median": 1.09,
+        "min": 1.0350000000000001,
+        "max": 1.1400000000000001
+      },
+      "backend.pss_mib": {
+        "median": 31.9208984375,
+        "min": 31.84375,
+        "max": 32.3720703125
+      },
+      "backend.rss_mib": {
+        "median": 33.84375,
+        "min": 33.67578125,
+        "max": 34.28125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "achieved_rps": {
+        "median": 199.9826422265648,
+        "min": 199.9783418873267,
+        "max": 199.98343057379046
+      },
+      "latency_p50_ms": {
+        "median": 1.3750158250331879,
+        "min": 1.3130770530551672,
+        "max": 1.4858858194202185
+      },
+      "latency_p95_ms": {
+        "median": 1.8612199928611517,
+        "min": 1.8328861333429813,
+        "max": 2.164557110518217
+      },
+      "schedule_p95_ms": {
+        "median": 1.1095048394054174,
+        "min": 1.1063760612159967,
+        "max": 1.1329941917210817
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "case": "direct",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 59.05728031393129,
+        "min": 56.46170946465173,
+        "max": 64.6623321673165
+      },
+      "total.cpu_ms_request": {
+        "median": 1.1819999999999997,
+        "min": 1.13,
+        "max": 1.294
+      },
+      "total.pss_mib": {
+        "median": 152.4306640625,
+        "min": 152.376953125,
+        "max": 152.7666015625
+      },
+      "total.rss_mib": {
+        "median": 154.2578125,
+        "min": 154.25,
+        "max": 154.671875
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 9.992771626722723,
+        "min": 9.093832851828862,
+        "max": 10.49388698233112
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.2,
+        "min": 0.18199999999999997,
+        "max": 0.21
+      },
+      "backend.pss_mib": {
+        "median": 32.365234375,
+        "min": 32.2744140625,
+        "max": 32.3818359375
+      },
+      "backend.rss_mib": {
+        "median": 34.234375,
+        "min": 34.0859375,
+        "max": 34.2578125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 49.064508687208566,
+        "min": 47.36787661282287,
+        "max": 54.168445184985394
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.9819999999999999,
+        "min": 0.948,
+        "max": 1.084
+      },
+      "gateway.pss_mib": {
+        "median": 120.15625,
+        "min": 120.01953125,
+        "max": 120.40625
+      },
+      "gateway.rss_mib": {
+        "median": 120.1640625,
+        "min": 120.02734375,
+        "max": 120.4140625
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.8346779384775,
+        "min": 499.82414411839363,
+        "max": 499.8687665971141
+      },
+      "latency_p50_ms": {
+        "median": 0.9700050577521324,
+        "min": 0.9332450572401285,
+        "max": 1.1303091887384653
+      },
+      "latency_p95_ms": {
+        "median": 2.129811095073819,
+        "min": 2.0268859807401896,
+        "max": 2.7135510463267565
+      },
+      "schedule_p95_ms": {
+        "median": 1.0903968941420317,
+        "min": 1.0758049320429564,
+        "max": 1.1008551809936762
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "case": "direct",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.19997595988967887
+      },
+      "total.pss_mib": {
+        "median": 143.3837890625,
+        "min": 142.451171875,
+        "max": 143.5478515625
+      },
+      "total.rss_mib": {
+        "median": 145.17578125,
+        "min": 144.17578125,
+        "max": 145.36328125
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 14
+      },
+      "backend.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.19997595988967887
+      },
+      "backend.pss_mib": {
+        "median": 32.4775390625,
+        "min": 32.396484375,
+        "max": 32.4775390625
+      },
+      "backend.rss_mib": {
+        "median": 34.26171875,
+        "min": 34.11328125,
+        "max": 34.28515625
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 110.90625,
+        "min": 110.0546875,
+        "max": 111.0703125
+      },
+      "gateway.rss_mib": {
+        "median": 110.9140625,
+        "min": 110.0625,
+        "max": 111.078125
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 8
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "case": "direct",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 38.29215979933856,
+        "min": 33.39243065736085,
+        "max": 39.986557650540306
+      },
+      "total.cpu_ms_request": {
+        "median": 1.9149999999999996,
+        "min": 1.6700000000000004,
+        "max": 2.0
+      },
+      "total.pss_mib": {
+        "median": 152.5595703125,
+        "min": 152.5205078125,
+        "max": 152.9775390625
+      },
+      "total.rss_mib": {
+        "median": 154.40625,
+        "min": 154.375,
+        "max": 154.8671875
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 14.696990836821852,
+        "min": 13.396963197863332,
+        "max": 14.994959118952615
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.735,
+        "min": 0.67,
+        "max": 0.75
+      },
+      "backend.pss_mib": {
+        "median": 32.3466796875,
+        "min": 32.2802734375,
+        "max": 32.3798828125
+      },
+      "backend.rss_mib": {
+        "median": 34.21875,
+        "min": 34.08984375,
+        "max": 34.2578125
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 23.59516896251671,
+        "min": 19.99546745949752,
+        "max": 24.99159853158769
+      },
+      "gateway.cpu_ms_request": {
+        "median": 1.1799999999999997,
+        "min": 1.0000000000000004,
+        "max": 1.25
+      },
+      "gateway.pss_mib": {
+        "median": 120.27734375,
+        "min": 120.1796875,
+        "max": 120.6015625
+      },
+      "gateway.rss_mib": {
+        "median": 120.28515625,
+        "min": 120.1875,
+        "max": 120.609375
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.98758929033818,
+        "min": 199.98081525896302,
+        "max": 199.99911244421196
+      },
+      "latency_p50_ms": {
+        "median": 1.680445857346058,
+        "min": 1.4133879449218512,
+        "max": 1.7602578736841679
+      },
+      "latency_p95_ms": {
+        "median": 2.7312850579619408,
+        "min": 2.400736091658473,
+        "max": 2.8666320722550154
+      },
+      "schedule_p95_ms": {
+        "median": 1.1243319604545832,
+        "min": 1.0926087852567434,
+        "max": 1.1543389409780502
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "case": "proxy",
+    "phase": "http",
+    "trials": 3,
+    "requests": 15000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 52.669538657369856,
+        "min": 50.66757185708174,
+        "max": 53.11190720888232
+      },
+      "total.cpu_ms_request": {
+        "median": 1.054,
+        "min": 1.014,
+        "max": 1.064
+      },
+      "total.pss_mib": {
+        "median": 152.9013671875,
+        "min": 151.9892578125,
+        "max": 153.1005859375
+      },
+      "total.rss_mib": {
+        "median": 154.83984375,
+        "min": 153.85546875,
+        "max": 154.953125
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 22.686879080119464,
+        "min": 21.68612049898765,
+        "max": 22.862080358710624
+      },
+      "backend.cpu_ms_request": {
+        "median": 0.454,
+        "min": 0.434,
+        "max": 0.458
+      },
+      "backend.pss_mib": {
+        "median": 32.2685546875,
+        "min": 32.123046875,
+        "max": 32.3408203125
+      },
+      "backend.rss_mib": {
+        "median": 34.1953125,
+        "min": 33.98046875,
+        "max": 34.19921875
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 29.98265957725039,
+        "min": 28.98145135809409,
+        "max": 30.249826850171697
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.6,
+        "min": 0.58,
+        "max": 0.6060000000000001
+      },
+      "gateway.pss_mib": {
+        "median": 120.625,
+        "min": 119.8671875,
+        "max": 120.75
+      },
+      "gateway.rss_mib": {
+        "median": 120.6328125,
+        "min": 119.875,
+        "max": 120.7578125
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 499.8501581195947,
+        "min": 499.61218314604844,
+        "max": 499.8502046810909
+      },
+      "latency_p50_ms": {
+        "median": 1.1045108549296856,
+        "min": 1.0507081169635057,
+        "max": 1.1400380171835423
+      },
+      "latency_p95_ms": {
+        "median": 2.461422001942992,
+        "min": 2.0043228287249804,
+        "max": 2.874306868761778
+      },
+      "schedule_p95_ms": {
+        "median": 1.0849160607904196,
+        "min": 1.0833649430423975,
+        "max": 1.1044831480830908
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "case": "proxy",
+    "phase": "idle",
+    "trials": 3,
+    "requests": 0,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 0.2999753165858283,
+        "min": 0.2999737004384303,
+        "max": 0.2999781180675003
+      },
+      "total.pss_mib": {
+        "median": 142.1513671875,
+        "min": 141.6669921875,
+        "max": 142.4267578125
+      },
+      "total.rss_mib": {
+        "median": 143.85546875,
+        "min": 143.5,
+        "max": 144.125
+      },
+      "total.threads": {
+        "median": 13,
+        "min": 13,
+        "max": 13
+      },
+      "backend.cpu_pct": {
+        "median": 0.2999753165858283,
+        "min": 0.2999737004384303,
+        "max": 0.2999781180675003
+      },
+      "backend.pss_mib": {
+        "median": 32.2841796875,
+        "min": 32.1513671875,
+        "max": 32.4189453125
+      },
+      "backend.rss_mib": {
+        "median": 34.109375,
+        "min": 33.84765625,
+        "max": 34.109375
+      },
+      "backend.threads": {
+        "median": 6,
+        "min": 6,
+        "max": 6
+      },
+      "gateway.cpu_pct": {
+        "median": 0.0,
+        "min": 0.0,
+        "max": 0.0
+      },
+      "gateway.pss_mib": {
+        "median": 110.0,
+        "min": 109.3828125,
+        "max": 110.0078125
+      },
+      "gateway.rss_mib": {
+        "median": 110.0078125,
+        "min": 109.390625,
+        "max": 110.015625
+      },
+      "gateway.threads": {
+        "median": 7,
+        "min": 7,
+        "max": 7
+      }
+    }
+  },
+  {
+    "gateway": true,
+    "memory_mib_per_guest": 0,
+    "case": "proxy",
+    "phase": "work",
+    "trials": 3,
+    "requests": 6000,
+    "errors": 0,
+    "cgroup_throttled_usec": 0,
+    "metrics": {
+      "total.cpu_pct": {
+        "median": 36.393594028757214,
+        "min": 30.692299222764383,
+        "max": 38.88963360264992
+      },
+      "total.cpu_ms_request": {
+        "median": 1.82,
+        "min": 1.535,
+        "max": 1.9449999999999998
+      },
+      "total.pss_mib": {
+        "median": 153.09375,
+        "min": 152.603515625,
+        "max": 153.22265625
+      },
+      "total.rss_mib": {
+        "median": 155.03515625,
+        "min": 154.47265625,
+        "max": 155.0859375
+      },
+      "total.threads": {
+        "median": 12,
+        "min": 12,
+        "max": 12
+      },
+      "backend.cpu_pct": {
+        "median": 20.99630424735993,
+        "min": 18.295409634416554,
+        "max": 22.194083958324633
+      },
+      "backend.cpu_ms_request": {
+        "median": 1.05,
+        "min": 0.915,
+        "max": 1.1099999999999999
+      },
+      "backend.pss_mib": {
+        "median": 32.28125,
+        "min": 32.150390625,
+        "max": 32.34765625
+      },
+      "backend.rss_mib": {
+        "median": 34.1953125,
+        "min": 34.0078125,
+        "max": 34.2109375
+      },
+      "backend.threads": {
+        "median": 4,
+        "min": 4,
+        "max": 4
+      },
+      "gateway.cpu_pct": {
+        "median": 15.397289781397284,
+        "min": 12.396889588347825,
+        "max": 16.69554964432529
+      },
+      "gateway.cpu_ms_request": {
+        "median": 0.77,
+        "min": 0.6199999999999999,
+        "max": 0.835
+      },
+      "gateway.pss_mib": {
+        "median": 120.81640625,
+        "min": 120.45703125,
+        "max": 120.8828125
+      },
+      "gateway.rss_mib": {
+        "median": 120.82421875,
+        "min": 120.46484375,
+        "max": 120.890625
+      },
+      "gateway.threads": {
+        "median": 8,
+        "min": 8,
+        "max": 8
+      },
+      "achieved_rps": {
+        "median": 199.9869549681136,
+        "min": 199.98626916414466,
+        "max": 199.99873793083376
+      },
+      "latency_p50_ms": {
+        "median": 1.8513109534978867,
+        "min": 1.5785021241754293,
+        "max": 2.038177102804184
+      },
+      "latency_p95_ms": {
+        "median": 3.6219689063727856,
+        "min": 2.189764054492116,
+        "max": 3.7537289317697287
+      },
+      "schedule_p95_ms": {
+        "median": 1.1814599856734276,
+        "min": 1.0974169708788395,
+        "max": 1.2058170977979898
+      }
+    }
+  }
+]

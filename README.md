@@ -45,6 +45,8 @@ runner 설정의 `metrics.endpoint`를 지정하면 실행 상태·활성 lease�
 
 [Runner 운영 튜토리얼](docs/operations.md)은 생성 중 조회, Drain/Start, 전체 자원 수락 제한, 컴파일 공유, 세션·revision 조건과 운영 시나리오를 설명합니다.
 
+[직결 성능 비교](docs/benchmarks/2026-11-25-direct.md)는 같은 WASM 두 개의 Wasmtime CLI·runner proxy·직결과 Traefik을 포함한 전체 비용을 비교합니다. 측정 스크립트와 원본 결과를 함께 제공합니다.
+
 앱·도메인·배치는 플랫폼이 관리합니다. gateway는 기본 모드에서 `wafl-instance` 헤더로, 직결 모드에서 `Instance.endpoint` 주소로 인스턴스를 선택합니다. runner 관리 API는 인증 없이 동작하며 tenant는 소속 메타데이터입니다. Kubernetes 제어평면, 직결의 자동 gateway 갱신·zero-scale activator, credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
 
 [CLI 튜토리얼](docs/cli.md) · [외부 연결과 DB](docs/network.md) · [RPC와 시나리오](docs/runner.md) · [번들 규격](docs/bundle.md) · [공유 저장소 계약과 원격 읽기 확장](docs/store.md) · [Instance](proto/wafl/instance.proto) · [생성된 RPC](generated/proto/wafl/instance_svc.g.proto)

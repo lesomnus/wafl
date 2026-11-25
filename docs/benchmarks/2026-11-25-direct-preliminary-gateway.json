@@ -1,0 +1,5434 @@
+{
+  "arguments": {
+    "wasmtime": "/tmp/wafl-tools/wasmtime/wasmtime",
+    "wafl": "/tmp/wafl-target/release/wafl",
+    "guest": "/tmp/wafl-direct-benchmark/main.wasm",
+    "output": "/tmp/wafl-direct-benchmark/gateway.json",
+    "traefik": "/tmp/wafl-tools/traefik/traefik",
+    "gateway": true,
+    "repeat": 3,
+    "seconds": 10,
+    "rps": 500,
+    "work_rps": 200,
+    "work": 200000,
+    "workers": 2,
+    "memory": [
+      0
+    ],
+    "cases": [
+      "proxy",
+      "direct"
+    ]
+  },
+  "date_utc": "2026-11-25T02:14:50.169137+00:00",
+  "git_revision": "b07dd01547107a164e9f00195394b3ef0522d917",
+  "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.41",
+  "cpu": "AMD Ryzen 7 5825U with Radeon Graphics",
+  "cpu_max": "400000 100000",
+  "memory_max": "8589934592",
+  "wasmtime_version": "wasmtime 51.0.0 (32656dc48 2026-11-20)",
+  "binary_sha256": {
+    "wasmtime": "64dae1cf5080f3435ed4a06af7a371f9501f4bb459c6af081b28f3a627bf0bf7",
+    "wafl": "3d741b04a300288724c6657e6a9d4895af6b3bd7883c06f2e64d61433df1afff",
+    "traefik": "b5d73027657c7bee8ed00ec5459312a76892fd0005d86d7bd1708a4a387ab089"
+  },
+  "guest_sha256": "794f7c95d4091e27041ceb67c607958f02f89870a6bbf1b3bbe4205c248b94f7",
+  "script_sha256": "9939022b3f2830502f13ea7aea0440211af471adec1a6d4f2c2961ee980f9cce",
+  "trials": [
+    {
+      "case": "proxy",
+      "memory_mib_per_guest": 0,
+      "repeat": 0,
+      "startup_seconds": 1.1085977738257498,
+      "pids": [
+        31170,
+        31177
+      ],
+      "commands": [
+        [
+          "/tmp/wafl-target/release/wafl",
+          "serve",
+          "runner",
+          "--config",
+          "/tmp/wafl-direct-benchmark/gateway.files/proxy-0-0/runner.json"
+        ],
+        [
+          "/tmp/wafl-tools/traefik/traefik",
+          "--entrypoints.web.address=127.0.0.1:58563",
+          "--providers.file.directory=/tmp/wafl-direct-benchmark/gateway.files/proxy-0-0/routes",
+          "--log.level=ERROR"
+        ]
+      ],
+      "instances": [
+        {
+          "id": "AaIQfAihhd+0B++qZg5ODw==",
+          "tenant": {
+            "id": "AAAAAAAAgACAAQAAAAAAAQ=="
+          },
+          "alias": "bench-0",
+          "phase": "PHASE_RUNNING",
+          "generation": "1",
+          "manifest": {
+            "runtime": "wasmtime",
+            "bundle": {
+              "digest": "sha256:bc4cbedf77a48bf966d387287b6fc7ee1f89090db31749b23b87fce0bdc3f2e4",
+              "url": "file:///tmp/wafl-direct-benchmark/gateway.files/bundle-0.tar.gz"
+            },
+            "port": 8080,
+            "protocol": "http",
+            "abi": "wasip2",
+            "idleMs": "3600000",
+            "startupMs": "120000",
+            "memoryBytes": "67108864",
+            "maxActive": 128,
+            "env": {
+              "BENCH_WORK": "200000",
+              "BENCH_MEMORY_MIB": "0"
+            }
+          },
+          "session": "AaIQfAd2gGeaCMj2ADepow==",
+          "revision": "5"
+        },
+        {
+          "id": "AaIQfAsJgj2RB852ROa1Tw==",
+          "tenant": {
+            "id": "AAAAAAAAgACAAQAAAAAAAQ=="
+          },
+          "alias": "bench-1",
+          "phase": "PHASE_RUNNING",
+          "generation": "1",
+          "manifest": {
+            "runtime": "wasmtime",
+            "bundle": {
+              "digest": "sha256:bc4cbedf77a48bf966d387287b6fc7ee1f89090db31749b23b87fce0bdc3f2e4",
+              "url": "file:///tmp/wafl-direct-benchmark/gateway.files/bundle-0.tar.gz"
+            },
+            "port": 8080,
+            "protocol": "http",
+            "abi": "wasip2",
+            "idleMs": "3600000",
+            "startupMs": "120000",
+            "memoryBytes": "67108864",
+            "maxActive": 128,
+            "env": {
+              "BENCH_MEMORY_MIB": "0",
+              "BENCH_WORK": "200000"
+            }
+          },
+          "session": "AaIQfAd2gGeaCMj2ADepow==",
+          "revision": "10"
+        }
+      ],
+      "gateway": true,
+      "phases": [
+        {
+          "phase": "idle",
+          "elapsed": 10.012472935952246,
+          "cpu_seconds": 0.020000000000000018,
+          "cpu_pct": 0.19975085204160803,
+          "pss_mib": 145.49609375,
+          "rss_mib": 147.203125,
+          "private_mib": 145.33203125,
+          "threads": 13,
+          "cpu_ms_request": null,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 0.019999999999999962,
+              "cpu_pct": 0.19975085204160747,
+              "pss_mib": 32.375,
+              "rss_mib": 34.07421875,
+              "private_mib": 32.2109375,
+              "threads": 6,
+              "cpu_ms_request": null
+            },
+            "gateway": {
+              "cpu_seconds": 0.0,
+              "cpu_pct": 0.0,
+              "pss_mib": 113.12109375,
+              "rss_mib": 113.12890625,
+              "private_mib": 113.12109375,
+              "threads": 7,
+              "cpu_ms_request": null
+            }
+          },
+          "traffic": null,
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 0.5069954979699105,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 1.0126696829684079,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 1.5170425330288708,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 2.021521374117583,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 2.526169606950134,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 3.0365067310631275,
+              "cpu_seconds": 0.49,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 3.541023404104635,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 4.0455058119259775,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 4.551034200005233,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 5.0567764840088785,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 5.562716995133087,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 6.0670452399645,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 6.572288656141609,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 7.077140246052295,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 7.58810384105891,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150736,
+              "pss_kib": 148988,
+              "private_kib": 148820,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34892,
+                  "pss_kib": 33152,
+                  "private_kib": 32984,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 8.092683183960617,
+              "cpu_seconds": 0.5,
+              "rss_kib": 150700,
+              "pss_kib": 148870,
+              "private_kib": 148688,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 34856,
+                  "pss_kib": 33034,
+                  "private_kib": 32852,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 8.598791192984208,
+              "cpu_seconds": 0.51,
+              "rss_kib": 150700,
+              "pss_kib": 148875,
+              "private_kib": 148688,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.35,
+                  "rss_kib": 34856,
+                  "pss_kib": 33039,
+                  "private_kib": 32852,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 9.104706726968288,
+              "cpu_seconds": 0.51,
+              "rss_kib": 150700,
+              "pss_kib": 148861,
+              "private_kib": 148688,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.35,
+                  "rss_kib": 34856,
+                  "pss_kib": 33025,
+                  "private_kib": 32852,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 9.60956844710745,
+              "cpu_seconds": 0.51,
+              "rss_kib": 150700,
+              "pss_kib": 148861,
+              "private_kib": 148688,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.35,
+                  "rss_kib": 34856,
+                  "pss_kib": 33025,
+                  "private_kib": 32852,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 10.012472935952246,
+              "cpu_seconds": 0.51,
+              "rss_kib": 150700,
+              "pss_kib": 148861,
+              "private_kib": 148688,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.35,
+                  "rss_kib": 34856,
+                  "pss_kib": 33025,
+                  "private_kib": 32852,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.16,
+                  "rss_kib": 115844,
+                  "pss_kib": 115836,
+                  "private_kib": 115836,
+                  "threads": 7
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3420804819,
+            "user_usec": 3069059792,
+            "system_usec": 351745026,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 44833,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3421119108,
+            "user_usec": 3069239365,
+            "system_usec": 351879742,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 44898,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "phase": "http",
+          "elapsed": 10.016297440975904,
+          "cpu_seconds": 4.02,
+          "cpu_pct": 40.13459088739206,
+          "pss_mib": 156.337890625,
+          "rss_mib": 158.1328125,
+          "private_mib": 156.16796875,
+          "threads": 12,
+          "cpu_ms_request": 0.8039999999999999,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 1.74,
+              "cpu_pct": 17.371688593050298,
+              "pss_mib": 32.314453125,
+              "rss_mib": 34.1015625,
+              "private_mib": 32.14453125,
+              "threads": 4,
+              "cpu_ms_request": 0.348
+            },
+            "gateway": {
+              "cpu_seconds": 2.2800000000000002,
+              "cpu_pct": 22.76290229434177,
+              "pss_mib": 124.015625,
+              "rss_mib": 124.0234375,
+              "private_mib": 124.015625,
+              "threads": 8,
+              "cpu_ms_request": 0.45600000000000007
+            }
+          },
+          "traffic": {
+            "offered_rps": 500,
+            "requests": 5000,
+            "ok": 5000,
+            "errors": [],
+            "elapsed": 10.003454074030742,
+            "achieved_rps": 499.82735593100244,
+            "latency_p50_ms": 0.7957329507917166,
+            "latency_p95_ms": 1.3209918979555368,
+            "schedule_p95_ms": 1.0706649627536535
+          },
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 1.35,
+              "rss_kib": 158112,
+              "pss_kib": 156269,
+              "private_kib": 156100,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.7,
+                  "rss_kib": 34876,
+                  "pss_kib": 33041,
+                  "private_kib": 32872,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.65,
+                  "rss_kib": 123236,
+                  "pss_kib": 123228,
+                  "private_kib": 123228,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 0.5045212919358164,
+              "cpu_seconds": 1.55,
+              "rss_kib": 158192,
+              "pss_kib": 156354,
+              "private_kib": 156180,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.78,
+                  "rss_kib": 34876,
+                  "pss_kib": 33046,
+                  "private_kib": 32872,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.77,
+                  "rss_kib": 123316,
+                  "pss_kib": 123308,
+                  "private_kib": 123308,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.0092045920901,
+              "cpu_seconds": 1.71,
+              "rss_kib": 158236,
+              "pss_kib": 156398,
+              "private_kib": 156224,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.85,
+                  "rss_kib": 34896,
+                  "pss_kib": 33066,
+                  "private_kib": 32892,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.86,
+                  "rss_kib": 123340,
+                  "pss_kib": 123332,
+                  "private_kib": 123332,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.5134153941180557,
+              "cpu_seconds": 1.87,
+              "rss_kib": 158268,
+              "pss_kib": 156430,
+              "private_kib": 156256,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.92,
+                  "rss_kib": 34912,
+                  "pss_kib": 33082,
+                  "private_kib": 32908,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.95,
+                  "rss_kib": 123356,
+                  "pss_kib": 123348,
+                  "private_kib": 123348,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.017407750012353,
+              "cpu_seconds": 2.01,
+              "rss_kib": 158284,
+              "pss_kib": 156446,
+              "private_kib": 156272,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.98,
+                  "rss_kib": 34916,
+                  "pss_kib": 33086,
+                  "private_kib": 32912,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.03,
+                  "rss_kib": 123368,
+                  "pss_kib": 123360,
+                  "private_kib": 123360,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.521732568042353,
+              "cpu_seconds": 2.18,
+              "rss_kib": 158764,
+              "pss_kib": 156926,
+              "private_kib": 156752,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.06,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.12,
+                  "rss_kib": 123844,
+                  "pss_kib": 123836,
+                  "private_kib": 123836,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.026795079000294,
+              "cpu_seconds": 2.4,
+              "rss_kib": 158764,
+              "pss_kib": 156926,
+              "private_kib": 156752,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.15,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.25,
+                  "rss_kib": 123844,
+                  "pss_kib": 123836,
+                  "private_kib": 123836,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.534796189982444,
+              "cpu_seconds": 2.62,
+              "rss_kib": 160924,
+              "pss_kib": 159086,
+              "private_kib": 158912,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.24,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.38,
+                  "rss_kib": 126004,
+                  "pss_kib": 125996,
+                  "private_kib": 125996,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.040549885947257,
+              "cpu_seconds": 2.84,
+              "rss_kib": 160940,
+              "pss_kib": 159102,
+              "private_kib": 158928,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.34,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.5,
+                  "rss_kib": 126020,
+                  "pss_kib": 126012,
+                  "private_kib": 126012,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.546475057955831,
+              "cpu_seconds": 3.05,
+              "rss_kib": 160956,
+              "pss_kib": 159118,
+              "private_kib": 158944,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.43,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.62,
+                  "rss_kib": 126036,
+                  "pss_kib": 126028,
+                  "private_kib": 126028,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.051552447956055,
+              "cpu_seconds": 3.25,
+              "rss_kib": 162004,
+              "pss_kib": 160166,
+              "private_kib": 159992,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.51,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.74,
+                  "rss_kib": 127084,
+                  "pss_kib": 127076,
+                  "private_kib": 127076,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.55736810201779,
+              "cpu_seconds": 3.47,
+              "rss_kib": 162004,
+              "pss_kib": 160166,
+              "private_kib": 159992,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.61,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.86,
+                  "rss_kib": 127084,
+                  "pss_kib": 127076,
+                  "private_kib": 127076,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.0634293931070715,
+              "cpu_seconds": 3.7,
+              "rss_kib": 162020,
+              "pss_kib": 160182,
+              "private_kib": 160008,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.71,
+                  "rss_kib": 34920,
+                  "pss_kib": 33090,
+                  "private_kib": 32916,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.99,
+                  "rss_kib": 127100,
+                  "pss_kib": 127092,
+                  "private_kib": 127092,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.569132121978328,
+              "cpu_seconds": 3.88,
+              "rss_kib": 162040,
+              "pss_kib": 160202,
+              "private_kib": 160028,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.79,
+                  "rss_kib": 34928,
+                  "pss_kib": 33098,
+                  "private_kib": 32924,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.09,
+                  "rss_kib": 127112,
+                  "pss_kib": 127104,
+                  "private_kib": 127104,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.073069002944976,
+              "cpu_seconds": 4.07,
+              "rss_kib": 162044,
+              "pss_kib": 160206,
+              "private_kib": 160032,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.88,
+                  "rss_kib": 34928,
+                  "pss_kib": 33098,
+                  "private_kib": 32924,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.19,
+                  "rss_kib": 127116,
+                  "pss_kib": 127108,
+                  "private_kib": 127108,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.578166210092604,
+              "cpu_seconds": 4.25,
+              "rss_kib": 161928,
+              "pss_kib": 160090,
+              "private_kib": 159916,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.95,
+                  "rss_kib": 34928,
+                  "pss_kib": 33098,
+                  "private_kib": 32924,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.3,
+                  "rss_kib": 127000,
+                  "pss_kib": 126992,
+                  "private_kib": 126992,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.082872023107484,
+              "cpu_seconds": 4.46,
+              "rss_kib": 161928,
+              "pss_kib": 160090,
+              "private_kib": 159916,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.04,
+                  "rss_kib": 34928,
+                  "pss_kib": 33098,
+                  "private_kib": 32924,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.42,
+                  "rss_kib": 127000,
+                  "pss_kib": 126992,
+                  "private_kib": 126992,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.589195873122662,
+              "cpu_seconds": 4.6899999999999995,
+              "rss_kib": 161928,
+              "pss_kib": 160090,
+              "private_kib": 159916,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.15,
+                  "rss_kib": 34928,
+                  "pss_kib": 33098,
+                  "private_kib": 32924,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.54,
+                  "rss_kib": 127000,
+                  "pss_kib": 126992,
+                  "private_kib": 126992,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.094848606968299,
+              "cpu_seconds": 4.93,
+              "rss_kib": 161940,
+              "pss_kib": 160102,
+              "private_kib": 159928,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.24,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.69,
+                  "rss_kib": 127004,
+                  "pss_kib": 126996,
+                  "private_kib": 126996,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.601144914980978,
+              "cpu_seconds": 5.17,
+              "rss_kib": 161952,
+              "pss_kib": 160114,
+              "private_kib": 159940,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.35,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.82,
+                  "rss_kib": 127016,
+                  "pss_kib": 127008,
+                  "private_kib": 127008,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 10.016297440975904,
+              "cpu_seconds": 5.37,
+              "rss_kib": 161952,
+              "pss_kib": 160114,
+              "private_kib": 159940,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.44,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.93,
+                  "rss_kib": 127016,
+                  "pss_kib": 127008,
+                  "private_kib": 127008,
+                  "threads": 8
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3422487508,
+            "user_usec": 3070057252,
+            "system_usec": 352430256,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 44918,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3429396934,
+            "user_usec": 3074136573,
+            "system_usec": 355260360,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45018,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "phase": "work",
+          "elapsed": 10.011367395054549,
+          "cpu_seconds": 2.6400000000000006,
+          "cpu_pct": 26.37002415178687,
+          "pss_mib": 156.404296875,
+          "rss_mib": 158.19921875,
+          "private_mib": 156.234375,
+          "threads": 12,
+          "cpu_ms_request": 1.3200000000000003,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 1.6400000000000001,
+              "cpu_pct": 16.381378639746384,
+              "pss_mib": 32.330078125,
+              "rss_mib": 34.1171875,
+              "private_mib": 32.16015625,
+              "threads": 4,
+              "cpu_ms_request": 0.8200000000000001
+            },
+            "gateway": {
+              "cpu_seconds": 1.0000000000000004,
+              "cpu_pct": 9.988645512040483,
+              "pss_mib": 124.07421875,
+              "rss_mib": 124.08203125,
+              "private_mib": 124.07421875,
+              "threads": 8,
+              "cpu_ms_request": 0.5000000000000002
+            }
+          },
+          "traffic": {
+            "offered_rps": 200,
+            "requests": 2000,
+            "ok": 2000,
+            "errors": [],
+            "elapsed": 10.00058684987016,
+            "achieved_rps": 199.98826369134193,
+            "latency_p50_ms": 1.3318429701030254,
+            "latency_p95_ms": 1.933177001774311,
+            "schedule_p95_ms": 1.0826510842889547
+          },
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 5.83,
+              "rss_kib": 161964,
+              "pss_kib": 160126,
+              "private_kib": 159952,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.72,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.11,
+                  "rss_kib": 127028,
+                  "pss_kib": 127020,
+                  "private_kib": 127020,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 0.5046493359841406,
+              "cpu_seconds": 5.99,
+              "rss_kib": 161964,
+              "pss_kib": 160126,
+              "private_kib": 159952,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.82,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.17,
+                  "rss_kib": 127028,
+                  "pss_kib": 127020,
+                  "private_kib": 127020,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.0100283490028232,
+              "cpu_seconds": 6.130000000000001,
+              "rss_kib": 161964,
+              "pss_kib": 160126,
+              "private_kib": 159952,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.91,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.22,
+                  "rss_kib": 127028,
+                  "pss_kib": 127020,
+                  "private_kib": 127020,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.5152353150770068,
+              "cpu_seconds": 6.3,
+              "rss_kib": 161964,
+              "pss_kib": 160126,
+              "private_kib": 159952,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.01,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.29,
+                  "rss_kib": 127028,
+                  "pss_kib": 127020,
+                  "private_kib": 127020,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.0201581411529332,
+              "cpu_seconds": 6.4,
+              "rss_kib": 161964,
+              "pss_kib": 160126,
+              "private_kib": 159952,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.07,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.33,
+                  "rss_kib": 127028,
+                  "pss_kib": 127020,
+                  "private_kib": 127020,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.5255641860421747,
+              "cpu_seconds": 6.54,
+              "rss_kib": 161992,
+              "pss_kib": 160154,
+              "private_kib": 159980,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.16,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.38,
+                  "rss_kib": 127056,
+                  "pss_kib": 127048,
+                  "private_kib": 127048,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.0317262690514326,
+              "cpu_seconds": 6.720000000000001,
+              "rss_kib": 161992,
+              "pss_kib": 160154,
+              "private_kib": 159980,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.27,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.45,
+                  "rss_kib": 127056,
+                  "pss_kib": 127048,
+                  "private_kib": 127048,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.535639154026285,
+              "cpu_seconds": 6.869999999999999,
+              "rss_kib": 161992,
+              "pss_kib": 160154,
+              "private_kib": 159980,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.36,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.51,
+                  "rss_kib": 127056,
+                  "pss_kib": 127048,
+                  "private_kib": 127048,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.042462244164199,
+              "cpu_seconds": 6.99,
+              "rss_kib": 161996,
+              "pss_kib": 160158,
+              "private_kib": 159984,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.43,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.56,
+                  "rss_kib": 127060,
+                  "pss_kib": 127052,
+                  "private_kib": 127052,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.546680078143254,
+              "cpu_seconds": 7.109999999999999,
+              "rss_kib": 161996,
+              "pss_kib": 160158,
+              "private_kib": 159984,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.51,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.6,
+                  "rss_kib": 127060,
+                  "pss_kib": 127052,
+                  "private_kib": 127052,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.0526210211683065,
+              "cpu_seconds": 7.26,
+              "rss_kib": 161996,
+              "pss_kib": 160158,
+              "private_kib": 159984,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.6,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.66,
+                  "rss_kib": 127060,
+                  "pss_kib": 127052,
+                  "private_kib": 127052,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.560305238002911,
+              "cpu_seconds": 7.37,
+              "rss_kib": 162000,
+              "pss_kib": 160162,
+              "private_kib": 159988,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.67,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.7,
+                  "rss_kib": 127064,
+                  "pss_kib": 127056,
+                  "private_kib": 127056,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.06459587207064,
+              "cpu_seconds": 7.5,
+              "rss_kib": 162000,
+              "pss_kib": 160162,
+              "private_kib": 159988,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.75,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.75,
+                  "rss_kib": 127064,
+                  "pss_kib": 127056,
+                  "private_kib": 127056,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.5688887890428305,
+              "cpu_seconds": 7.62,
+              "rss_kib": 162000,
+              "pss_kib": 160162,
+              "private_kib": 159988,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.83,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.79,
+                  "rss_kib": 127064,
+                  "pss_kib": 127056,
+                  "private_kib": 127056,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.076130355009809,
+              "cpu_seconds": 7.76,
+              "rss_kib": 162004,
+              "pss_kib": 160166,
+              "private_kib": 159992,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.92,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.84,
+                  "rss_kib": 127068,
+                  "pss_kib": 127060,
+                  "private_kib": 127060,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.580321990186349,
+              "cpu_seconds": 7.87,
+              "rss_kib": 162008,
+              "pss_kib": 160170,
+              "private_kib": 159996,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 3.99,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.88,
+                  "rss_kib": 127072,
+                  "pss_kib": 127064,
+                  "private_kib": 127064,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.084563681157306,
+              "cpu_seconds": 7.97,
+              "rss_kib": 162008,
+              "pss_kib": 160170,
+              "private_kib": 159996,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 4.05,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.92,
+                  "rss_kib": 127072,
+                  "pss_kib": 127064,
+                  "private_kib": 127064,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.589265406131744,
+              "cpu_seconds": 8.13,
+              "rss_kib": 162012,
+              "pss_kib": 160174,
+              "private_kib": 160000,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 4.15,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.98,
+                  "rss_kib": 127076,
+                  "pss_kib": 127068,
+                  "private_kib": 127068,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.09469897300005,
+              "cpu_seconds": 8.280000000000001,
+              "rss_kib": 162132,
+              "pss_kib": 160294,
+              "private_kib": 160120,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 4.24,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.04,
+                  "rss_kib": 127196,
+                  "pss_kib": 127188,
+                  "private_kib": 127188,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.599611710058525,
+              "cpu_seconds": 8.39,
+              "rss_kib": 162132,
+              "pss_kib": 160294,
+              "private_kib": 160120,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 4.31,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.08,
+                  "rss_kib": 127196,
+                  "pss_kib": 127188,
+                  "private_kib": 127188,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 10.011367395054549,
+              "cpu_seconds": 8.47,
+              "rss_kib": 162132,
+              "pss_kib": 160294,
+              "private_kib": 160120,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 4.36,
+                  "rss_kib": 34936,
+                  "pss_kib": 33106,
+                  "private_kib": 32932,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.11,
+                  "rss_kib": 127196,
+                  "pss_kib": 127188,
+                  "private_kib": 127188,
+                  "threads": 8
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3430059681,
+            "user_usec": 3074608948,
+            "system_usec": 355450732,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45038,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3433949025,
+            "user_usec": 3077262934,
+            "system_usec": 356686090,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45138,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        }
+      ]
+    },
+    {
+      "case": "direct",
+      "memory_mib_per_guest": 0,
+      "repeat": 0,
+      "startup_seconds": 0.4287587741855532,
+      "pids": [
+        31210,
+        31216
+      ],
+      "commands": [
+        [
+          "/tmp/wafl-target/release/wafl",
+          "serve",
+          "runner",
+          "--config",
+          "/tmp/wafl-direct-benchmark/gateway.files/direct-0-0/runner.json"
+        ],
+        [
+          "/tmp/wafl-tools/traefik/traefik",
+          "--entrypoints.web.address=127.0.0.1:60129",
+          "--providers.file.directory=/tmp/wafl-direct-benchmark/gateway.files/direct-0-0/routes",
+          "--log.level=ERROR"
+        ]
+      ],
+      "instances": [
+        {
+          "id": "AaIQfJjZhxiAB9dsPjwZjw==",
+          "tenant": {
+            "id": "AAAAAAAAgACAAQAAAAAAAQ=="
+          },
+          "alias": "bench-0",
+          "phase": "PHASE_RUNNING",
+          "generation": "1",
+          "manifest": {
+            "runtime": "wasmtime",
+            "bundle": {
+              "digest": "sha256:bc4cbedf77a48bf966d387287b6fc7ee1f89090db31749b23b87fce0bdc3f2e4",
+              "url": "file:///tmp/wafl-direct-benchmark/gateway.files/bundle-0.tar.gz"
+            },
+            "port": 8080,
+            "protocol": "http",
+            "abi": "wasip2",
+            "startupMs": "120000",
+            "memoryBytes": "67108864",
+            "env": {
+              "BENCH_MEMORY_MIB": "0",
+              "BENCH_WORK": "200000"
+            }
+          },
+          "session": "AaIQfJingnyLCGrIf837DA==",
+          "revision": "5",
+          "endpoint": {
+            "address": "127.0.0.1:20000",
+            "protocol": "http"
+          },
+          "direct": true
+        },
+        {
+          "id": "AaIQfJnTglGhB15edW9oEw==",
+          "tenant": {
+            "id": "AAAAAAAAgACAAQAAAAAAAQ=="
+          },
+          "alias": "bench-1",
+          "phase": "PHASE_RUNNING",
+          "generation": "1",
+          "manifest": {
+            "runtime": "wasmtime",
+            "bundle": {
+              "digest": "sha256:bc4cbedf77a48bf966d387287b6fc7ee1f89090db31749b23b87fce0bdc3f2e4",
+              "url": "file:///tmp/wafl-direct-benchmark/gateway.files/bundle-0.tar.gz"
+            },
+            "port": 8080,
+            "protocol": "http",
+            "abi": "wasip2",
+            "startupMs": "120000",
+            "memoryBytes": "67108864",
+            "env": {
+              "BENCH_MEMORY_MIB": "0",
+              "BENCH_WORK": "200000"
+            }
+          },
+          "session": "AaIQfJingnyLCGrIf837DA==",
+          "revision": "10",
+          "endpoint": {
+            "address": "127.0.0.1:20001",
+            "protocol": "http"
+          },
+          "direct": true
+        }
+      ],
+      "gateway": true,
+      "phases": [
+        {
+          "phase": "idle",
+          "elapsed": 10.010106896050274,
+          "cpu_seconds": 0.020000000000000018,
+          "cpu_pct": 0.19979806617141616,
+          "pss_mib": 144.751953125,
+          "rss_mib": 146.39453125,
+          "private_mib": 144.5546875,
+          "threads": 13,
+          "cpu_ms_request": null,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 0.020000000000000018,
+              "cpu_pct": 0.19979806617141616,
+              "pss_mib": 32.845703125,
+              "rss_mib": 34.48046875,
+              "private_mib": 32.6484375,
+              "threads": 6,
+              "cpu_ms_request": null
+            },
+            "gateway": {
+              "cpu_seconds": 0.0,
+              "cpu_pct": 0.0,
+              "pss_mib": 111.90625,
+              "rss_mib": 111.9140625,
+              "private_mib": 111.90625,
+              "threads": 7,
+              "cpu_ms_request": null
+            }
+          },
+          "traffic": null,
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148202,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33610,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 0.5040471300017089,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148217,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33625,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 1.0091630250681192,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148217,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33625,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 1.514034752966836,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148217,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33625,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 2.0190068730153143,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148217,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33625,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 2.523511993000284,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148231,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33639,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 3.0300632768776268,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 3.53502201102674,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 4.040140376891941,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 4.545012455899268,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 5.049699442926794,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 5.555195969995111,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 6.060093668056652,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 6.565009540878236,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 7.069085045019165,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148241,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33649,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 7.576067818095908,
+              "cpu_seconds": 0.32,
+              "rss_kib": 149908,
+              "pss_kib": 148226,
+              "private_kib": 148024,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.25,
+                  "rss_kib": 35308,
+                  "pss_kib": 33634,
+                  "private_kib": 33432,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 8.08366890787147,
+              "cpu_seconds": 0.33,
+              "rss_kib": 149880,
+              "pss_kib": 148103,
+              "private_kib": 147892,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.26,
+                  "rss_kib": 35280,
+                  "pss_kib": 33511,
+                  "private_kib": 33300,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 8.588053389918059,
+              "cpu_seconds": 0.33,
+              "rss_kib": 149880,
+              "pss_kib": 148103,
+              "private_kib": 147892,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.26,
+                  "rss_kib": 35280,
+                  "pss_kib": 33511,
+                  "private_kib": 33300,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 9.0930154400412,
+              "cpu_seconds": 0.34,
+              "rss_kib": 149880,
+              "pss_kib": 148103,
+              "private_kib": 147892,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.27,
+                  "rss_kib": 35280,
+                  "pss_kib": 33511,
+                  "private_kib": 33300,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 9.597617134917527,
+              "cpu_seconds": 0.34,
+              "rss_kib": 149880,
+              "pss_kib": 148103,
+              "private_kib": 147892,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.27,
+                  "rss_kib": 35280,
+                  "pss_kib": 33511,
+                  "private_kib": 33300,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 10.010106896050274,
+              "cpu_seconds": 0.34,
+              "rss_kib": 149880,
+              "pss_kib": 148103,
+              "private_kib": 147892,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.27,
+                  "rss_kib": 35280,
+                  "pss_kib": 33511,
+                  "private_kib": 33300,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.07,
+                  "rss_kib": 114600,
+                  "pss_kib": 114592,
+                  "private_kib": 114592,
+                  "threads": 7
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3434498596,
+            "user_usec": 3077700144,
+            "system_usec": 356798451,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45151,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3434745518,
+            "user_usec": 3077829772,
+            "system_usec": 356915746,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45219,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "phase": "http",
+          "elapsed": 10.014786396874115,
+          "cpu_seconds": 4.46,
+          "cpu_pct": 44.53415003830822,
+          "pss_mib": 155.1162109375,
+          "rss_mib": 156.859375,
+          "private_mib": 154.91796875,
+          "threads": 12,
+          "cpu_ms_request": 0.892,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 0.72,
+              "cpu_pct": 7.189369512910744,
+              "pss_mib": 32.71875,
+              "rss_mib": 34.45703125,
+              "private_mib": 32.5234375,
+              "threads": 4,
+              "cpu_ms_request": 0.144
+            },
+            "gateway": {
+              "cpu_seconds": 3.7399999999999998,
+              "cpu_pct": 37.344780525397475,
+              "pss_mib": 122.39453125,
+              "rss_mib": 122.40234375,
+              "private_mib": 122.39453125,
+              "threads": 8,
+              "cpu_ms_request": 0.7479999999999999
+            }
+          },
+          "traffic": {
+            "offered_rps": 500,
+            "requests": 5000,
+            "ok": 5000,
+            "errors": [],
+            "elapsed": 10.002132540103048,
+            "achieved_rps": 499.893395728636,
+            "latency_p50_ms": 0.7033979054540396,
+            "latency_p95_ms": 1.623497111722827,
+            "schedule_p95_ms": 1.0707720648497343
+          },
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 1.3,
+              "rss_kib": 160180,
+              "pss_kib": 158391,
+              "private_kib": 158192,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.41,
+                  "rss_kib": 35284,
+                  "pss_kib": 33503,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.89,
+                  "rss_kib": 124896,
+                  "pss_kib": 124888,
+                  "private_kib": 124888,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 0.5054595968686044,
+              "cpu_seconds": 1.56,
+              "rss_kib": 160272,
+              "pss_kib": 158482,
+              "private_kib": 158284,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.46,
+                  "rss_kib": 35284,
+                  "pss_kib": 33502,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.1,
+                  "rss_kib": 124988,
+                  "pss_kib": 124980,
+                  "private_kib": 124980,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.010319803841412,
+              "cpu_seconds": 1.84,
+              "rss_kib": 160780,
+              "pss_kib": 158990,
+              "private_kib": 158792,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.5,
+                  "rss_kib": 35284,
+                  "pss_kib": 33502,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.34,
+                  "rss_kib": 125496,
+                  "pss_kib": 125488,
+                  "private_kib": 125488,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.5195374679751694,
+              "cpu_seconds": 2.16,
+              "rss_kib": 160160,
+              "pss_kib": 158370,
+              "private_kib": 158172,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.56,
+                  "rss_kib": 35284,
+                  "pss_kib": 33502,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.6,
+                  "rss_kib": 124876,
+                  "pss_kib": 124868,
+                  "private_kib": 124868,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.0269944530446082,
+              "cpu_seconds": 2.44,
+              "rss_kib": 160188,
+              "pss_kib": 158403,
+              "private_kib": 158200,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.6,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.84,
+                  "rss_kib": 124904,
+                  "pss_kib": 124896,
+                  "private_kib": 124896,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.532296239864081,
+              "cpu_seconds": 2.6799999999999997,
+              "rss_kib": 160336,
+              "pss_kib": 158551,
+              "private_kib": 158348,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.65,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.03,
+                  "rss_kib": 125052,
+                  "pss_kib": 125044,
+                  "private_kib": 125044,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.037709938827902,
+              "cpu_seconds": 2.88,
+              "rss_kib": 160576,
+              "pss_kib": 158791,
+              "private_kib": 158588,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.67,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.21,
+                  "rss_kib": 125292,
+                  "pss_kib": 125284,
+                  "private_kib": 125284,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.542629398871213,
+              "cpu_seconds": 3.12,
+              "rss_kib": 160576,
+              "pss_kib": 158791,
+              "private_kib": 158588,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.71,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.41,
+                  "rss_kib": 125292,
+                  "pss_kib": 125284,
+                  "private_kib": 125284,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.0484333098866045,
+              "cpu_seconds": 3.37,
+              "rss_kib": 160596,
+              "pss_kib": 158811,
+              "private_kib": 158608,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.75,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.62,
+                  "rss_kib": 125312,
+                  "pss_kib": 125304,
+                  "private_kib": 125304,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.5536626789253205,
+              "cpu_seconds": 3.5599999999999996,
+              "rss_kib": 160608,
+              "pss_kib": 158823,
+              "private_kib": 158620,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.78,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.78,
+                  "rss_kib": 125324,
+                  "pss_kib": 125316,
+                  "private_kib": 125316,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.057876495877281,
+              "cpu_seconds": 3.76,
+              "rss_kib": 160616,
+              "pss_kib": 158831,
+              "private_kib": 158628,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.82,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.94,
+                  "rss_kib": 125332,
+                  "pss_kib": 125324,
+                  "private_kib": 125324,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.5636935429647565,
+              "cpu_seconds": 3.98,
+              "rss_kib": 160624,
+              "pss_kib": 158839,
+              "private_kib": 158636,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.85,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.13,
+                  "rss_kib": 125340,
+                  "pss_kib": 125332,
+                  "private_kib": 125332,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.0685534288641065,
+              "cpu_seconds": 4.17,
+              "rss_kib": 160624,
+              "pss_kib": 158839,
+              "private_kib": 158636,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.88,
+                  "rss_kib": 35284,
+                  "pss_kib": 33507,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.29,
+                  "rss_kib": 125340,
+                  "pss_kib": 125332,
+                  "private_kib": 125332,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.573355354834348,
+              "cpu_seconds": 4.43,
+              "rss_kib": 160648,
+              "pss_kib": 158860,
+              "private_kib": 158660,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.92,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.51,
+                  "rss_kib": 125364,
+                  "pss_kib": 125356,
+                  "private_kib": 125356,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.078087307047099,
+              "cpu_seconds": 4.640000000000001,
+              "rss_kib": 160648,
+              "pss_kib": 158860,
+              "private_kib": 158660,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.96,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.68,
+                  "rss_kib": 125364,
+                  "pss_kib": 125356,
+                  "private_kib": 125356,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.582238805945963,
+              "cpu_seconds": 4.83,
+              "rss_kib": 160652,
+              "pss_kib": 158864,
+              "private_kib": 158664,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.99,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.84,
+                  "rss_kib": 125368,
+                  "pss_kib": 125360,
+                  "private_kib": 125360,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.08707860391587,
+              "cpu_seconds": 5.02,
+              "rss_kib": 160664,
+              "pss_kib": 158876,
+              "private_kib": 158676,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.02,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.0,
+                  "rss_kib": 125380,
+                  "pss_kib": 125372,
+                  "private_kib": 125372,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.591530423844233,
+              "cpu_seconds": 5.21,
+              "rss_kib": 160668,
+              "pss_kib": 158880,
+              "private_kib": 158680,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.05,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.16,
+                  "rss_kib": 125384,
+                  "pss_kib": 125376,
+                  "private_kib": 125376,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.096748881973326,
+              "cpu_seconds": 5.41,
+              "rss_kib": 160676,
+              "pss_kib": 158888,
+              "private_kib": 158688,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.08,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.33,
+                  "rss_kib": 125392,
+                  "pss_kib": 125384,
+                  "private_kib": 125384,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.600991684012115,
+              "cpu_seconds": 5.61,
+              "rss_kib": 160680,
+              "pss_kib": 158892,
+              "private_kib": 158692,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.11,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.5,
+                  "rss_kib": 125396,
+                  "pss_kib": 125388,
+                  "private_kib": 125388,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 10.014786396874115,
+              "cpu_seconds": 5.76,
+              "rss_kib": 160688,
+              "pss_kib": 158900,
+              "private_kib": 158700,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.13,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.63,
+                  "rss_kib": 125404,
+                  "pss_kib": 125396,
+                  "private_kib": 125396,
+                  "threads": 8
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3436177548,
+            "user_usec": 3078747415,
+            "system_usec": 357430132,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45239,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3444002250,
+            "user_usec": 3083748516,
+            "system_usec": 360253733,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45339,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "phase": "work",
+          "elapsed": 10.01171356299892,
+          "cpu_seconds": 2.76,
+          "cpu_pct": 27.567708391102496,
+          "pss_mib": 155.21875,
+          "rss_mib": 156.96484375,
+          "private_mib": 155.0234375,
+          "threads": 12,
+          "cpu_ms_request": 1.38,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 1.1799999999999997,
+              "cpu_pct": 11.786194167210484,
+              "pss_mib": 32.71875,
+              "rss_mib": 34.45703125,
+              "private_mib": 32.5234375,
+              "threads": 4,
+              "cpu_ms_request": 0.5899999999999999
+            },
+            "gateway": {
+              "cpu_seconds": 1.58,
+              "cpu_pct": 15.781514223892009,
+              "pss_mib": 122.5,
+              "rss_mib": 122.5078125,
+              "private_mib": 122.5,
+              "threads": 8,
+              "cpu_ms_request": 0.79
+            }
+          },
+          "traffic": {
+            "offered_rps": 200,
+            "requests": 2000,
+            "ok": 2000,
+            "errors": [],
+            "elapsed": 10.000755240907893,
+            "achieved_rps": 199.98489632253364,
+            "latency_p50_ms": 1.1497060768306255,
+            "latency_p95_ms": 1.8321149982511997,
+            "schedule_p95_ms": 1.0759758297353983
+          },
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 6.279999999999999,
+              "rss_kib": 160704,
+              "pss_kib": 158916,
+              "private_kib": 158716,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.35,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.93,
+                  "rss_kib": 125420,
+                  "pss_kib": 125412,
+                  "private_kib": 125412,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 0.5049121859483421,
+              "cpu_seconds": 6.4,
+              "rss_kib": 160704,
+              "pss_kib": 158916,
+              "private_kib": 158716,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.41,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.99,
+                  "rss_kib": 125420,
+                  "pss_kib": 125412,
+                  "private_kib": 125412,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.0099207849707454,
+              "cpu_seconds": 6.529999999999999,
+              "rss_kib": 160704,
+              "pss_kib": 158916,
+              "private_kib": 158716,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.47,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.06,
+                  "rss_kib": 125420,
+                  "pss_kib": 125412,
+                  "private_kib": 125412,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.515054470859468,
+              "cpu_seconds": 6.66,
+              "rss_kib": 160704,
+              "pss_kib": 158916,
+              "private_kib": 158716,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.53,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.13,
+                  "rss_kib": 125420,
+                  "pss_kib": 125412,
+                  "private_kib": 125412,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.019825428025797,
+              "cpu_seconds": 6.81,
+              "rss_kib": 160716,
+              "pss_kib": 158928,
+              "private_kib": 158728,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.59,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.22,
+                  "rss_kib": 125432,
+                  "pss_kib": 125424,
+                  "private_kib": 125424,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.525184613885358,
+              "cpu_seconds": 6.93,
+              "rss_kib": 160720,
+              "pss_kib": 158932,
+              "private_kib": 158732,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.64,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.29,
+                  "rss_kib": 125436,
+                  "pss_kib": 125428,
+                  "private_kib": 125428,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.030159068061039,
+              "cpu_seconds": 7.0600000000000005,
+              "rss_kib": 160732,
+              "pss_kib": 158944,
+              "private_kib": 158744,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.7,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.36,
+                  "rss_kib": 125448,
+                  "pss_kib": 125440,
+                  "private_kib": 125440,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.5355191349517554,
+              "cpu_seconds": 7.18,
+              "rss_kib": 160732,
+              "pss_kib": 158944,
+              "private_kib": 158744,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.75,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.43,
+                  "rss_kib": 125448,
+                  "pss_kib": 125440,
+                  "private_kib": 125440,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.040692797861993,
+              "cpu_seconds": 7.32,
+              "rss_kib": 160732,
+              "pss_kib": 158944,
+              "private_kib": 158744,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.81,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.51,
+                  "rss_kib": 125448,
+                  "pss_kib": 125440,
+                  "private_kib": 125440,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.545669125858694,
+              "cpu_seconds": 7.44,
+              "rss_kib": 160732,
+              "pss_kib": 158944,
+              "private_kib": 158744,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.86,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.58,
+                  "rss_kib": 125448,
+                  "pss_kib": 125440,
+                  "private_kib": 125440,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.05051345191896,
+              "cpu_seconds": 7.58,
+              "rss_kib": 160732,
+              "pss_kib": 158944,
+              "private_kib": 158744,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.92,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.66,
+                  "rss_kib": 125448,
+                  "pss_kib": 125440,
+                  "private_kib": 125440,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.55519467801787,
+              "cpu_seconds": 7.6899999999999995,
+              "rss_kib": 160732,
+              "pss_kib": 158944,
+              "private_kib": 158744,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.97,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.72,
+                  "rss_kib": 125448,
+                  "pss_kib": 125440,
+                  "private_kib": 125440,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.060032892972231,
+              "cpu_seconds": 7.84,
+              "rss_kib": 160736,
+              "pss_kib": 158948,
+              "private_kib": 158748,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.03,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.81,
+                  "rss_kib": 125452,
+                  "pss_kib": 125444,
+                  "private_kib": 125444,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.565113177988678,
+              "cpu_seconds": 7.99,
+              "rss_kib": 160736,
+              "pss_kib": 158947,
+              "private_kib": 158748,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.1,
+                  "rss_kib": 35284,
+                  "pss_kib": 33503,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.89,
+                  "rss_kib": 125452,
+                  "pss_kib": 125444,
+                  "private_kib": 125444,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.069933810038492,
+              "cpu_seconds": 8.15,
+              "rss_kib": 160736,
+              "pss_kib": 158948,
+              "private_kib": 158748,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.16,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.99,
+                  "rss_kib": 125452,
+                  "pss_kib": 125444,
+                  "private_kib": 125444,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.574270850978792,
+              "cpu_seconds": 8.3,
+              "rss_kib": 160736,
+              "pss_kib": 158948,
+              "private_kib": 158748,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.23,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.07,
+                  "rss_kib": 125452,
+                  "pss_kib": 125444,
+                  "private_kib": 125444,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.079296943033114,
+              "cpu_seconds": 8.469999999999999,
+              "rss_kib": 160736,
+              "pss_kib": 158943,
+              "private_kib": 158748,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.29,
+                  "rss_kib": 35284,
+                  "pss_kib": 33499,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.18,
+                  "rss_kib": 125452,
+                  "pss_kib": 125444,
+                  "private_kib": 125444,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.584266176912934,
+              "cpu_seconds": 8.64,
+              "rss_kib": 160836,
+              "pss_kib": 159048,
+              "private_kib": 158848,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.36,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.28,
+                  "rss_kib": 125552,
+                  "pss_kib": 125544,
+                  "private_kib": 125544,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.089097429066896,
+              "cpu_seconds": 8.79,
+              "rss_kib": 160840,
+              "pss_kib": 159052,
+              "private_kib": 158852,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.42,
+                  "rss_kib": 35284,
+                  "pss_kib": 33504,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.37,
+                  "rss_kib": 125556,
+                  "pss_kib": 125548,
+                  "private_kib": 125548,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.593998363008723,
+              "cpu_seconds": 8.93,
+              "rss_kib": 160844,
+              "pss_kib": 159052,
+              "private_kib": 158856,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.48,
+                  "rss_kib": 35284,
+                  "pss_kib": 33500,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.45,
+                  "rss_kib": 125560,
+                  "pss_kib": 125552,
+                  "private_kib": 125552,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 10.01171356299892,
+              "cpu_seconds": 9.04,
+              "rss_kib": 160844,
+              "pss_kib": 159052,
+              "private_kib": 158856,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.53,
+                  "rss_kib": 35284,
+                  "pss_kib": 33500,
+                  "private_kib": 33304,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.51,
+                  "rss_kib": 125560,
+                  "pss_kib": 125552,
+                  "private_kib": 125552,
+                  "threads": 8
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3444712411,
+            "user_usec": 3084250402,
+            "system_usec": 360462009,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45359,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3449769109,
+            "user_usec": 3087931286,
+            "system_usec": 361837823,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45459,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        }
+      ]
+    },
+    {
+      "case": "direct",
+      "memory_mib_per_guest": 0,
+      "repeat": 1,
+      "startup_seconds": 1.6879680070560426,
+      "pids": [
+        31261,
+        31267
+      ],
+      "commands": [
+        [
+          "/tmp/wafl-target/release/wafl",
+          "serve",
+          "runner",
+          "--config",
+          "/tmp/wafl-direct-benchmark/gateway.files/direct-0-1/runner.json"
+        ],
+        [
+          "/tmp/wafl-tools/traefik/traefik",
+          "--entrypoints.web.address=127.0.0.1:50089",
+          "--providers.file.directory=/tmp/wafl-direct-benchmark/gateway.files/direct-0-1/routes",
+          "--log.level=ERROR"
+        ]
+      ],
+      "instances": [
+        {
+          "id": "AaIQfSqBgDSIB9oO8rEGAg==",
+          "tenant": {
+            "id": "AAAAAAAAgACAAQAAAAAAAQ=="
+          },
+          "alias": "bench-0",
+          "phase": "PHASE_RUNNING",
+          "generation": "1",
+          "manifest": {
+            "runtime": "wasmtime",
+            "bundle": {
+              "digest": "sha256:bc4cbedf77a48bf966d387287b6fc7ee1f89090db31749b23b87fce0bdc3f2e4",
+              "url": "file:///tmp/wafl-direct-benchmark/gateway.files/bundle-0.tar.gz"
+            },
+            "port": 8080,
+            "protocol": "http",
+            "abi": "wasip2",
+            "startupMs": "120000",
+            "memoryBytes": "67108864",
+            "env": {
+              "BENCH_MEMORY_MIB": "0",
+              "BENCH_WORK": "200000"
+            }
+          },
+          "session": "AaIQfSd8hUCyCGaCLzE+lg==",
+          "revision": "5",
+          "endpoint": {
+            "address": "127.0.0.1:20000",
+            "protocol": "http"
+          },
+          "direct": true
+        },
+        {
+          "id": "AaIQfS1AhXGcB1y57NRT0w==",
+          "tenant": {
+            "id": "AAAAAAAAgACAAQAAAAAAAQ=="
+          },
+          "alias": "bench-1",
+          "phase": "PHASE_RUNNING",
+          "generation": "1",
+          "manifest": {
+            "runtime": "wasmtime",
+            "bundle": {
+              "digest": "sha256:bc4cbedf77a48bf966d387287b6fc7ee1f89090db31749b23b87fce0bdc3f2e4",
+              "url": "file:///tmp/wafl-direct-benchmark/gateway.files/bundle-0.tar.gz"
+            },
+            "port": 8080,
+            "protocol": "http",
+            "abi": "wasip2",
+            "startupMs": "120000",
+            "memoryBytes": "67108864",
+            "env": {
+              "BENCH_MEMORY_MIB": "0",
+              "BENCH_WORK": "200000"
+            }
+          },
+          "session": "AaIQfSd8hUCyCGaCLzE+lg==",
+          "revision": "10",
+          "endpoint": {
+            "address": "127.0.0.1:20001",
+            "protocol": "http"
+          },
+          "direct": true
+        }
+      ],
+      "gateway": true,
+      "phases": [
+        {
+          "phase": "idle",
+          "elapsed": 10.00966794998385,
+          "cpu_seconds": 0.010000000000000009,
+          "cpu_pct": 0.09990341387914015,
+          "pss_mib": 145.0419921875,
+          "rss_mib": 146.81640625,
+          "private_mib": 144.859375,
+          "threads": 13,
+          "cpu_ms_request": null,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 0.010000000000000009,
+              "cpu_pct": 0.09990341387914015,
+              "pss_mib": 32.6201171875,
+              "rss_mib": 34.38671875,
+              "private_mib": 32.4375,
+              "threads": 6,
+              "cpu_ms_request": null
+            },
+            "gateway": {
+              "cpu_seconds": 0.0,
+              "cpu_pct": 0.0,
+              "pss_mib": 112.421875,
+              "rss_mib": 112.4296875,
+              "private_mib": 112.421875,
+              "threads": 7,
+              "cpu_ms_request": null
+            }
+          },
+          "traffic": null,
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 0.44,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 0.5044174040667713,
+              "cpu_seconds": 0.44,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 1.008773660985753,
+              "cpu_seconds": 0.44,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 1.5139939219225198,
+              "cpu_seconds": 0.44,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 2.018927148077637,
+              "cpu_seconds": 0.44,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.33,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 2.5232017401140183,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 3.0280326111242175,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 3.533877460984513,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 4.039207781897858,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 4.543747799005359,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 5.048720991006121,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150340,
+              "pss_kib": 148523,
+              "private_kib": 148336,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35212,
+                  "pss_kib": 33403,
+                  "private_kib": 33216,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 5.553249546093866,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150324,
+              "pss_kib": 148507,
+              "private_kib": 148320,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35196,
+                  "pss_kib": 33387,
+                  "private_kib": 33200,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 6.058776580961421,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150324,
+              "pss_kib": 148507,
+              "private_kib": 148320,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35196,
+                  "pss_kib": 33387,
+                  "private_kib": 33200,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 6.563249251106754,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150324,
+              "pss_kib": 148512,
+              "private_kib": 148320,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35196,
+                  "pss_kib": 33392,
+                  "private_kib": 33200,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 7.069226912921295,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150324,
+              "pss_kib": 148506,
+              "private_kib": 148320,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35196,
+                  "pss_kib": 33386,
+                  "private_kib": 33200,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 7.574219851987436,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150324,
+              "pss_kib": 148512,
+              "private_kib": 148320,
+              "threads": 13,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35196,
+                  "pss_kib": 33392,
+                  "private_kib": 33200,
+                  "threads": 6
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 8.080019656103104,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150288,
+              "pss_kib": 148395,
+              "private_kib": 148188,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 8.586962724104524,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150288,
+              "pss_kib": 148395,
+              "private_kib": 148188,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 9.092346316901967,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150288,
+              "pss_kib": 148395,
+              "private_kib": 148188,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 9.599540793104097,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150288,
+              "pss_kib": 148395,
+              "private_kib": 148188,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            },
+            {
+              "time": 10.00966794998385,
+              "cpu_seconds": 0.45,
+              "rss_kib": 150288,
+              "pss_kib": 148395,
+              "private_kib": 148188,
+              "threads": 11,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.34,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.11,
+                  "rss_kib": 115128,
+                  "pss_kib": 115120,
+                  "private_kib": 115120,
+                  "threads": 7
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3450698644,
+            "user_usec": 3088701114,
+            "system_usec": 361997530,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45487,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3451092391,
+            "user_usec": 3088940738,
+            "system_usec": 362151652,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45561,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "phase": "http",
+          "elapsed": 10.013843274209648,
+          "cpu_seconds": 4.659999999999999,
+          "cpu_pct": 46.53557952121828,
+          "pss_mib": 155.2373046875,
+          "rss_mib": 157.0859375,
+          "private_mib": 155.03515625,
+          "threads": 12,
+          "cpu_ms_request": 0.9319999999999998,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 0.75,
+              "cpu_pct": 7.489631897191784,
+              "pss_mib": 32.4892578125,
+              "rss_mib": 34.3359375,
+              "private_mib": 32.29296875,
+              "threads": 4,
+              "cpu_ms_request": 0.15
+            },
+            "gateway": {
+              "cpu_seconds": 3.9099999999999997,
+              "cpu_pct": 39.045947624026496,
+              "pss_mib": 122.7421875,
+              "rss_mib": 122.75,
+              "private_mib": 122.7421875,
+              "threads": 8,
+              "cpu_ms_request": 0.7819999999999999
+            }
+          },
+          "traffic": {
+            "offered_rps": 500,
+            "requests": 5000,
+            "ok": 5000,
+            "errors": [],
+            "elapsed": 10.002328823786229,
+            "achieved_rps": 499.8835859214761,
+            "latency_p50_ms": 0.7419611793011427,
+            "latency_p95_ms": 1.5644161030650139,
+            "schedule_p95_ms": 1.0751949157565832
+          },
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 1.28,
+              "rss_kib": 160164,
+              "pss_kib": 158266,
+              "private_kib": 158064,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.47,
+                  "rss_kib": 35160,
+                  "pss_kib": 33270,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 0.81,
+                  "rss_kib": 125004,
+                  "pss_kib": 124996,
+                  "private_kib": 124996,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 0.5057918091770262,
+              "cpu_seconds": 1.53,
+              "rss_kib": 160216,
+              "pss_kib": 158318,
+              "private_kib": 158116,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.51,
+                  "rss_kib": 35160,
+                  "pss_kib": 33270,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.02,
+                  "rss_kib": 125056,
+                  "pss_kib": 125048,
+                  "private_kib": 125048,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.011305969208479,
+              "cpu_seconds": 1.73,
+              "rss_kib": 160408,
+              "pss_kib": 158492,
+              "private_kib": 158308,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.54,
+                  "rss_kib": 35160,
+                  "pss_kib": 33252,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.19,
+                  "rss_kib": 125248,
+                  "pss_kib": 125240,
+                  "private_kib": 125240,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.5166375120170414,
+              "cpu_seconds": 1.96,
+              "rss_kib": 160416,
+              "pss_kib": 158500,
+              "private_kib": 158316,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.58,
+                  "rss_kib": 35160,
+                  "pss_kib": 33252,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.38,
+                  "rss_kib": 125256,
+                  "pss_kib": 125248,
+                  "private_kib": 125248,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.021414381219074,
+              "cpu_seconds": 2.15,
+              "rss_kib": 160496,
+              "pss_kib": 158598,
+              "private_kib": 158396,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.61,
+                  "rss_kib": 35160,
+                  "pss_kib": 33270,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.54,
+                  "rss_kib": 125336,
+                  "pss_kib": 125328,
+                  "private_kib": 125328,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.527046976145357,
+              "cpu_seconds": 2.36,
+              "rss_kib": 160532,
+              "pss_kib": 158633,
+              "private_kib": 158432,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.64,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.72,
+                  "rss_kib": 125372,
+                  "pss_kib": 125364,
+                  "private_kib": 125364,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.0318474990781397,
+              "cpu_seconds": 2.61,
+              "rss_kib": 160540,
+              "pss_kib": 158641,
+              "private_kib": 158440,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.68,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 1.93,
+                  "rss_kib": 125380,
+                  "pss_kib": 125372,
+                  "private_kib": 125372,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.537071348167956,
+              "cpu_seconds": 2.88,
+              "rss_kib": 160732,
+              "pss_kib": 158833,
+              "private_kib": 158632,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.73,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.15,
+                  "rss_kib": 125572,
+                  "pss_kib": 125564,
+                  "private_kib": 125564,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.041911857202649,
+              "cpu_seconds": 3.1100000000000003,
+              "rss_kib": 160744,
+              "pss_kib": 158851,
+              "private_kib": 158644,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.76,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.35,
+                  "rss_kib": 125584,
+                  "pss_kib": 125576,
+                  "private_kib": 125576,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.54719479708001,
+              "cpu_seconds": 3.39,
+              "rss_kib": 160776,
+              "pss_kib": 158883,
+              "private_kib": 158676,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.81,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.58,
+                  "rss_kib": 125616,
+                  "pss_kib": 125608,
+                  "private_kib": 125608,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.054311576066539,
+              "cpu_seconds": 3.65,
+              "rss_kib": 160856,
+              "pss_kib": 158963,
+              "private_kib": 158756,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.85,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.8,
+                  "rss_kib": 125696,
+                  "pss_kib": 125688,
+                  "private_kib": 125688,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.559845404000953,
+              "cpu_seconds": 3.85,
+              "rss_kib": 160868,
+              "pss_kib": 158975,
+              "private_kib": 158768,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.89,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 2.96,
+                  "rss_kib": 125708,
+                  "pss_kib": 125700,
+                  "private_kib": 125700,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.064543292159215,
+              "cpu_seconds": 4.09,
+              "rss_kib": 161076,
+              "pss_kib": 159183,
+              "private_kib": 158976,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.92,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.17,
+                  "rss_kib": 125916,
+                  "pss_kib": 125908,
+                  "private_kib": 125908,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.571876863017678,
+              "cpu_seconds": 4.37,
+              "rss_kib": 161160,
+              "pss_kib": 159267,
+              "private_kib": 159060,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 0.97,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.4,
+                  "rss_kib": 126000,
+                  "pss_kib": 125992,
+                  "private_kib": 125992,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.077166566159576,
+              "cpu_seconds": 4.58,
+              "rss_kib": 161176,
+              "pss_kib": 159276,
+              "private_kib": 159076,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.0,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.58,
+                  "rss_kib": 126016,
+                  "pss_kib": 126008,
+                  "private_kib": 126008,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.582013598177582,
+              "cpu_seconds": 4.78,
+              "rss_kib": 161180,
+              "pss_kib": 159280,
+              "private_kib": 159080,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.03,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.75,
+                  "rss_kib": 126020,
+                  "pss_kib": 126012,
+                  "private_kib": 126012,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.087024641223252,
+              "cpu_seconds": 4.99,
+              "rss_kib": 161184,
+              "pss_kib": 159284,
+              "private_kib": 159084,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.06,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 3.93,
+                  "rss_kib": 126024,
+                  "pss_kib": 126016,
+                  "private_kib": 126016,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.593545486219227,
+              "cpu_seconds": 5.24,
+              "rss_kib": 161192,
+              "pss_kib": 159292,
+              "private_kib": 159092,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.1,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.14,
+                  "rss_kib": 126032,
+                  "pss_kib": 126024,
+                  "private_kib": 126024,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.09909346117638,
+              "cpu_seconds": 5.5,
+              "rss_kib": 161196,
+              "pss_kib": 159296,
+              "private_kib": 159096,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.15,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.35,
+                  "rss_kib": 126036,
+                  "pss_kib": 126028,
+                  "private_kib": 126028,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.603976651094854,
+              "cpu_seconds": 5.699999999999999,
+              "rss_kib": 161196,
+              "pss_kib": 159296,
+              "private_kib": 159096,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.18,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.52,
+                  "rss_kib": 126036,
+                  "pss_kib": 126028,
+                  "private_kib": 126028,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 10.013843274209648,
+              "cpu_seconds": 5.9399999999999995,
+              "rss_kib": 161332,
+              "pss_kib": 159432,
+              "private_kib": 159232,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.22,
+                  "rss_kib": 35160,
+                  "pss_kib": 33268,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 4.72,
+                  "rss_kib": 126172,
+                  "pss_kib": 126164,
+                  "private_kib": 126164,
+                  "threads": 8
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3452316363,
+            "user_usec": 3089729433,
+            "system_usec": 362586929,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45581,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3459650796,
+            "user_usec": 3094260866,
+            "system_usec": 365389930,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45681,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        },
+        {
+          "phase": "work",
+          "elapsed": 10.010979837039486,
+          "cpu_seconds": 3.29,
+          "cpu_pct": 32.86391595583256,
+          "pss_mib": 155.6611328125,
+          "rss_mib": 157.52734375,
+          "private_mib": 155.4765625,
+          "threads": 12,
+          "cpu_ms_request": 1.645,
+          "groups": {
+            "backend": {
+              "cpu_seconds": 1.3099999999999998,
+              "cpu_pct": 13.085632189100501,
+              "pss_mib": 32.4892578125,
+              "rss_mib": 34.3359375,
+              "private_mib": 32.29296875,
+              "threads": 4,
+              "cpu_ms_request": 0.6549999999999999
+            },
+            "gateway": {
+              "cpu_seconds": 1.9799999999999995,
+              "cpu_pct": 19.778283766732052,
+              "pss_mib": 123.18359375,
+              "rss_mib": 123.19140625,
+              "private_mib": 123.18359375,
+              "threads": 8,
+              "cpu_ms_request": 0.9899999999999998
+            }
+          },
+          "traffic": {
+            "offered_rps": 200,
+            "requests": 2000,
+            "ok": 2000,
+            "errors": [],
+            "elapsed": 10.000830542994663,
+            "achieved_rps": 199.9833905195955,
+            "latency_p50_ms": 1.412366982549429,
+            "latency_p95_ms": 2.4416439700871706,
+            "schedule_p95_ms": 1.1048130691051483
+          },
+          "samples": [
+            {
+              "time": 0,
+              "cpu_seconds": 6.55,
+              "rss_kib": 161204,
+              "pss_kib": 159311,
+              "private_kib": 159104,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.47,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.08,
+                  "rss_kib": 126044,
+                  "pss_kib": 126036,
+                  "private_kib": 126036,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 0.5048143090680242,
+              "cpu_seconds": 6.6899999999999995,
+              "rss_kib": 161204,
+              "pss_kib": 159305,
+              "private_kib": 159104,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.52,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.17,
+                  "rss_kib": 126044,
+                  "pss_kib": 126036,
+                  "private_kib": 126036,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.0098660599905998,
+              "cpu_seconds": 6.859999999999999,
+              "rss_kib": 161272,
+              "pss_kib": 159379,
+              "private_kib": 159172,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.59,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.27,
+                  "rss_kib": 126112,
+                  "pss_kib": 126104,
+                  "private_kib": 126104,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 1.5145751391537488,
+              "cpu_seconds": 7.0,
+              "rss_kib": 161272,
+              "pss_kib": 159379,
+              "private_kib": 159172,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.65,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.35,
+                  "rss_kib": 126112,
+                  "pss_kib": 126104,
+                  "private_kib": 126104,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.020135457161814,
+              "cpu_seconds": 7.17,
+              "rss_kib": 161272,
+              "pss_kib": 159379,
+              "private_kib": 159172,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.72,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.45,
+                  "rss_kib": 126112,
+                  "pss_kib": 126104,
+                  "private_kib": 126104,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 2.524720701156184,
+              "cpu_seconds": 7.35,
+              "rss_kib": 161280,
+              "pss_kib": 159387,
+              "private_kib": 159180,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.79,
+                  "rss_kib": 35160,
+                  "pss_kib": 33275,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.56,
+                  "rss_kib": 126120,
+                  "pss_kib": 126112,
+                  "private_kib": 126112,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.0316167999990284,
+              "cpu_seconds": 7.51,
+              "rss_kib": 161288,
+              "pss_kib": 159389,
+              "private_kib": 159188,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.85,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.66,
+                  "rss_kib": 126128,
+                  "pss_kib": 126120,
+                  "private_kib": 126120,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 3.536532261176035,
+              "cpu_seconds": 7.640000000000001,
+              "rss_kib": 161288,
+              "pss_kib": 159389,
+              "private_kib": 159188,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.91,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.73,
+                  "rss_kib": 126128,
+                  "pss_kib": 126120,
+                  "private_kib": 126120,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.041188359959051,
+              "cpu_seconds": 7.8,
+              "rss_kib": 161296,
+              "pss_kib": 159397,
+              "private_kib": 159196,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 1.97,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.83,
+                  "rss_kib": 126136,
+                  "pss_kib": 126128,
+                  "private_kib": 126128,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 4.547393404180184,
+              "cpu_seconds": 8.0,
+              "rss_kib": 161304,
+              "pss_kib": 159405,
+              "private_kib": 159204,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.05,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 5.95,
+                  "rss_kib": 126144,
+                  "pss_kib": 126136,
+                  "private_kib": 126136,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.053319297963753,
+              "cpu_seconds": 8.18,
+              "rss_kib": 161308,
+              "pss_kib": 159409,
+              "private_kib": 159208,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.12,
+                  "rss_kib": 35160,
+                  "pss_kib": 33269,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.06,
+                  "rss_kib": 126148,
+                  "pss_kib": 126140,
+                  "private_kib": 126140,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 5.560221498133615,
+              "cpu_seconds": 8.35,
+              "rss_kib": 161308,
+              "pss_kib": 159386,
+              "private_kib": 159208,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.19,
+                  "rss_kib": 35160,
+                  "pss_kib": 33246,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.16,
+                  "rss_kib": 126148,
+                  "pss_kib": 126140,
+                  "private_kib": 126140,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.065936871105805,
+              "cpu_seconds": 8.53,
+              "rss_kib": 161312,
+              "pss_kib": 159390,
+              "private_kib": 159212,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.26,
+                  "rss_kib": 35160,
+                  "pss_kib": 33246,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.27,
+                  "rss_kib": 126152,
+                  "pss_kib": 126144,
+                  "private_kib": 126144,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 6.569785053143278,
+              "cpu_seconds": 8.69,
+              "rss_kib": 161320,
+              "pss_kib": 159413,
+              "private_kib": 159220,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.32,
+                  "rss_kib": 35160,
+                  "pss_kib": 33261,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.37,
+                  "rss_kib": 126160,
+                  "pss_kib": 126152,
+                  "private_kib": 126152,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.074824401177466,
+              "cpu_seconds": 8.85,
+              "rss_kib": 161320,
+              "pss_kib": 159413,
+              "private_kib": 159220,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.39,
+                  "rss_kib": 35160,
+                  "pss_kib": 33261,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.46,
+                  "rss_kib": 126160,
+                  "pss_kib": 126152,
+                  "private_kib": 126152,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 7.580961225088686,
+              "cpu_seconds": 8.99,
+              "rss_kib": 161324,
+              "pss_kib": 159417,
+              "private_kib": 159224,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.45,
+                  "rss_kib": 35160,
+                  "pss_kib": 33261,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.54,
+                  "rss_kib": 126164,
+                  "pss_kib": 126156,
+                  "private_kib": 126156,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.085782838985324,
+              "cpu_seconds": 9.149999999999999,
+              "rss_kib": 161324,
+              "pss_kib": 159417,
+              "private_kib": 159224,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.51,
+                  "rss_kib": 35160,
+                  "pss_kib": 33261,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.64,
+                  "rss_kib": 126164,
+                  "pss_kib": 126156,
+                  "private_kib": 126156,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 8.591153957182541,
+              "cpu_seconds": 9.32,
+              "rss_kib": 161324,
+              "pss_kib": 159417,
+              "private_kib": 159224,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.58,
+                  "rss_kib": 35160,
+                  "pss_kib": 33261,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.74,
+                  "rss_kib": 126164,
+                  "pss_kib": 126156,
+                  "private_kib": 126156,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.095106908120215,
+              "cpu_seconds": 9.52,
+              "rss_kib": 161328,
+              "pss_kib": 159416,
+              "private_kib": 159228,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.65,
+                  "rss_kib": 35160,
+                  "pss_kib": 33256,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.87,
+                  "rss_kib": 126168,
+                  "pss_kib": 126160,
+                  "private_kib": 126160,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 9.604602080071345,
+              "cpu_seconds": 9.71,
+              "rss_kib": 161328,
+              "pss_kib": 159417,
+              "private_kib": 159228,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.73,
+                  "rss_kib": 35160,
+                  "pss_kib": 33257,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 6.98,
+                  "rss_kib": 126168,
+                  "pss_kib": 126160,
+                  "private_kib": 126160,
+                  "threads": 8
+                }
+              }
+            },
+            {
+              "time": 10.010979837039486,
+              "cpu_seconds": 9.84,
+              "rss_kib": 161328,
+              "pss_kib": 159417,
+              "private_kib": 159228,
+              "threads": 12,
+              "groups": {
+                "backend": {
+                  "cpu_seconds": 2.78,
+                  "rss_kib": 35160,
+                  "pss_kib": 33257,
+                  "private_kib": 33068,
+                  "threads": 4
+                },
+                "gateway": {
+                  "cpu_seconds": 7.06,
+                  "rss_kib": 126168,
+                  "pss_kib": 126160,
+                  "private_kib": 126160,
+                  "threads": 8
+                }
+              }
+            }
+          ],
+          "cgroup_cpu_start": {
+            "usage_usec": 3460509428,
+            "user_usec": 3094879954,
+            "system_usec": 365629474,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45701,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          },
+          "cgroup_cpu_end": {
+            "usage_usec": 3465304405,
+            "user_usec": 3098295432,
+            "system_usec": 367008972,
+            "nice_usec": 0,
+            "core_sched.force_idle_usec": 0,
+            "nr_periods": 45801,
+            "nr_throttled": 1472,
+            "throttled_usec": 184310014,
+            "nr_bursts": 0,
+            "burst_usec": 0
+          }
+        }
+      ]
+    }
+  ],
+  "traefik_version": "Version:      3.8.0\nCodename:     salers\nGo version:   go1.27.4\nBuilt:        2026-11-23T14:33:45Z\nOS/Arch:      linux/amd64"
+}
