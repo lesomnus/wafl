@@ -73,6 +73,13 @@ pub struct AppAddRequest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub source: ::buffa::MessageField<AppSourceRef>,
+    /// Field 20: `secrets`
+    #[serde(
+        rename = "secrets",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub secrets: ::buffa::alloc::vec::Vec<Secret>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -91,6 +98,7 @@ impl ::core::fmt::Debug for AppAddRequest {
             .field("scaling", &self.scaling)
             .field("state", &self.state)
             .field("source", &self.source)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }
@@ -196,6 +204,14 @@ impl ::buffa::Message for AppAddRequest {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        for v in &self.secrets {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -243,6 +259,10 @@ impl ::buffa::Message for AppAddRequest {
         if self.source.is_set() {
             ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
             self.source.write_to(__cache, buf);
+        }
+        for v in &self.secrets {
+            ::buffa::types::put_len_delimited_header(20u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -360,6 +380,15 @@ impl ::buffa::Message for AppAddRequest {
                     ctx,
                 )?;
             }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.secrets.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -379,6 +408,7 @@ impl ::buffa::Message for AppAddRequest {
         self.scaling = ::buffa::MessageField::none();
         self.state = ::buffa::MessageField::none();
         self.source = ::buffa::MessageField::none();
+        self.secrets.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -904,6 +934,9 @@ pub struct AppSelect {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub source: ::buffa::MessageField<AppSourceSelect>,
+    /// Field 20: `secrets`
+    #[serde(rename = "secrets", skip_serializing_if = "::core::option::Option::is_none")]
+    pub secrets: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -922,6 +955,7 @@ impl ::core::fmt::Debug for AppSelect {
             .field("scaling", &self.scaling)
             .field("state", &self.state)
             .field("source", &self.source)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }
@@ -996,6 +1030,13 @@ impl AppSelect {
         self.state = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::secrets`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_secrets(mut self, value: bool) -> Self {
+        self.secrets = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(AppSelect);
 impl ::buffa::MessageName for AppSelect {
@@ -1058,6 +1099,9 @@ impl ::buffa::Message for AppSelect {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.secrets.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1102,6 +1146,9 @@ impl ::buffa::Message for AppSelect {
         if self.source.is_set() {
             ::buffa::types::put_len_delimited_header(19u32, __cache.consume_next(), buf);
             self.source.write_to(__cache, buf);
+        }
+        if let Some(v) = self.secrets {
+            ::buffa::types::put_bool_field(20u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1219,6 +1266,15 @@ impl ::buffa::Message for AppSelect {
                     ctx,
                 )?;
             }
+            20u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.secrets = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1238,6 +1294,7 @@ impl ::buffa::Message for AppSelect {
         self.scaling = ::core::option::Option::None;
         self.state = ::core::option::Option::None;
         self.source = ::buffa::MessageField::none();
+        self.secrets = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -1354,6 +1411,13 @@ pub struct AppPatchRequest {
         skip_serializing_if = "::core::option::Option::is_none"
     )]
     pub state_null: ::core::option::Option<bool>,
+    /// Field 40: `secrets`
+    #[serde(
+        rename = "secrets",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub secrets: ::buffa::alloc::vec::Vec<Secret>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1372,6 +1436,7 @@ impl ::core::fmt::Debug for AppPatchRequest {
             .field("scaling_null", &self.scaling_null)
             .field("state", &self.state)
             .field("state_null", &self.state_null)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }
@@ -1510,6 +1575,14 @@ impl ::buffa::Message for AppPatchRequest {
         if self.state_null.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        for v in &self.secrets {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1556,6 +1629,10 @@ impl ::buffa::Message for AppPatchRequest {
         }
         if let Some(v) = self.state_null {
             ::buffa::types::put_bool_field(37u32, v, buf);
+        }
+        for v in &self.secrets {
+            ::buffa::types::put_len_delimited_header(40u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1679,6 +1756,15 @@ impl ::buffa::Message for AppPatchRequest {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            40u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.secrets.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1698,6 +1784,7 @@ impl ::buffa::Message for AppPatchRequest {
         self.scaling_null = ::core::option::Option::None;
         self.state = ::buffa::MessageField::none();
         self.state_null = ::core::option::Option::None;
+        self.secrets.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

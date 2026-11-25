@@ -325,6 +325,9 @@ impl Runtime {
         for (key, value) in &app.manifest.env {
             wasi.env(key, value);
         }
+        for (key, value) in &app.secrets.0 {
+            wasi.env(key, value);
+        }
         let direct = self.direct.as_ref().map(|p| p.config.clone());
         wasi.socket_addr_check(move |addr, reason| {
             let allowed = match reason {

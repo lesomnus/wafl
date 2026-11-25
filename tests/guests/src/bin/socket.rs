@@ -8,6 +8,7 @@ fn main() -> std::io::Result<()> {
     println!("guest boot");
     eprintln!("guest stderr");
     match std::env::var("MODE").as_deref() {
+        Ok("secret-error") => return secret_error(),
         Ok("exit") => return Ok(()),
         Ok("spin") => loop {
             std::hint::spin_loop();
@@ -54,6 +55,7 @@ fn main() -> std::io::Result<()> {
             .unwrap_or("/")
             .to_owned();
         let body = match path.as_str() {
+            "/secret-error" => return secret_error(),
             "/exit" => return Ok(()),
             "/logs" => {
                 println!("request stdout");
@@ -114,6 +116,12 @@ fn main() -> std::io::Result<()> {
         let _ = stream.write_all(body.as_bytes());
     }
     Ok(())
+}
+
+fn secret_error() -> std::io::Result<()> {
+    let value = std::env::var("GREETING").unwrap();
+    eprintln!("{value}");
+    Err(std::io::Error::other(value))
 }
 
 fn bound_connect(address: SocketAddr) -> String {

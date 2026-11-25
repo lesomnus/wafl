@@ -6,6 +6,7 @@ mod kubernetes;
 mod reconcile;
 mod routes;
 mod scaling;
+mod secrets;
 mod traffic;
 
 use crate::proto::wafl::*;
@@ -23,6 +24,7 @@ use std::{
 pub struct Control {
     config: Arc<Config>,
     db: Database,
+    secrets: Arc<secrets::Resolver>,
 }
 fn now() -> u64 {
     SystemTime::now()
@@ -43,9 +45,11 @@ impl Control {
             *endpoint = reqwest::Url::parse(endpoint)?.to_string();
         }
         let db = Database::open(&config, configure).await?;
+        let secrets = Arc::new(secrets::Resolver::open(&config).await?);
         Ok(Self {
             config: Arc::new(config),
             db,
+            secrets,
         })
     }
 }

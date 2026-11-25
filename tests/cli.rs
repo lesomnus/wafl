@@ -25,6 +25,8 @@ mod autoscale;
 mod controller;
 #[path = "cli/kubernetes.rs"]
 mod kubernetes;
+#[path = "cli/secrets.rs"]
+mod secrets;
 fn command() -> Command {
     let mut command = Command::new(CLI);
     command

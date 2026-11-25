@@ -74,7 +74,7 @@ fn manifest(tenant: &[u8], input: Manifest) -> Result<Manifest, ConnectError> {
     normalized.max_active = 0;
     Ok(normalized)
 }
-fn validate(app: &App, max: u32) -> Result<Manifest, ConnectError> {
+fn validate(app: &App, config: &Config) -> Result<Manifest, ConnectError> {
     let name = &app.domain;
     if name.is_empty()
         || name.len() > 253
@@ -92,7 +92,7 @@ fn validate(app: &App, max: u32) -> Result<Manifest, ConnectError> {
             "domain must be an exact lowercase ASCII DNS hostname",
         ));
     }
-    if app.replicas > max {
+    if app.replicas > config.max_replicas {
         return Err(ConnectError::invalid_argument(
             "replicas exceeds controller max_replicas",
         ));
@@ -102,6 +102,13 @@ fn validate(app: &App, max: u32) -> Result<Manifest, ConnectError> {
             "name exceeds 256 bytes or contains NUL",
         ));
     }
+    secrets::validate(
+        &app.secrets,
+        &app.manifest,
+        &app.tenant.id,
+        app.source.as_option().is_some(),
+        config,
+    )?;
     manifest(
         &app.tenant.id,
         app.manifest
@@ -119,10 +126,11 @@ pub(super) fn finish_patch(
     mut updated: App,
     config: &Config,
 ) -> paydirt_store::Result<App> {
-    let normalized = validate(&updated, config.max_replicas).map_err(invalid)?;
+    let normalized = validate(&updated, config).map_err(invalid)?;
     let policy = normalize_scaling(&updated, config).map_err(invalid)?;
-    let changed =
-        normalized != *old.manifest || policy.is_some() != old.scaling.as_option().is_some();
+    let changed = normalized != *old.manifest
+        || updated.secrets != old.secrets
+        || policy.is_some() != old.scaling.as_option().is_some();
     let state = if changed {
         initial_state(policy.as_ref())
     } else {
@@ -295,7 +303,7 @@ pub(super) fn insert(
     config: &Config,
 ) -> paydirt_store::Result<App> {
     let app: App = decode(call(tx, "App", "Add", request)?)?;
-    let normalized = validate(&app, config.max_replicas).map_err(invalid)?;
+    let normalized = validate(&app, config).map_err(invalid)?;
     let policy = normalize_scaling(&app, config).map_err(invalid)?;
     let state = initial_state(policy.as_ref());
     decode(call(

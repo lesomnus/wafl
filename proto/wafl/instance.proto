@@ -50,6 +50,9 @@ message Instance {
   // Direct traffic bypasses runner HTTP accounting; active counts only runner
   // management waiters in this mode. idle_ms/max_active must be zero in Add.
   bool direct = 22 [(payday.field) = {stamped: true}];
+  // Write-only environment values supplied during Add. Kept only in runner
+  // memory, separate from the public Manifest. Never returned by lifecycle RPCs.
+  map<string, string> secrets = 23 [(orm.field) = {type: TYPE_JSON, immutable: true, default: ""}, (payday.field) = {secret: true}];
 }
 
 message Endpoint {

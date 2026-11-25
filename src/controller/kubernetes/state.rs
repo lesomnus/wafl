@@ -79,13 +79,13 @@ pub(super) async fn apply(
                 bundle.digest=old.manifest.bundle.digest.clone();
             }
             let updated=decode(call(tx,"App","Patch",json!({"ref":{"id":encode(&old.id)},
-                "name":name,"replicas":replicas,"manifest":spec.manifest,"scalingNull":spec.scaling.is_none(),"scaling":spec.scaling}))?)?;
+                "name":name,"replicas":replicas,"manifest":spec.manifest,"secrets":spec.secrets,"scalingNull":spec.scaling.is_none(),"scaling":spec.scaling}))?)?;
             api::finish_patch(tx,old,updated,&config)?;
         } else {
             let id=owner.id(10);
             api::insert(tx,json!({"id":encode(&id),"tenant":{"id":encode(&owner.tenant)},
                 "alias":format!("k8s-{}",paydirt::format_id(&id).unwrap()),"source":{"id":encode(&record.id)},
-                "name":name,"domain":spec.domain,"replicas":replicas,"manifest":spec.manifest,"scaling":spec.scaling}),&config)?;
+                "name":name,"domain":spec.domain,"replicas":replicas,"manifest":spec.manifest,"secrets":spec.secrets,"scaling":spec.scaling}),&config)?;
         }
         call(tx,"AppSource","Patch",json!({"ref":{"id":encode(&record.id)},"generation":owner.generation.to_string()}))?;
         Ok(())

@@ -55,6 +55,8 @@
         f18 -> Nullable<Text>,
         /// wafl.App.source
         f19 -> Nullable<Binary>,
+        /// wafl.App.secrets
+        f20 -> Text,
     }
 }
 ::diesel::table! {
@@ -217,6 +219,8 @@
         f21 -> Nullable<Text>,
         /// wafl.Instance.direct
         f22 -> Bool,
+        /// wafl.Instance.secrets
+        f23 -> Text,
     }
 }
 ::diesel::table! {
@@ -294,6 +298,8 @@
         f23 -> Text,
         /// wafl.Placement.managed
         f24 -> Bool,
+        /// wafl.Placement.secrets
+        f25 -> Text,
     }
 }
 ::diesel::table! {

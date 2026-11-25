@@ -57,6 +57,7 @@ message InstanceAddRequest {
   bool draining = 20 [features.field_presence = IMPLICIT];
   Endpoint endpoint = 21 [(orm.field) = {type: TYPE_JSON}];
   bool direct = 22 [features.field_presence = IMPLICIT];
+  map<string, string> secrets = 23 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message InstanceGetRequest {
@@ -86,6 +87,7 @@ message InstanceSelect {
   bool draining = 20;
   bool endpoint = 21;
   bool direct = 22;
+  bool secrets = 23;
 }
 
 message InstanceEraseResponse {

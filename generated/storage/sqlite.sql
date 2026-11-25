@@ -24,7 +24,8 @@ CREATE TABLE "pd_wafl__App" (
   "f16" TEXT,
   "f17" TEXT,
   "f18" TEXT,
-  "f19" BLOB REFERENCES "pd_wafl__AppSource" ("f1")
+  "f19" BLOB REFERENCES "pd_wafl__AppSource" ("f1"),
+  "f20" TEXT NOT NULL
 );
 CREATE TABLE "pd_wafl__AppSource" (
   "f1" BLOB NOT NULL PRIMARY KEY,
@@ -102,7 +103,8 @@ CREATE TABLE "pd_wafl__Instance" (
   "f19" TEXT NOT NULL,
   "f20" BOOLEAN NOT NULL,
   "f21" TEXT,
-  "f22" BOOLEAN NOT NULL
+  "f22" BOOLEAN NOT NULL,
+  "f23" TEXT NOT NULL
 );
 CREATE TABLE "pd_wafl__Outbox" (
   "f1" BLOB NOT NULL PRIMARY KEY,
@@ -139,7 +141,8 @@ CREATE TABLE "pd_wafl__Placement" (
   "f21" TEXT NOT NULL,
   "f22" BIGINT NOT NULL,
   "f23" TEXT NOT NULL,
-  "f24" BOOLEAN NOT NULL
+  "f24" BOOLEAN NOT NULL,
+  "f25" TEXT NOT NULL
 );
 CREATE TABLE "pd_wafl__Reservation" (
   "f1" BLOB NOT NULL PRIMARY KEY,

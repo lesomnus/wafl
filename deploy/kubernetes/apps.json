@@ -227,6 +227,58 @@
                       }
                     },
                     "type": "object"
+                  },
+                  "secrets": {
+                    "items": {
+                      "properties": {
+                        "env": {
+                          "maxLength": 128,
+                          "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+                          "type": "string",
+                          "x-kubernetes-validations": [
+                            {
+                              "message": "PORT is reserved",
+                              "rule": "self != 'PORT'"
+                            }
+                          ]
+                        },
+                        "secretKeyRef": {
+                          "properties": {
+                            "key": {
+                              "maxLength": 253,
+                              "minLength": 1,
+                              "pattern": "^[a-zA-Z0-9_.-]+$",
+                              "type": "string"
+                            },
+                            "name": {
+                              "maxLength": 253,
+                              "minLength": 1,
+                              "pattern": "^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$",
+                              "type": "string"
+                            },
+                            "optional": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "key"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "env",
+                        "secretKeyRef"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 64,
+                    "type": "array",
+                    "x-kubernetes-list-map-keys": [
+                      "env"
+                    ],
+                    "x-kubernetes-list-type": "map"
                   }
                 },
                 "required": [

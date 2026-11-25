@@ -52,6 +52,9 @@ pub(super) struct AppPatch {
     /// Disable autoscaling; defaults to zero replicas unless --replicas is set.
     #[arg(long)]
     fixed: bool,
+    /// Replace secret file bindings from a YAML/JSON sequence; [] clears them.
+    #[arg(long, conflicts_with_all = ["replicas", "manifest", "name", "expect_revision", "scaling", "fixed"])]
+    secrets: Option<PathBuf>,
 }
 #[derive(Default, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -63,6 +66,7 @@ struct AppFile {
     replicas: Option<u32>,
     manifest: Option<serde_json::Value>,
     scaling: Option<serde_json::Value>,
+    secrets: Option<serde_json::Value>,
 }
 fn fields(value: &serde_json::Value, allowed: &[&str], context: &str) -> Result<()> {
     let object = value
@@ -130,6 +134,33 @@ fn document<T: serde::de::DeserializeOwned>(path: &std::path::Path) -> Result<T>
         "configuration file exceeds 1 MiB"
     );
     Ok(serde_saphyr::from_str(std::str::from_utf8(&bytes)?)?)
+}
+fn secrets_value(value: serde_json::Value) -> Result<Vec<Secret>> {
+    for binding in value.as_array().context("secrets must be a sequence")? {
+        fields(binding, &["env", "file"], "secret")?;
+        ensure!(
+            binding
+                .get("env")
+                .and_then(|v| v.as_str())
+                .is_some_and(|s| !s.is_empty())
+                && binding
+                    .get("file")
+                    .and_then(|v| v.as_str())
+                    .is_some_and(|s| !s.is_empty()),
+            "secret requires env and file strings"
+        );
+    }
+    Ok(serde_json::from_value(value)?)
+}
+// An empty repeated Patch field has no presence on the protobuf wire. Use
+// generated Apply's explicit list assignment to clear it instead.
+fn clear_secrets(reference: &str) -> Result<AppApplyRequest> {
+    Ok(serde_json::from_value(
+        serde_json::json!({"ref":app_ref(reference)?,"patch":{"messageType":"wafl.App","delta":{"entries":[{
+            "targets":{"selectors":[{"key":{"field":{"name":"secrets"}}}]},
+            "assign":{"value":{"l":{}}}
+        }]}}}),
+    )?)
 }
 impl AppAdd {
     fn request(self) -> Result<AppAddRequest> {
@@ -200,6 +231,11 @@ impl AppAdd {
             manifest: Some(manifest).into(),
             replicas,
             scaling: file.scaling.map(scaling_value).transpose()?.into(),
+            secrets: file
+                .secrets
+                .map(secrets_value)
+                .transpose()?
+                .unwrap_or_default(),
             ..Default::default()
         })
     }
@@ -377,6 +413,22 @@ pub(super) async fn app(action: AppCommand, config: ClientConfig, json: bool) ->
             json,
         )?,
         AppCommand::Patch(a) => {
+            if let Some(path) = a.secrets {
+                let secrets = secrets_value(document(&path)?)?;
+                let updated = if secrets.is_empty() {
+                    c.apply(clear_secrets(&a.reference)?).await?.into_owned()
+                } else {
+                    c.patch(AppPatchRequest {
+                        r#ref: Some(app_ref(&a.reference)?).into(),
+                        secrets,
+                        ..Default::default()
+                    })
+                    .await?
+                    .into_owned()
+                };
+                print_app(&updated, json)?;
+                return Ok(());
+            }
             let manifest = a
                 .manifest
                 .map(|path| -> Result<Manifest> { manifest_value(document(&path)?) })
@@ -521,5 +573,24 @@ mod tests {
             std::fs::write(&file, bad).unwrap();
             assert!(request(&file, &[]).is_err(), "accepted {bad}");
         }
+    }
+    #[test]
+    fn yaml_secret_sources_are_references_and_clear_is_explicit() {
+        let root = tempfile::tempdir().unwrap();
+        let file = root.path().join("app.yaml");
+        std::fs::write(&file,"domain: test.example\nmanifest: {bundle: {url: 'file:/app.tar.gz'}}\nsecrets: [{env: TOKEN, file: does-not-exist-here}]\n").unwrap();
+        let req = request(&file, &[]).unwrap();
+        assert_eq!(req.secrets[0].env, "TOKEN");
+        assert!(req.manifest.env.is_empty());
+        for bad in [
+            serde_json::json!([{"env":"TOKEN","value":"inline"}]),
+            serde_json::json!([{"env":"TOKEN","secretKeyRef":{"name":"db","key":"url"}}]),
+            serde_json::json!([{"file":"x"}]),
+        ] {
+            assert!(secrets_value(bad).is_err());
+        }
+        let patch = clear_secrets("@test").unwrap();
+        let json = serde_json::to_value(patch).unwrap();
+        assert!(json["patch"]["delta"]["entries"][0]["assign"]["value"]["l"].is_object());
     }
 }

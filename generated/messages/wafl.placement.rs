@@ -297,6 +297,15 @@ pub struct Placement {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_false"
     )]
     pub managed: bool,
+    /// Immutable source references for this revision, never resolved values.
+    ///
+    /// Field 25: `secrets`
+    #[serde(
+        rename = "secrets",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub secrets: ::buffa::alloc::vec::Vec<Secret>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -320,6 +329,7 @@ impl ::core::fmt::Debug for Placement {
             .field("failures", &self.failures)
             .field("date_retry", &self.date_retry)
             .field("managed", &self.managed)
+            .field("secrets", &self.secrets)
             .finish()
     }
 }
@@ -419,6 +429,14 @@ impl ::buffa::Message for Placement {
         if self.managed {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        for v in &self.secrets {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -483,6 +501,10 @@ impl ::buffa::Message for Placement {
         }
         if self.managed {
             ::buffa::types::put_bool_field(24u32, self.managed, buf);
+        }
+        for v in &self.secrets {
+            ::buffa::types::put_len_delimited_header(25u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -627,6 +649,15 @@ impl ::buffa::Message for Placement {
                 )?;
                 self.managed = ::buffa::types::decode_bool(buf)?;
             }
+            25u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.secrets.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -651,6 +682,7 @@ impl ::buffa::Message for Placement {
         self.failures = 0u32;
         self.date_retry = 0u64;
         self.managed = false;
+        self.secrets.clear();
         self.__buffa_unknown_fields.clear();
     }
 }

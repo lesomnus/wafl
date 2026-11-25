@@ -13,7 +13,7 @@ kubectl apply -f deploy/kubernetes/apps.json
 kubectl apply -f deploy/kubernetes/rbac.yaml
 ```
 
-`apps.json`은 protobuf descriptor에서 생성한 CRD이며 `kubectl`이 JSON을 그대로 읽습니다. 예제 RBAC는 `wafl-system/wafl-controller` ServiceAccount에 `demo` namespace의 App 조회·감시·patch와 status patch를 허용합니다. provider는 App patch를 finalizer 변경에 사용하지만, RBAC 자체가 변경 가능한 필드를 제한하지는 않습니다. controller Pod의 `spec.serviceAccountName`을 `wafl-controller`로 지정합니다. 감시 namespace를 늘리려면 해당 namespace에도 Role/RoleBinding을 설치하세요.
+`apps.json`은 protobuf descriptor에서 생성한 CRD이며 `kubectl`이 JSON을 그대로 읽습니다. 예제 RBAC는 `wafl-system/wafl-controller` ServiceAccount에 `demo` namespace의 App 조회·감시·patch, status patch와 Secret `get`을 허용합니다. provider는 App patch를 finalizer 변경에 사용하지만, RBAC 자체가 변경 가능한 필드를 제한하지는 않습니다. controller Pod의 `spec.serviceAccountName`을 `wafl-controller`로 지정합니다. 감시 namespace를 늘리려면 해당 namespace에도 Role/RoleBinding을 설치하세요.
 
 controller의 기존 JSON 설정에 다음 필드를 추가합니다.
 
@@ -62,7 +62,7 @@ kubectl wait -n demo --for=condition=Accepted app.wafl.opt.td/hello --timeout=60
 curl -H 'Host: hello.example.com' http://<gateway-address>/
 ```
 
-`spec`은 App의 `name`, `domain`, `manifest`, `replicas`, `scaling`을 받습니다. `manifest.port` 기본값은 8080, `scaling`이 없으면 기본 replica는 1입니다. CRD는 protobuf JSON의 **camelCase**를 사용합니다(`memoryBytes`, `idleMs` 등). 기존 `wafl app add app.yaml` 형식에는 `apiVersion/kind/metadata/spec`가 없으므로 두 파일 형식을 구분하세요.
+`spec`은 App의 `name`, `domain`, `manifest`, `replicas`, `scaling`, `secrets`를 받습니다. `manifest.port` 기본값은 8080, `scaling`이 없으면 기본 replica는 1입니다. CRD는 protobuf JSON의 **camelCase**를 사용합니다(`memoryBytes`, `idleMs` 등). 기존 `wafl app add app.yaml` 형식에는 `apiVersion/kind/metadata/spec`가 없으므로 두 파일 형식을 구분하세요.
 
 `status.app`은 WAFL App UUID, `status.alias`는 CLI 조회용 alias입니다. 별도의 UUID나 alias를 YAML에서 정할 필요가 없습니다.
 
@@ -92,6 +92,8 @@ kubectl patch app.wafl.opt.td hello -n demo --type merge \
 **gRPC 스트리밍:** `manifest.protocol: h2c`로 HTTP/2 서버를 실행합니다. 배포 변경·삭제 중에도 이미 수락한 스트림은 끝까지 유지합니다. gateway timeout과 클라이언트 deadline은 서비스 특성에 맞게 정합니다.
 
 **번들 갱신:** 첫 성공 실행의 digest를 WAFL App에 고정합니다. 같은 URL의 YAML에서 이름·메모리 등을 수정해도 이 digest를 보존합니다. 배포할 코드를 바꾸려면 새 URL 또는 명시적인 새 digest를 선언하세요. URL의 파일만 덮어쓰고 같은 YAML을 재적용하는 것은 새 배포가 아닙니다. 번들을 다운로드하는 주체는 runner이고 `file:`도 runner의 로컬 경로입니다.
+
+`spec.secrets`의 `env`와 `secretKeyRef`로 같은 namespace의 기존 Secret key를 환경 변수에 주입합니다. 값은 App/status에 저장하지 않으며 새 Instance부터 적용합니다. [파일·Kubernetes secret 튜토리얼](secrets.md)에 예제와 갱신 계약이 있습니다.
 
 ## 삭제·복구와 controller replicas
 

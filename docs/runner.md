@@ -181,7 +181,7 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 ### 인스턴스별 DB 연결
 
-플랫폼이 DB를 준비하고 `manifest.env.DATABASE_URL`에 connection string을 넣으면 앱이 일반 DB 클라이언트로 직접 연결합니다. runner는 DNS 조회와 IPv4·IPv6 발신 TCP를 제공하므로 `bindings`가 필요하지 않습니다. DB 계정·스키마·백업은 플랫폼, DB 프로토콜·TLS·연결 풀은 앱의 클라이언트가 담당합니다. 현재 runner는 DB를 생성하지 않습니다.
+플랫폼이 DB를 준비하고 [App secret](secrets.md)으로 `DATABASE_URL` 환경 변수에 connection string을 넣으면 앱이 일반 DB 클라이언트로 직접 연결합니다. runner는 DNS 조회와 IPv4·IPv6 발신 TCP를 제공하므로 `bindings`가 필요하지 않습니다. DB 계정·스키마·백업은 플랫폼, DB 프로토콜·TLS·연결 풀은 앱의 클라이언트가 담당합니다. 현재 runner는 DB를 생성하지 않습니다.
 
 고정된 localhost 포트가 필요한 앱은 기존 `"bindings": [{"port": 5432, "target": "10.0.0.20:5432"}]`를 계속 사용할 수 있습니다. 해당 IPv4 loopback 연결만 매핑하고 나머지 TCP 연결은 원래 목적지로 연결합니다. 이 매핑은 목적지의 접근 권한을 제한하는 allowlist가 아닙니다. 실제 Redis 클라이언트 예제와 네트워크 범위는 [외부 연결과 DB 튜토리얼](network.md)을 참고합니다.
 

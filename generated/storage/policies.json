@@ -470,6 +470,9 @@
       "revision": {
         "stamped": true
       },
+      "secrets": {
+        "secret": true
+      },
       "session": {
         "stamped": true
       }

@@ -72,7 +72,7 @@ func definition() object {
 	fields := object{}
 	for _, f := range messages[".wafl.App"].GetField() {
 		switch f.GetName() {
-		case "name", "domain", "manifest", "replicas", "scaling":
+		case "name", "domain", "manifest", "replicas", "scaling", "secrets":
 			fields[f.GetJsonName()] = field(f)
 		}
 	}
@@ -83,6 +83,22 @@ func definition() object {
 	domain["pattern"] = `^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`
 	domain["x-kubernetes-validations"] = []any{object{"rule": "self == oldSelf", "message": "domain is immutable; create a new App"}}
 	at(spec, "name")["maxLength"] = 256
+	secrets := at(spec, "secrets")
+	secrets["maxItems"] = 64
+	secrets["x-kubernetes-list-type"] = "map"
+	secrets["x-kubernetes-list-map-keys"] = []string{"env"}
+	secret := secrets["items"].(object)
+	delete(props(secret), "file") // Files belong to the non-Kubernetes provider.
+	secret["required"] = []string{"env", "secretKeyRef"}
+	at(secret, "env")["pattern"] = `^[A-Za-z_][A-Za-z0-9_]*$`
+	at(secret, "env")["maxLength"] = 128
+	at(secret, "env")["x-kubernetes-validations"] = []any{object{"rule": "self != 'PORT'", "message": "PORT is reserved"}}
+	ref := at(secret, "secretKeyRef")
+	ref["required"] = []string{"name", "key"}
+	at(ref, "name")["minLength"], at(ref, "name")["maxLength"] = 1, 253
+	at(ref, "name")["pattern"] = `^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`
+	at(ref, "key")["minLength"], at(ref, "key")["maxLength"] = 1, 253
+	at(ref, "key")["pattern"] = `^[a-zA-Z0-9_.-]+$`
 	m := at(spec, "manifest")
 	m["required"] = []string{"bundle"}
 	at(m, "runtime")["enum"] = []string{"", "wasmtime"}

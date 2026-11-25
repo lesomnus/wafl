@@ -11,6 +11,7 @@ mod logs;
 pub mod proxy;
 pub mod runner;
 mod runtime;
+mod secrets;
 mod store;
 mod telemetry;
 
