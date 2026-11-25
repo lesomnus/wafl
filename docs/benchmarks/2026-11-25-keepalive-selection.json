@@ -1,0 +1,18 @@
+{
+  "quality": {
+    "schedule_p95_ms": 5,
+    "rate_fraction": 0.99
+  },
+  "blocks": [
+    {"report": "2026-11-25-keepalive-initial.json", "repeat": 0},
+    {"report": "2026-11-25-keepalive-initial.json", "repeat": 1},
+    {"report": "2026-11-25-keepalive-repeat2.json", "repeat": 0}
+  ],
+  "excluded": [
+    {
+      "report": "2026-11-25-keepalive-initial.json",
+      "repeat": 2,
+      "reason": "CLI with both keep-alive modes off had HTTP request scheduling p95 of 164.500 ms. Exclude and replace all eight configurations in that repetition, not only the affected trial."
+    }
+  ]
+}
