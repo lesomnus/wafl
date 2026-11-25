@@ -10,6 +10,7 @@ import asyncio
 import base64
 from datetime import datetime, timezone
 import hashlib
+import itertools
 import json
 import os
 from pathlib import Path
@@ -92,6 +93,73 @@ async def request(target, path="/"):
         await writer.wait_closed()
 
 
+class Client:
+    """HTTP/1.1 connections, with no pipelining or automatic request retries."""
+
+    def __init__(self, targets, keep_alive):
+        self.keep_alive = keep_alive
+        self.idle = {target: [] for target in targets}
+        self.slots = {target: asyncio.Semaphore(32) for target in targets}
+        self.opened = 0
+        self.reused = 0
+
+    async def request(self, target, path):
+        async with self.slots[target]:
+            port, instance, host = target
+            if self.idle[target]:
+                reader, writer = self.idle[target].pop()
+                self.reused += 1
+            else:
+                reader, writer = await asyncio.open_connection("127.0.0.1", port)
+                self.opened += 1
+            reusable = False
+            try:
+                route = f"wafl-instance: {instance}\r\n" if instance else ""
+                connection = "keep-alive" if self.keep_alive else "close"
+                writer.write((f"GET {path} HTTP/1.1\r\nHost: {host}\r\nConnection: {connection}\r\n{route}\r\n").encode())
+                await writer.drain()
+                header = await reader.readuntil(b"\r\n\r\n")
+                lines = header.decode("ascii").split("\r\n")
+                fields = dict((k.lower(), v.strip()) for k, v in
+                              (line.split(":", 1) for line in lines[1:] if line))
+                if (lines[0] != "HTTP/1.1 200 OK" or fields.get("content-length") != "3"
+                        or "transfer-encoding" in fields or await reader.readexactly(3) != b"ok\n"):
+                    raise RuntimeError(f"unexpected response: {header[:200]!r}")
+                reusable = self.keep_alive and "close" not in [
+                    token.strip().lower() for token in fields.get("connection", "").split(",")]
+            finally:
+                if reusable:
+                    self.idle[target].append((reader, writer))
+                else:
+                    writer.close()
+                    await writer.wait_closed()
+
+    async def close(self):
+        for pool in self.idle.values():
+            while pool:
+                _, writer = pool.pop()
+                writer.close()
+                await writer.wait_closed()
+
+
+async def verify_guest(targets, keep_alive):
+    """Check actual reuse and independent idle sockets before the gateway starts."""
+    first, second = Client(targets, True), Client(targets, True)
+    try:
+        for target in targets:
+            opened = first.opened
+            await asyncio.wait_for(first.request(target, "/"), 5)
+            # The first connection remains idle while another one must respond.
+            await asyncio.wait_for(second.request(target, "/"), 5)
+            await asyncio.wait_for(first.request(target, "/work"), 5)
+            expected = 1 if keep_alive else 2
+            if first.opened - opened != expected:
+                raise RuntimeError("guest connection reuse did not match BENCH_KEEPALIVE")
+    finally:
+        await first.close()
+        await second.close()
+
+
 async def ready(processes, targets):
     deadline = time.monotonic() + 120
     for target in targets:
@@ -106,15 +174,16 @@ async def ready(processes, targets):
                 await asyncio.sleep(0.05)
 
 
-async def load(targets, seconds, rate, path):
+async def load(targets, seconds, rate, path, client):
     latencies, lateness, errors = [], [], []
+    opened, reused = client.opened, client.reused
     start = time.monotonic()
 
     async def one(index, scheduled):
         actual = time.monotonic()
         lateness.append(max(0, actual - scheduled) * 1000)
         try:
-            await asyncio.wait_for(request(targets[index % len(targets)], path), 5)
+            await asyncio.wait_for(client.request(targets[index % len(targets)], path), 5)
             latencies.append((time.monotonic() - actual) * 1000)
         except Exception as error:
             errors.append(repr(error))
@@ -129,6 +198,8 @@ async def load(targets, seconds, rate, path):
     elapsed = time.monotonic() - start
     return {"offered_rps": rate, "requests": len(tasks), "ok": len(latencies), "errors": errors,
             "elapsed": elapsed, "achieved_rps": len(latencies) / elapsed,
+            "client_connections_opened": client.opened - opened,
+            "client_connections_reused": client.reused - reused,
             "latency_p50_ms": percentile(latencies, .50), "latency_p95_ms": percentile(latencies, .95),
             "schedule_p95_ms": percentile(lateness, .95)}
 
@@ -175,7 +246,7 @@ def metrics(samples, elapsed, traffic, cpu):
             "cpu_ms_request": 1000 * cpu / traffic["ok"] if traffic and traffic["ok"] else None}
 
 
-async def measure(groups, targets, seconds, name, rate=0, path="/", connection_ports=None):
+async def measure(groups, targets, seconds, name, rate=0, path="/", connection_ports=None, client=None):
     # Reading smaps_rollup can block on kernel memory accounting. Never let it
     # stall the event loop that schedules the offered request rate.
     sampling_ms = []
@@ -204,7 +275,7 @@ async def measure(groups, targets, seconds, name, rate=0, path="/", connection_p
 
     sampling = asyncio.create_task(sampler())
     try:
-        traffic = await load(targets, seconds, rate, path) if rate else None
+        traffic = await load(targets, seconds, rate, path, client) if rate else None
         if not rate:
             await asyncio.sleep(seconds)
     finally:
@@ -229,11 +300,12 @@ async def measure(groups, targets, seconds, name, rate=0, path="/", connection_p
             "cgroup_cpu_start": cgroup_start, "cgroup_cpu_end": cgroup_end}
 
 
-async def trial(args, case, memory, repeat, bundles, directory):
-    folder = directory / f"{case}-{memory}-{repeat}"
+async def trial(args, case, guest_keepalive, client_keepalive, memory, repeat, bundles, directory):
+    folder = directory / f"{case}-guest-{guest_keepalive}-client-{client_keepalive}-{memory}-{repeat}"
     folder.mkdir()
     processes, outputs, commands, instances = [], [], [], []
     groups = {"backend": []}
+    client = None
     environment = {**os.environ, "TOKIO_WORKER_THREADS": str(args.workers), "RAYON_NUM_THREADS": str(args.workers),
                    "GOMAXPROCS": str(args.workers),
                    "BENCH_MEMORY_MIB": str(memory), "BENCH_WORK": str(args.work)}
@@ -257,7 +329,8 @@ async def trial(args, case, memory, repeat, bundles, directory):
                        "-W", "max-memory-size=67108864,max-memories=1,max-tables=8,max-table-elements=65536,max-instances=32",
                        "-S", "inherit-network=y,tcp=y,udp=n,allow-ip-name-lookup=y,max-resources=1024",
                        "--env", f"PORT={port}", "--env", f"BENCH_MEMORY_MIB={memory}",
-                       "--env", f"BENCH_WORK={args.work}", args.guest])
+                       "--env", f"BENCH_WORK={args.work}",
+                       "--env", f"BENCH_KEEPALIVE={int(guest_keepalive == 'on')}", args.guest])
             targets = [(port, None, "bench.local") for port in chosen]
         else:
             ingress, control = chosen
@@ -288,7 +361,8 @@ async def trial(args, case, memory, repeat, bundles, directory):
                     "manifest": {"bundle": {"url": bundles[index].as_uri()}, "port": 8080,
                                  "idleMs": "0" if case == "direct" else "3600000",
                                  "memoryBytes": "67108864", "startupMs": "120000",
-                                 "env": {"BENCH_MEMORY_MIB": str(memory), "BENCH_WORK": str(args.work)}}}))
+                                 "env": {"BENCH_MEMORY_MIB": str(memory), "BENCH_WORK": str(args.work),
+                                         "BENCH_KEEPALIVE": str(int(guest_keepalive == "on"))}}}))
                 instance = str(uuid.UUID(bytes=base64.b64decode(added["id"])))
                 instances.append(added)
                 if case == "direct":
@@ -297,6 +371,8 @@ async def trial(args, case, memory, repeat, bundles, directory):
                 else:
                     targets.append((ingress, instance, "bench.local"))
         await ready(processes, targets)
+        if case != "proxy":
+            await verify_guest(targets, guest_keepalive == "on")
         connection_ports = sorted({port for port, _, _ in targets}) if args.connections else None
         if args.gateway:
             gateway_port = ports(1)[0]
@@ -317,21 +393,29 @@ async def trial(args, case, memory, repeat, bundles, directory):
             targets = [(gateway_port, None, f"bench-{index}.local") for index in range(2)]
             await ready(processes, targets)
         startup = time.monotonic() - start
+        client = Client(targets, client_keepalive == "on")
         await asyncio.sleep(2)
         phases = [await measure(groups, targets, args.seconds, "idle", connection_ports=connection_ports)]
         for name, rate, path in [("http", args.rps, "/"), ("work", args.work_rps, "/work")]:
-            warmup = await load(targets, 2, rate, path)
+            warmup = await load(targets, 2, rate, path, client)
             if warmup["errors"]:
                 raise RuntimeError(f"warmup errors: {warmup['errors'][:3]}")
-            phases.append(await measure(groups, targets, args.seconds, name, rate, path, connection_ports))
+            phases.append(await measure(groups, targets, args.seconds, name, rate, path, connection_ports, client))
         result = {"case": case, "memory_mib_per_guest": memory, "repeat": repeat,
                   "startup_seconds": startup, "pids": [p.pid for p in processes], "commands": commands,
-                  "instances": instances, "gateway": args.gateway, "phases": phases}
+                  "instances": instances, "gateway": args.gateway, "phases": phases,
+                  "guest_keepalive": guest_keepalive == "on", "client_keepalive": client_keepalive == "on"}
         print(json.dumps({"case": case, "memory": memory, "repeat": repeat,
+                          "guest_keepalive": guest_keepalive, "client_keepalive": client_keepalive,
                           "phases": [{k: phase[k] for k in ["phase", "pss_mib", "rss_mib", "cpu_pct", "cpu_ms_request"]}
                                      for phase in phases]}), flush=True)
         return result
     finally:
+        if client:
+            try:
+                await client.close()
+            except (OSError, asyncio.TimeoutError):
+                pass
         # Each trial is isolated: stop the gateway first and wait for it before
         # killing backends. No stale routes/pools survive into the next trial.
         for process in reversed(processes):
@@ -353,6 +437,10 @@ async def main():
     parser.add_argument("--traefik", help="Traefik binary, required with --gateway")
     parser.add_argument("--gateway", action="store_true", help="Put a Traefik gateway in front of each case")
     parser.add_argument("--connections", action="store_true", help="Diagnostic: observe new backend TCP tuples via /proc/net/tcp")
+    parser.add_argument("--guest-keepalive", nargs="+", choices=["off", "on"], default=["off"],
+                        help="Guest BENCH_KEEPALIVE modes; use http-guest.rs for on")
+    parser.add_argument("--client-keepalive", nargs="+", choices=["off", "on"], default=["off"],
+                        help="Reuse HTTP/1.1 connections to the gateway/backend")
     parser.add_argument("--repeat", type=int, default=3)
     parser.add_argument("--seconds", type=float, default=10)
     parser.add_argument("--rps", type=int, default=500)
@@ -397,12 +485,15 @@ async def main():
               "script_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), "trials": []}
     if args.gateway:
         report["traefik_version"] = subprocess.check_output([args.traefik, "version"], text=True).strip()
+    scenarios = list(itertools.product(args.guest_keepalive, args.client_keepalive, args.cases))
     for repeat in range(args.repeat):
         # Rotate host order to reduce systematic warm-cache/time-of-run bias.
-        cases = args.cases[repeat % len(args.cases):] + args.cases[:repeat % len(args.cases)]
+        offset = repeat * max(1, len(scenarios) // args.repeat) % len(scenarios)
+        ordered = scenarios[offset:] + scenarios[:offset]
         for memory in args.memory:
-            for case in cases:
-                report["trials"].append(await trial(args, case, memory, repeat, bundles, directory))
+            for guest_keepalive, client_keepalive, case in ordered:
+                report["trials"].append(await trial(args, case, guest_keepalive, client_keepalive, memory,
+                                                  repeat, bundles, directory))
                 Path(args.output).write_text(json.dumps(report, indent=2) + "\n")
     if any(phase["traffic"] and phase["traffic"]["errors"] for trial_result in report["trials"] for phase in trial_result["phases"]):
         raise RuntimeError("benchmark completed with request failures; see JSON")

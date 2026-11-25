@@ -1,8 +1,9 @@
 # Runner proxy와 직결 성능 측정
 
 같은 WASIp2 HTTP 서버 두 개를 Wasmtime CLI 두 프로세스, WAFL proxy 한 프로세스,
-WAFL direct 한 프로세스로 실행한다. 게스트는 이전 리소스 비교에 사용한 소스를
-그대로 사용하며 앱마다 독립적인 memory와 TCP listener를 갖는다.
+WAFL direct 한 프로세스로 실행한다. 앱마다 독립적인 memory와 TCP listener를 갖는다.
+`guest.rs`는 이전 리소스 비교에 사용한 연결 종료 방식의 게스트다.
+Keep-alive 비교에는 아래 `http-guest.rs`를 양쪽 설정 모두에 사용한다.
 
 ## 빌드와 실행
 
@@ -89,6 +90,48 @@ gateway의 backend 주소에 대한 TCP tuple을 관찰한다. `connections.new_
   멈추지 않게 한다. `sampling_ms`에 각 표본 수집 소요 시간을 남긴다. 목표 처리율을 유지하지
   못하거나 task 시작 지연이 큰 구간은 정상 부하의 latency 비교로 사용하지 않는다.
   CPU/time의 구간 경계는 빠른 `/proc/stat` counter로 별도로 잡고 마지막 memory 표본 대기를 포함하지 않는다.
+
+## Wasmtime 직접 실행과 runner 직결: Keep-alive 비교
+
+새 fixture는 WASI `poll`로 idle connection과 listener를 함께 기다린다.
+스레드·주기적 sleep·busy loop 없이 여러 연결을 처리하고, 응답마다 연결을 닫을지
+재사용할지만 `BENCH_KEEPALIVE` 환경 변수로 정한다. 두 모드의 **바이너리는 동일**하다.
+이 fixture는 body 없는 HTTP/1.1 GET과 작은 응답을 위한 측정용 서버다.
+응답 write/flush는 blocking이며 느린 클라이언트·큰 payload를 위한 범용 서버가 아니다.
+기존 `guest.rs`와 HTTP 구현이 달라 이전 보고서 수치에 새 수치를 섞지 않는다.
+
+```sh
+cargo build --locked --release --target wasm32-wasip2 \
+  -p wafl-test-guests --bin bench-http
+
+python3 scripts/benchmarks/resources.py \
+  --wasmtime /path/to/wasmtime --wafl target/release/wafl \
+  --guest target/wasm32-wasip2/release/bench-http.wasm \
+  --traefik /path/to/traefik --gateway --cases cli direct \
+  --guest-keepalive off on --client-keepalive off on \
+  --output /tmp/wafl-performance/keepalive.json
+```
+
+`cli`는 `클라이언트 → Traefik → Wasmtime CLI × 2`, `direct`는
+`클라이언트 → Traefik → runner 안의 WASM × 2`다. 모든 경우에 Traefik을 포함한다.
+게스트의 Keep-alive 지원 유무와 클라이언트의 연결 재사용 유무를 교차하여 8개 조건을
+각각 3회 실행한다. 실제 순서는 반복마다 회전하며 결과 JSON에 순서와 설정을 남긴다.
+
+- `--guest-keepalive off`: 앱이 항상 `Connection: close`로 응답한다.
+- `--guest-keepalive on`: HTTP/1.1 연결을 유지하고, 요청의 `Connection: close`도 존중한다.
+  Traefik이 backend connection pool을 사용할 수 있다.
+- `--client-keepalive off`: 부하 생성기가 요청마다 새 TCP 연결을 만든다.
+- `--client-keepalive on`: 부하 생성기가 두 Host별 HTTP/1.1 연결 pool을 사용한다.
+  warmup과 측정 구간 사이에도 유지한다. Host당 동시 연결은 최대 32개, pipelining·자동 재시도 없음.
+  `traffic.client_connections_opened/reused`는 측정 구간의 실제 신규·재사용 횟수다.
+
+앞단과 뒷단의 연결 수명은 서로 독립적이다. 예를 들어 클라이언트가 매번 연결을 닫아도
+Traefik은 Keep-alive를 지원하는 게스트의 backend 연결을 재사용할 수 있다.
+`cli`/`direct`는 측정 전에 backend에 직접 두 연결을 열어 한 연결이 idle인 동안 다른
+연결이 응답하는지, 설정에 맞게 재사용되는지도 검증한다. 설정과 실제 동작이 다르면 실패한다.
+
+연결 진단은 같은 옵션에 `--connections --repeat 1 --seconds 2 --rps 100 --work-rps 50`를
+추가해 별도 output으로 실행한다. 진단 수치를 주 성능 중앙값에 섞지 않는다.
 
 ## 결과 보존
 

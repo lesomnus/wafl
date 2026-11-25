@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[[bin]]
+name = "bench-http"
+path = "../../scripts/benchmarks/http-guest.rs"
+
 [dependencies]
 bytes = "1"
 futures-util = "0.3"
