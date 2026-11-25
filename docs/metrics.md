@@ -77,6 +77,8 @@ wafl instance erase @hello
 
 `active`는 기동 대기와 HTTP/gRPC 응답 body·trailers 전달이 끝날 때까지의 요청을 포함합니다. Add/Start가 실행 준비를 기다리는 임시 lease도 포함하므로 순수 HTTP 요청 수와 완전히 같지는 않습니다. 공개 전 Add의 lease는 Instance별 gauge에 나타나지 않습니다. 긴 gRPC 스트림은 활성 상태로 남고, 여러 요청이 샘플 사이에 완료되면 이 gauge만으로 처리량을 구할 수 없습니다.
 
+위 요청 계측은 기본 proxy 모드 기준입니다. [직결 모드](direct.md)의 HTTP/gRPC 트래픽은 runner 계측을 지나지 않습니다. 이 모드에서는 `wafl.instance.active`를 생략하며, `Instance.active`와 `wafl.runner.requests`는 Add/Start 관리 대기만 나타냅니다. 실행 수·선언 메모리 예약·프로세스 CPU/RSS는 계속 전송합니다. 앱 요청의 부하와 유휴 여부는 앞단 L7에서 관측해야 합니다.
+
 CPU와 RSS는 `/proc/self/stat`에서 읽습니다. CPU 시간은 백분율이나 할당량이 아니며, 모든 WASM·컴파일·프록시·메트릭 전송 비용을 포함합니다. RSS도 게스트별 linear memory나 Pod/cgroup 메모리 사용량과 다릅니다. 다른 OS이거나 해당 통계를 읽지 못하면 두 process 메트릭을 생략합니다. 0으로 대체하지 않습니다. 인스턴스별 CPU 계측, cgroup 용량·제한, 게스트 실제 메모리 사용량과 요청 지연 histogram은 후속 범위입니다. 선언된 메모리 예약 합계는 아래 새 gauge로 제공합니다.
 
 각 export의 resource에는 `service.name=wafl-runner`, 빌드의 `service.version`, 서버 시작마다 새로 생성하는 `service.instance.id`가 있습니다. 이 ID는 메트릭 세션 식별자이며 Instance entity ID나 영속 runner ID가 아닙니다. runner 재시작 후의 시계열을 이전 실행과 구분할 수 있습니다. 계측 scope는 `wafl.runner`입니다.

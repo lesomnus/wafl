@@ -1,5 +1,7 @@
 # wafl CLI
 
+이 문서의 기본 예제는 proxy 모드입니다. L7에서 WASM 소켓에 직접 연결하는 설정, endpoint 출력과 `release` 명령은 [직결 튜토리얼](direct.md)을 참고하세요. 직결 출력은 `<UUID>\t@alias\t<endpoint.address>`이며 `--idle-ms`·`--max-active`는 생략 또는 0만 허용합니다.
+
 ## 시작하기
 
 저장소 루트에서 CLI를 설치합니다. Rust와 WASIp2 target은 `rust-toolchain.toml`에 고정되어 있습니다.

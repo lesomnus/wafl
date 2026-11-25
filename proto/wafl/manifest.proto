@@ -18,6 +18,8 @@ message Manifest {
   // Currently "wasip2"; main.wasm must be a WASI CLI component.
   string abi = 5;
   // Zero selects the defaults: 60000, 10000, 67108864, and 128 respectively.
+  // Direct runners require idle_ms/max_active=0 and leave them zero: gateways
+  // own request accounting and retirement. Startup and memory limits still apply.
   uint64 idle_ms = 6;
   uint64 startup_ms = 7;
   uint64 memory_bytes = 8;

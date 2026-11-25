@@ -26,6 +26,8 @@ pub struct ManifestView<'a> {
     /// Field 5: `abi`
     pub abi: &'a str,
     /// Zero selects the defaults: 60000, 10000, 67108864, and 128 respectively.
+    /// Direct runners require idle_ms/max_active=0 and leave them zero: gateways
+    /// own request accounting and retirement. Startup and memory limits still apply.
     ///
     /// Field 6: `idle_ms`
     pub idle_ms: u64,
@@ -581,6 +583,8 @@ impl ManifestOwnedView {
         self.0.reborrow().abi
     }
     /// Zero selects the defaults: 60000, 10000, 67108864, and 128 respectively.
+    /// Direct runners require idle_ms/max_active=0 and leave them zero: gateways
+    /// own request accounting and retirement. Startup and memory limits still apply.
     ///
     /// Field 6: `idle_ms`
     #[must_use]

@@ -20,10 +20,17 @@ service InstanceService {
   rpc List(InstanceListRequest) returns (InstanceListResponse);
   // Reuse a running instance or wait for the shared startup attempt.
   rpc Start(InstanceStartRequest) returns (Instance);
-  // Refuse active requests. A later request starts the instance again.
+  // Proxy mode: refuse active requests; a later request starts the instance again.
+  // Direct mode: requires the endpoint reservation to have been Released first.
   rpc Stop(InstanceStopRequest) returns (Instance);
-  // Close admission, finish current requests, then stop. Start resumes admission.
+  // Proxy mode: close admission, finish requests, then stop. Start resumes it.
+  // Direct mode: mark draining and return; gateways withdraw before Release.
   rpc Drain(InstanceDrainRequest) returns (Instance);
+  // Direct mode only. Acknowledge that ALL gateways have withdrawn this
+  // generation and closed/drained their connections, then stop and free its
+  // endpoint reservation. Requires prior Drain and wafl-session/wafl-revision.
+  // The supervisor completes even if the RPC caller disconnects.
+  rpc Release(InstanceReleaseRequest) returns (Instance);
   // Read retained stdout/stderr, optionally following across Stop/Start.
   rpc Tail(InstanceTailRequest) returns (stream Log);
 }
@@ -44,6 +51,8 @@ message InstanceAddRequest {
   ];
   uint64 revision = 19 [features.field_presence = IMPLICIT];
   bool draining = 20 [features.field_presence = IMPLICIT];
+  Endpoint endpoint = 21 [(orm.field) = {type: TYPE_JSON}];
+  bool direct = 22 [features.field_presence = IMPLICIT];
 }
 
 message InstanceGetRequest {
@@ -71,6 +80,8 @@ message InstanceSelect {
   bool session = 18;
   bool revision = 19;
   bool draining = 20;
+  bool endpoint = 21;
+  bool direct = 22;
 }
 
 message InstanceEraseResponse {
@@ -133,14 +144,25 @@ message InstanceStopRequest {
 // Mutations accept optional wafl-session (Runner UUID) and wafl-revision
 // (decimal Instance.revision) RPC metadata. Add only accepts wafl-session.
 // Revision requires session; check and mutation are atomic in the runner.
+// Release requires both, rather than treating them as optional.
 message InstanceDrainRequest {
   InstanceRef ref = 1;
-  // Zero uses the runner default. Maximum 600000 ms.
+  // Proxy mode: zero uses the runner default. Maximum 600000 ms.
+  // Direct mode: must be zero.
   uint64 timeout_ms = 2 [features.field_presence = IMPLICIT];
-  // On expiry, terminate the guest and interrupt remaining requests.
+  // Proxy mode: on expiry, terminate the guest and interrupt remaining requests.
+  // Direct mode: must be false.
   bool force = 3 [features.field_presence = IMPLICIT];
 }
 
+message InstanceReleaseRequest {
+  InstanceRef ref = 1;
+  uint64 generation = 2 [features.field_presence = IMPLICIT];
+}
+
+// In direct mode Drain only sets draining=true and returns immediately; the
+// guest remains live for existing traffic. timeout_ms and force must be zero.
+// The controller withdraws all routes/pools, drains streams, then calls Release.
 message InstanceTailRequest {
   InstanceRef ref = 1;
   bool follow = 2 [features.field_presence = IMPLICIT];

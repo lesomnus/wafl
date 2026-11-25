@@ -83,6 +83,7 @@ pub mod __buffa {
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_JSON_ANY);
+        reg.register_json_any(super::__ENDPOINT_JSON_ANY);
         reg.register_json_any(super::__LOG_JSON_ANY);
         reg.register_json_any(super::__TENANT_ADD_REQUEST_JSON_ANY);
         reg.register_json_any(super::__TENANT_GET_REQUEST_JSON_ANY);
@@ -105,6 +106,7 @@ pub mod __buffa {
         reg.register_json_any(super::__INSTANCE_START_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_STOP_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_DRAIN_REQUEST_JSON_ANY);
+        reg.register_json_any(super::__INSTANCE_RELEASE_REQUEST_JSON_ANY);
         reg.register_json_any(super::__INSTANCE_TAIL_REQUEST_JSON_ANY);
         reg.register_json_any(super::__ACCESS_JSON_ANY);
         reg.register_json_any(super::__ACCESS_GET_REQUEST_JSON_ANY);
@@ -174,6 +176,10 @@ pub use self::__buffa::view::TenantOwnedView;
 pub use self::__buffa::view::InstanceView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::EndpointView;
+#[doc(inline)]
+pub use self::__buffa::view::EndpointOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::LogView;
 #[doc(inline)]
@@ -262,6 +268,10 @@ pub use self::__buffa::view::InstanceStopRequestOwnedView;
 pub use self::__buffa::view::InstanceDrainRequestView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceDrainRequestOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceReleaseRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::InstanceReleaseRequestOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::InstanceTailRequestView;
 #[doc(inline)]

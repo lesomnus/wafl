@@ -43,6 +43,20 @@ message Instance {
   // Runner-wide monotonic lifecycle revision; not a request count or CP lease.
   uint64 revision = 19 [(payday.field) = {stamped: true}];
   bool draining = 20 [(payday.field) = {stamped: true}];
+  // Present while a direct endpoint reservation exists, including failed/draining
+  // executions. Route only when phase=RUNNING and draining=false. The identity
+  // is (session, id, generation); the address alone is not a stable identity.
+  Endpoint endpoint = 21 [(orm.field) = {type: TYPE_JSON}, (payday.field) = {stamped: true}];
+  // Direct traffic bypasses runner HTTP accounting; active counts only runner
+  // management waiters in this mode. idle_ms/max_active must be zero in Add.
+  bool direct = 22 [(payday.field) = {stamped: true}];
+}
+
+message Endpoint {
+  // Routable IPv4 socket address, e.g. 10.244.1.5:20001. Never a wildcard.
+  string address = 1;
+  // http or h2c, copied from the manifest.
+  string protocol = 2;
 }
 
 enum Phase {

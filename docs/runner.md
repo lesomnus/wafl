@@ -2,6 +2,8 @@
 
 runner는 `InstanceService.Add(InstanceAddRequest)`로 인스턴스를 만들고 ID로 전달된 HTTP/gRPC 요청을 해당 WASM 소켓에 연결합니다. 앱 등록·배포·도메인 선택은 플랫폼이 담당합니다.
 
+아래는 기본 proxy 모드의 예제입니다. `direct` 설정을 켜면 runner ingress를 열지 않고 `Instance.endpoint`의 실제 WASM 소켓에 L7이 연결합니다. 직결 모드의 포트 설정·상태·메트릭·수명 차이는 [직결 계약과 튜토리얼](direct.md)에 있습니다.
+
 명령행 사용은 [wafl CLI 튜토리얼](cli.md)을 참고하세요. 아래는 RPC 계약과 실행 시나리오입니다.
 
 ## 1. 로컬에서 앱 개발하기
@@ -127,6 +129,7 @@ Manifest 수치 필드의 0은 기본값을 선택합니다. runner의 `capacity
 | `Start` | `InstanceStartRequest` → `Instance` | 보관한 인스턴스 실행 시작 또는 재사용 |
 | `Stop` | `InstanceStopRequest` → `Instance` | 실행 종료. 인스턴스 ID·alias·manifest·번들은 보관 |
 | `Drain` | `InstanceDrainRequest` → `Instance` | 새 수락/자동 재기동 차단, 기존 요청 대기 후 Stop. Start로 재개 |
+| `Release` | `InstanceReleaseRequest` → `Instance` | 직결 전용. Drain 후 외부 경로·연결 정리 확인을 받아 실행 종료와 포트 반환 |
 | `Tail` | `InstanceTailRequest` → `stream Log` | 보관한 stdout/stderr 조회. `follow: true`이면 계속 구독 |
 
 HTTP 경로는 `/wafl.InstanceService/<동사>`입니다. 모두 인증 없이 호출하며 tenant에 따른 접근 범위를 제한하지 않습니다. `tenant`는 entity 소속 정보입니다. 관리 RPC와 앱 트래픽 모두 별도의 토큰 설정이 없습니다.
@@ -190,7 +193,7 @@ Traefik/Envoy 등의 upstream을 runner의 `listen`으로 연결하고, 플랫�
 
 WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout/stderr를 최대 1 MiB·4,096개 레코드로 보관하고 `Tail`로 조회합니다. 최근 stderr 최대 16 KiB는 게스트 실패 진단에도 사용합니다. 로그 구독은 유휴 회수를 막지 않으며 Stop/Start를 가로질러 유지됩니다. 자세한 cursor·보존 계약은 [로그 사용법](cli.md#로그)에 있습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 ingress 연결을 `capacity.drain_ms` 동안 drain한 뒤 나머지 실행을 종료합니다. 기본값은 30초입니다.
 
-`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 포트는 `manifest.port`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Drain/Tail을 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
+`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 게스트 포트는 `manifest.port`, 직결 호스트 주소는 읽기 전용 `endpoint = 21`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Drain/Release/Tail을 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
 
 서버는 생성된 `Unimplemented → Instances` 레이어를 조합합니다. 메모리 구현을 선택하고 DB Sink를 넣지 않으므로 DB 연결·마이그레이션은 실행하지 않습니다. runner 재시작 후에는 플랫폼이 Instance를 다시 제출해야 합니다.
 

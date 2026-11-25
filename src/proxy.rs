@@ -138,6 +138,13 @@ pub async fn forward(
     runner: Runner,
     request: Request<Incoming>,
 ) -> Result<Response<ProxyBody>, Infallible> {
+    if runner.direct() {
+        return Ok(reject(
+            StatusCode::NOT_FOUND,
+            "direct_endpoint",
+            "connect to Instance.endpoint\n",
+        ));
+    }
     let grpc = request
         .headers()
         .get(header::CONTENT_TYPE)

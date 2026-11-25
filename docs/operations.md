@@ -2,6 +2,8 @@
 
 이 문서는 단독 runner 운영과 이후 제어평면이 사용할 계약을 설명합니다. 앱 등록·domain 라우팅·배치 결정을 구현하는 제어평면은 아직 없습니다. runner는 생성된 `InstanceService.Add`로 제출받은 Manifest를 실행합니다.
 
+아래 트래픽·Drain·자동 재기동 설명은 기본 proxy 모드 기준입니다. [직결 모드](direct.md)에서는 `Instance.endpoint`로 연결하며 HTTP 요청·유휴 상태는 외부에서 판단합니다. `Drain`은 표시만 바꾸고 실행을 유지하며, gateway 철회·연결 정리 후 `Release`로 포트를 반환합니다. 실행·메모리·준비 한도는 동일하게 적용합니다.
+
 ## 시작과 관측
 
 ```sh

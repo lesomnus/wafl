@@ -79,6 +79,8 @@ enum InstanceCommand {
     Start(Target),
     Stop(Target),
     Drain(Drain),
+    /// Finish a direct drain after every gateway has removed routes and drained connections.
+    Release(Release),
     Erase(Target),
     Logs(Logs),
 }
@@ -95,6 +97,14 @@ struct Drain {
     timeout_ms: u64,
     #[arg(long)]
     force: bool,
+}
+#[derive(Args)]
+struct Release {
+    #[arg(value_name = "ID|@ALIAS")]
+    reference: String,
+    /// Exact generation whose gateway routes and connections have been drained.
+    #[arg(long)]
+    generation: u64,
 }
 #[derive(Args)]
 struct Add {
@@ -174,11 +184,15 @@ fn print_instance(instance: &Instance, json: bool) -> Result<()> {
     if json {
         println!("{}", serde_json::to_string(instance)?);
     } else {
-        println!(
+        print!(
             "{}\t@{}",
             paydirt::format_id(&instance.id).context("invalid instance ID in response")?,
             instance.alias
         );
+        if let Some(endpoint) = instance.endpoint.as_option() {
+            print!("\t{}", endpoint.address);
+        }
+        println!();
     }
     Ok(())
 }
@@ -272,6 +286,7 @@ async fn main() -> Result<()> {
                     bundle: Default::default(),
                     cache: Default::default(),
                     capacity: Default::default(),
+                    direct: None,
                 },
             };
             if let Some(path) = args.path.or(args.directory) {
@@ -364,6 +379,17 @@ async fn main() -> Result<()> {
                     r#ref: Some(reference(&args.reference)?).into(),
                     timeout_ms: args.timeout_ms,
                     force: args.force,
+                    ..Default::default()
+                })
+                .await?
+                .into_owned(),
+            cli.json,
+        )?,
+        InstanceCommand::Release(args) => print_instance(
+            &client
+                .release(InstanceReleaseRequest {
+                    r#ref: Some(reference(&args.reference)?).into(),
+                    generation: args.generation,
                     ..Default::default()
                 })
                 .await?

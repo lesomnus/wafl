@@ -21,7 +21,7 @@ use std::{
 pub(crate) struct InstanceSample {
     pub id: String,
     pub phase: &'static str,
-    pub active: u64,
+    pub active: Option<u64>,
 }
 pub(crate) struct Snapshot {
     pub instances: Vec<InstanceSample>,
@@ -180,10 +180,10 @@ impl Telemetry {
             .with_callback(move |observer| {
                 if let Some(snapshot) = observe() {
                     for instance in snapshot.instances {
-                        observer.observe(
-                            instance.active,
-                            &[KeyValue::new("wafl.instance.id", instance.id)],
-                        );
+                        if let Some(active) = instance.active {
+                            observer
+                                .observe(active, &[KeyValue::new("wafl.instance.id", instance.id)]);
+                        }
                     }
                 }
             })

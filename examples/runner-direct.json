@@ -1,0 +1,11 @@
+{
+  "listen": "127.0.0.1:8080",
+  "control": "127.0.0.1:8081",
+  "direct": {
+    "listen": "127.0.0.1",
+    "advertise": "127.0.0.1",
+    "directory": "/tmp/wafl-direct-state",
+    "first": 20000,
+    "last": 20999
+  }
+}

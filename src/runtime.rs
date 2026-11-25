@@ -1,5 +1,6 @@
 //! WASI socket translation stays in the host; guests use standard WASI APIs.
 use crate::config::Spec;
+use crate::endpoint::{Claim, Ports};
 use crate::{logs::Logs, proto::wafl::Channel};
 use anyhow::{Context, Result};
 use std::{
@@ -33,6 +34,7 @@ use wasmtime_wasi::{
 
 pub(crate) struct Runtime {
     pub engine: Engine,
+    pub direct: Option<Arc<Ports>>,
     linker: Linker<State>,
     ticker: Option<std::thread::JoinHandle<()>>,
     stopped: Arc<AtomicBool>,
@@ -47,7 +49,16 @@ struct State {
     remotes: HashMap<u32, SocketAddr>,
     listener: Option<u32>,
     address: Option<SocketAddr>,
-    ready: Option<oneshot::Sender<SocketAddr>>,
+    ready: Option<oneshot::Sender<Ready>>,
+    direct: Option<Arc<Ports>>,
+    claim: Option<Arc<Claim>>,
+    instance: [u8; 16],
+    generation: u64,
+}
+
+pub(crate) struct Ready {
+    pub address: SocketAddr,
+    pub claim: Option<Arc<Claim>>,
 }
 
 impl WasiView for State {
@@ -70,7 +81,7 @@ fn socket_result<T>(
 }
 
 impl Runtime {
-    pub fn new() -> Result<Self> {
+    pub fn new(direct: Option<Arc<Ports>>) -> Result<Self> {
         let mut config = Config::new();
         config.wasm_component_model(true).epoch_interruption(true);
         let engine = Engine::new(&config)?;
@@ -118,6 +129,46 @@ impl Runtime {
                         return Ok((Err(ErrorCode::AddressInUse),));
                     }
                     let rep = socket.rep();
+                    if guest.port() == state.port
+                        && let Some(pool) = state.direct.clone()
+                    {
+                        // Reserve durably before bind. Never probe and close an
+                        // OS socket; the WASI socket performs the actual bind.
+                        for _ in 0..pool.count() {
+                            let claim = pool
+                                .reserve(state.instance, state.generation)
+                                .await
+                                .map_err(|e| wasmtime::Error::msg(format!("{e:#}")))?;
+                            match state
+                                .sockets()
+                                .start_bind(
+                                    Resource::new_borrow(rep),
+                                    Resource::new_borrow(network.rep()),
+                                    claim.bind.into(),
+                                )
+                                .await
+                            {
+                                Ok(()) => {
+                                    state.listener = Some(rep);
+                                    state.claim = Some(claim);
+                                    return Ok((Ok(()),));
+                                }
+                                Err(error) => {
+                                    let code = error.downcast()?;
+                                    // A bind failure was never advertised; its
+                                    // claim can be safely discarded.
+                                    claim
+                                        .release()
+                                        .await
+                                        .map_err(|e| wasmtime::Error::msg(format!("{e:#}")))?;
+                                    if code != ErrorCode::AddressInUse {
+                                        return Ok((Err(code),));
+                                    }
+                                }
+                            }
+                        }
+                        return Ok((Err(ErrorCode::AddressInUse),));
+                    }
                     // Keep client binds in their original address family and do
                     // not force wildcard clients onto the host loopback route.
                     let host = if guest.port() == state.port {
@@ -162,7 +213,10 @@ impl Runtime {
                     };
                     state.address = Some(address);
                     if let Some(ready) = state.ready.take() {
-                        let _ = ready.send(address);
+                        let _ = ready.send(Ready {
+                            address,
+                            claim: state.claim.clone(),
+                        });
                     }
                 }
                 socket_result(result)
@@ -175,7 +229,13 @@ impl Runtime {
                 let listener = state.listener == Some(socket.rep());
                 let result = state.sockets().local_address(socket).map(|address| {
                     let mut address: SocketAddr = address.into();
-                    if listener || Some(address) == state.address {
+                    if listener
+                        || Some(address) == state.address
+                        || state
+                            .claim
+                            .as_ref()
+                            .is_some_and(|c| c.bind.port() == address.port())
+                    {
                         address.set_port(state.port);
                     }
                     IpSocketAddress::from(address)
@@ -236,6 +296,7 @@ impl Runtime {
             })?;
         Ok(Self {
             engine,
+            direct,
             linker,
             ticker: Some(ticker),
             stopped,
@@ -249,7 +310,7 @@ impl Runtime {
         data: &std::path::Path,
         logs: Arc<Logs>,
         generation: u64,
-        ready: oneshot::Sender<SocketAddr>,
+        ready: oneshot::Sender<Ready>,
     ) -> Result<()> {
         let bindings: HashMap<_, _> = app.bindings.iter().map(|b| (b.port, b.target)).collect();
         let mut wasi = WasiCtxBuilder::new();
@@ -264,12 +325,27 @@ impl Runtime {
         for (key, value) in &app.manifest.env {
             wasi.env(key, value);
         }
+        let direct = self.direct.as_ref().map(|p| p.config.clone());
         wasi.socket_addr_check(move |addr, reason| {
             let allowed = match reason {
                 SocketAddrUse::TcpBind => {
-                    (addr.ip().is_loopback() || addr.ip().is_unspecified()) && addr.port() == 0
+                    ((addr.ip().is_loopback() || addr.ip().is_unspecified()) && addr.port() == 0)
+                        || direct.as_ref().is_some_and(|d| {
+                            addr.ip() == std::net::IpAddr::V4(d.listen)
+                                && (d.first..=d.last).contains(&addr.port())
+                        })
                 }
-                SocketAddrUse::TcpListen | SocketAddrUse::TcpAccept => addr.ip().is_loopback(),
+                SocketAddrUse::TcpListen => {
+                    addr.ip().is_loopback()
+                        || direct.as_ref().is_some_and(|d| {
+                            addr.ip() == std::net::IpAddr::V4(d.listen)
+                                && (d.first..=d.last).contains(&addr.port())
+                        })
+                }
+                // For accept this address is the PEER, not the local listener.
+                SocketAddrUse::TcpAccept => {
+                    addr.ip().is_loopback() || (direct.is_some() && addr.is_ipv4())
+                }
                 // Outbound TCP uses the runner's network reachability. Ingress
                 // remains restricted to the one virtualized listener above.
                 SocketAddrUse::TcpConnect => true,
@@ -295,6 +371,10 @@ impl Runtime {
             listener: None,
             address: None,
             ready: Some(ready),
+            direct: self.direct.clone(),
+            claim: None,
+            instance: app.id,
+            generation,
         };
         let mut store = Store::new(&self.engine, state);
         store.limiter(|state| &mut state.limits);

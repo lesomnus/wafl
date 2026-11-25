@@ -298,7 +298,13 @@
       "active": {
         "stamped": true
       },
+      "direct": {
+        "stamped": true
+      },
       "draining": {
+        "stamped": true
+      },
+      "endpoint": {
         "stamped": true
       },
       "error": {
@@ -350,6 +356,13 @@
         "client_stream": false,
         "input": ".wafl.InstanceListRequest",
         "output": ".wafl.InstanceListResponse",
+        "policy": null,
+        "server_stream": false
+      },
+      "Release": {
+        "client_stream": false,
+        "input": ".wafl.InstanceReleaseRequest",
+        "output": ".wafl.Instance",
         "policy": null,
         "server_stream": false
       },
