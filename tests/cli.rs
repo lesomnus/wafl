@@ -19,6 +19,8 @@ use tokio::{
 use wafl_runner::proto::wafl::{Instance, Log, Phase};
 
 const CLI: &str = env!("CARGO_BIN_EXE_wafl");
+#[path = "cli/controller.rs"]
+mod controller;
 fn command() -> Command {
     let mut command = Command::new(CLI);
     command

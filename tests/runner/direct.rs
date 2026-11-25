@@ -244,7 +244,10 @@ async fn direct_drain_requires_gateway_ack_and_fences_stale_release_before_port_
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn direct_restart_keeps_old_address_reserved_and_skips_busy_ports() {
     let root = tempfile::tempdir().unwrap();
-    let config = direct_config(root.path(), 3, false);
+    // A free ephemeral port does not imply that its next two ports are free:
+    // parallel tests also open client sockets. Leave spare candidates while
+    // still checking the deliberately busy port and the retained old claim.
+    let config = direct_config(root.path(), 32, false);
     let occupied =
         std::net::TcpListener::bind(("0.0.0.0", config.direct.as_ref().unwrap().first)).unwrap();
     let old = Runner::new(&config).await.unwrap();

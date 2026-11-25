@@ -1,0 +1,9 @@
+entryPoints:
+  web:
+    address: 127.0.0.1:8080
+providers:
+  providersThrottleDuration: 500ms
+  http:
+    endpoint: http://127.0.0.1:8082/traefik
+    pollInterval: 1s
+    pollTimeout: 2s

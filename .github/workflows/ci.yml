@@ -1,4 +1,4 @@
-name: runner
+name: wafl
 on:
   pull_request:
   push:
@@ -9,6 +9,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: wafl-test
+          POSTGRES_DB: wafl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d wafl"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
@@ -26,10 +38,14 @@ jobs:
           components: rustfmt, clippy
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
+      - run: sudo apt-get update && sudo apt-get install -y libpq-dev
+      - run: bash scripts/install-traefik.sh /tmp/wafl-traefik
       - run: cargo fmt --all -- --check
       - run: bash scripts/test.sh --tests -- --include-ignored
         env:
           WAFL_TEST_DATABASE_URL: redis://localhost:6379/0
+          WAFL_TEST_CONTROLLER_DATABASE_URL: postgresql://postgres:wafl-test@localhost:5432/wafl
+          WAFL_TEST_TRAEFIK: /tmp/wafl-traefik/traefik
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
   generated:
     runs-on: ubuntu-latest
