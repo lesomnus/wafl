@@ -490,6 +490,8 @@ async def main():
         # Rotate host order to reduce systematic warm-cache/time-of-run bias.
         offset = repeat * max(1, len(scenarios) // args.repeat) % len(scenarios)
         ordered = scenarios[offset:] + scenarios[:offset]
+        if repeat % 2:
+            ordered.reverse()
         for memory in args.memory:
             for guest_keepalive, client_keepalive, case in ordered:
                 report["trials"].append(await trial(args, case, guest_keepalive, client_keepalive, memory,

@@ -115,7 +115,8 @@ python3 scripts/benchmarks/resources.py \
 `cli`는 `클라이언트 → Traefik → Wasmtime CLI × 2`, `direct`는
 `클라이언트 → Traefik → runner 안의 WASM × 2`다. 모든 경우에 Traefik을 포함한다.
 게스트의 Keep-alive 지원 유무와 클라이언트의 연결 재사용 유무를 교차하여 8개 조건을
-각각 3회 실행한다. 실제 순서는 반복마다 회전하며 결과 JSON에 순서와 설정을 남긴다.
+각각 3회 실행한다. 순서를 반복마다 회전하고 홀수 번째 반복에서는 뒤집어 두 host의
+선후도 바꾼다. 결과 JSON에 실제 순서와 설정을 남긴다.
 
 - `--guest-keepalive off`: 앱이 항상 `Connection: close`로 응답한다.
 - `--guest-keepalive on`: HTTP/1.1 연결을 유지하고, 요청의 `Connection: close`도 존중한다.
