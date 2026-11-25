@@ -4,6 +4,8 @@
 
 현재 runner는 paydirt와 Wasmtime으로 한 프로세스에서 여러 WASIp2 소켓 서버를 실행합니다. 앱은 표준 TCP·파일 API를 사용하며 별도 핸들러 SDK가 필요하지 않습니다. `Instance`는 Manifest를 가진 일반 entity이고 생성된 `InstanceService.Add(InstanceAddRequest)`로 만듭니다.
 
+**L7 proxy에서 WASM 소켓에 직접 연결**하려면 [직결 튜토리얼](docs/direct.md)의 `direct` 설정을 사용합니다. `Instance.endpoint`로 반환한 IP:port를 Traefik/Envoy backend로 지정하며 runner HTTP 중계는 없습니다. 포트 공유·재시작 예약과 `Drain → 외부 연결 정리 → Release` 계약을 포함합니다. 아래 빠른 시작은 기본 proxy 모드입니다.
+
 ```sh
 cargo install --path . --locked --bin wafl
 bash scripts/bundle.sh /tmp/wafl-example/hello.tar.gz
@@ -43,7 +45,7 @@ runner 설정의 `metrics.endpoint`를 지정하면 실행 상태·활성 lease�
 
 [Runner 운영 튜토리얼](docs/operations.md)은 생성 중 조회, Drain/Start, 전체 자원 수락 제한, 컴파일 공유, 세션·revision 조건과 운영 시나리오를 설명합니다.
 
-앱·도메인·배치는 플랫폼이 관리하고 gateway가 `wafl-instance` 헤더로 인스턴스를 선택합니다. runner 관리 API는 인증 없이 동작하며 tenant는 소속 메타데이터입니다. Kubernetes 제어평면, credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
+앱·도메인·배치는 플랫폼이 관리합니다. gateway는 기본 모드에서 `wafl-instance` 헤더로, 직결 모드에서 `Instance.endpoint` 주소로 인스턴스를 선택합니다. runner 관리 API는 인증 없이 동작하며 tenant는 소속 메타데이터입니다. Kubernetes 제어평면, 직결의 자동 gateway 갱신·zero-scale activator, credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
 
 [CLI 튜토리얼](docs/cli.md) · [외부 연결과 DB](docs/network.md) · [RPC와 시나리오](docs/runner.md) · [번들 규격](docs/bundle.md) · [공유 저장소 계약과 원격 읽기 확장](docs/store.md) · [Instance](proto/wafl/instance.proto) · [생성된 RPC](generated/proto/wafl/instance_svc.g.proto)
 

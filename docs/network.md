@@ -1,5 +1,7 @@
 # 외부 연결과 DB
 
+수신 경로는 기본 proxy 모드와 [WASM 소켓 직결 모드](direct.md)를 선택할 수 있습니다. 아래 발신 TCP·DNS·DB 연결 계약은 두 모드에 동일하게 적용합니다.
+
 앱은 표준 WASI TCP 소켓으로 외부 서비스에 직접 연결합니다. IPv4·IPv6 주소와 DNS 이름을 지원하며, `DATABASE_URL` 같은 환경변수는 `manifest.env` 또는 CLI의 `--env`로 전달합니다. runner는 connection string을 해석하지 않습니다. 앱의 클라이언트 라이브러리가 주소 해석, DB 프로토콜과 필요한 TLS 처리를 담당합니다.
 
 ## 주소와 네트워크 범위
