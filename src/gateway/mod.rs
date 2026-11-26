@@ -11,7 +11,7 @@ use async_trait::async_trait;
 use clap::Args;
 use pingora::{
     apps::HttpServerOptions,
-    proxy::http_proxy_service,
+    proxy::{http_proxy, http_proxy_service},
     server::{Server, ShutdownWatch, configuration::ServerConf},
     services::{
         background::{BackgroundService, background_service},
@@ -122,13 +122,13 @@ pub fn serve(options: Options) -> Result<()> {
         threads: options.threads,
         // Pingora counts the initial attempt in max_retries. One forbids replay.
         max_retries: 1,
-        grace_period_seconds: Some(0),
-        graceful_shutdown_timeout_seconds: Some(options.drain_seconds + 5),
+        grace_period_seconds: Some(options.drain_seconds + 4),
+        graceful_shutdown_timeout_seconds: Some(1),
         ..Default::default()
     };
     let mut server = Server::new_with_opt_and_conf(None, conf);
     server.bootstrap();
-    let mut http = http_proxy_service(
+    let mut engine = http_proxy(
         &server.configuration,
         http::Http {
             state: state.clone(),
@@ -137,7 +137,14 @@ pub fn serve(options: Options) -> Result<()> {
     );
     let mut http_options = HttpServerOptions::default();
     http_options.h2c = true;
-    http.app_logic_mut().unwrap().server_options = Some(http_options);
+    engine.server_options = Some(http_options);
+    let mut http = Service::new(
+        "WAFL HTTP".into(),
+        http::Transport {
+            inner: Arc::new(engine),
+            grace: options.drain_seconds,
+        },
+    );
     http.add_tcp(&options.listen.to_string());
     if let Some(address) = options.tls_listen {
         let cert = options

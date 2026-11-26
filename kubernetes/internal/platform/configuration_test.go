@@ -20,7 +20,7 @@ func TestProxyRoutingAndWake(t *testing.T) {
 	a.Object["spec"].(map[string]any)["scaling"] = map[string]any{"min": int64(0), "max": int64(2), "waiting": int64(1)}
 	spec.Replicas = 0
 	d := deployment(a, spec, nil)
-	clients := &Clients{Kube: fake.NewClientset(&core.Namespace{ObjectMeta: meta.ObjectMeta{Name: "demo"}}, d), Dynamic: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{Apps: "AppList"}, a)}
+	clients := &Clients{Kube: fake.NewClientset(&core.Namespace{ObjectMeta: meta.ObjectMeta{Name: "demo"}}), Dynamic: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(), map[schema.GroupVersionResource]string{Apps: "AppList"}, a)}
 	c := &Controller{Clients: clients, Namespace: "wafl-system"}
 	snapshot, err := c.routing(ctx)
 	if err != nil || snapshot.Version != 1 || len(snapshot.Routes) != 1 || snapshot.Routes[0].Suspended || len(snapshot.Routes[0].Targets) != 0 {
@@ -46,6 +46,12 @@ func TestProxyRoutingAndWake(t *testing.T) {
 	wake := connect.NewRequest(&wf.AppWakeRequest{Ref: add.Msg.App})
 	wake.Header().Set("wafl-tenant", "demo")
 	api := &AppAPI{Clients: clients}
+	if _, err = api.Wake(ctx, wake); err != nil {
+		t.Fatal("Wake before the first reconciliation must keep waiting", err)
+	}
+	if _, err = clients.Kube.AppsV1().Deployments("demo").Create(ctx, d, meta.CreateOptions{}); err != nil {
+		t.Fatal(err)
+	}
 	for i := 0; i < 2; i++ {
 		if _, err = api.Wake(ctx, wake); err != nil {
 			t.Fatal("Wake", err)

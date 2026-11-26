@@ -101,6 +101,12 @@ func (a *AppAPI) Wake(ctx context.Context, request *connect.Request[wf.AppWakeRe
 			}
 			api := a.Clients.Kube.AppsV1().Deployments(ns)
 			d, e := api.Get(ctx, appName(fresh), meta.GetOptions{})
+			if apierrors.IsNotFound(e) {
+				// The leader may not have reconciled a newly added App yet.
+				// The proxy keeps its waiting observer and repeats Wake while
+				// awaiting a ready target, bounded by the startup deadline.
+				return nil
+			}
 			if e != nil {
 				return e
 			}

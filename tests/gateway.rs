@@ -194,6 +194,9 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
                                     "backend committed then disconnected",
                                 ));
                             }
+                            if request.uri().path() == "/hold" {
+                                tokio::time::sleep(Duration::from_secs(60)).await;
+                            }
                             let body = request.into_body().collect().await.unwrap().to_bytes();
                             Ok::<_, std::io::Error>(
                                 hyper::Response::builder()
@@ -245,6 +248,33 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
     });
     let listen = free();
     let health = free();
+    let certificates = tempfile::tempdir().unwrap();
+    let certificate = certificates.path().join("cert.pem");
+    let key = certificates.path().join("key.pem");
+    let tls = free();
+    assert!(
+        Command::new("openssl")
+            .args([
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:2048",
+                "-nodes",
+                "-days",
+                "1",
+                "-subj",
+                "/CN=proxy.test",
+                "-keyout",
+                key.to_str().unwrap(),
+                "-out",
+                certificate.to_str().unwrap()
+            ])
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .unwrap()
+            .success()
+    );
     let mut proxy = Proxy(
         Command::new(env!("CARGO_BIN_EXE_wafl"))
             .args([
@@ -256,6 +286,12 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
                 &listen.to_string(),
                 "--health",
                 &health.to_string(),
+                "--tls-listen",
+                &tls.to_string(),
+                "--tls-cert",
+                certificate.to_str().unwrap(),
+                "--tls-key",
+                key.to_str().unwrap(),
                 "--tcp-ip",
                 "127.0.0.2",
                 "--drain-seconds",
@@ -303,6 +339,18 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
     assert_eq!(response.headers()["x-connection"], first);
     response.bytes().await.unwrap();
     assert_eq!(connections.load(Ordering::SeqCst), 1);
+    let secure = reqwest::Client::builder()
+        .danger_accept_invalid_certs(true)
+        .build()
+        .unwrap();
+    let response = secure
+        .get(format!("https://{tls}/"))
+        .header("host", "proxy.test")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 200);
+    response.bytes().await.unwrap();
     // Reusing the same address for a different execution must use a new pool.
     s.routes.lock().unwrap().routes[0].targets[0].placement = id(11, 3);
     tokio::time::sleep(Duration::from_millis(650)).await;
@@ -361,6 +409,26 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
         })
     })
     .await;
+    let slow_client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .unwrap();
+    let hold_url = format!("{url}/hold");
+    let held = tokio::spawn(async move {
+        slow_client
+            .get(hold_url)
+            .header("host", "proxy.test")
+            .send()
+            .await
+    });
+    until(async || {
+        s.observations
+            .lock()
+            .unwrap()
+            .values()
+            .any(|v| v["placement"]["id"] == STANDARD.encode(id(11, 3)) && v["active"] == 1)
+    })
+    .await;
     s.available.store(false, Ordering::SeqCst);
     until(async || {
         client
@@ -385,6 +453,10 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
         .status()
         .unwrap();
     until(async || proxy.0.try_wait().unwrap().is_some()).await;
+    assert!(
+        held.await.unwrap().is_err(),
+        "overdue HTTP stream survived proxy drain"
+    );
     assert!(
         s.observations
             .lock()

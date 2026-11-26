@@ -28,9 +28,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 COPY --from=build /wafl /usr/local/bin/wafl
 COPY --from=kubernetes /wafl-kube /usr/local/bin/wafl-kube
 LABEL org.opencontainers.image.source="https://github.com/lesomnus/wafl" \
-      org.opencontainers.image.description="WAFL WASM application controller and runner"
+      org.opencontainers.image.description="WAFL WASM application controller, runner and Pingora proxy"
 USER 10001:10001
 WORKDIR /var/lib/wafl
-EXPOSE 8080 8081 8082 8083
+EXPOSE 8080 8081 8082 8084
 ENTRYPOINT ["/usr/local/bin/wafl"]
 CMD ["--help"]

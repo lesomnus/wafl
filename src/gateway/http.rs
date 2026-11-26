@@ -169,6 +169,42 @@ impl ProxyHttp for Http {
     }
 }
 
+// Keep Pingora's protocol engine while bounding every HTTP/2 stream during
+// process drain. Cancelling the owned session drops its admission guard before
+// the reporting runtime stops, including streams whose application never ends.
+pub(super) struct Transport {
+    pub inner: Arc<pingora::proxy::HttpProxy<Http>>,
+    pub grace: u64,
+}
+#[async_trait]
+impl pingora::apps::HttpServerApp for Transport {
+    async fn process_new_http(
+        self: &Arc<Self>,
+        session: pingora::protocols::http::ServerSession,
+        shutdown: &pingora::server::ShutdownWatch,
+    ) -> Option<pingora::apps::ReusedHttpStream> {
+        if *shutdown.borrow() {
+            return None;
+        }
+        let mut signal = shutdown.clone();
+        let request = self.inner.process_new_http(session, shutdown);
+        tokio::pin!(request);
+        tokio::select! {
+            result=&mut request=>result,
+            _=signal.changed()=>tokio::time::timeout(Duration::from_secs(self.grace),request).await.ok().flatten(),
+        }
+    }
+    fn server_options(&self) -> Option<&pingora::apps::HttpServerOptions> {
+        self.inner.server_options.as_ref()
+    }
+    fn h2_options(&self) -> Option<pingora::protocols::http::v2::server::H2Options> {
+        self.inner.h2_options.clone()
+    }
+    async fn http_cleanup(&self) {
+        self.inner.http_cleanup().await;
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
