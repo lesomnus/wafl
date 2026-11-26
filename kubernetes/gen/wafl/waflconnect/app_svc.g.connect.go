@@ -45,6 +45,8 @@ const (
 	AppServiceEraseProcedure = "/wafl.AppService/Erase"
 	// AppServiceListProcedure is the fully-qualified name of the AppService's List RPC.
 	AppServiceListProcedure = "/wafl.AppService/List"
+	// AppServiceTailProcedure is the fully-qualified name of the AppService's Tail RPC.
+	AppServiceTailProcedure = "/wafl.AppService/Tail"
 )
 
 // AppServiceClient is a client for the wafl.AppService service.
@@ -55,6 +57,7 @@ type AppServiceClient interface {
 	Apply(context.Context, *connect.Request[wafl.AppApplyRequest]) (*connect.Response[wafl.App], error)
 	Erase(context.Context, *connect.Request[wafl.AppRef]) (*connect.Response[wafl.AppEraseResponse], error)
 	List(context.Context, *connect.Request[wafl.AppListRequest]) (*connect.Response[wafl.AppListResponse], error)
+	Tail(context.Context, *connect.Request[wafl.AppTailRequest]) (*connect.ServerStreamForClient[wafl.Log], error)
 }
 
 // NewAppServiceClient constructs a client for the wafl.AppService service. By default, it uses the
@@ -104,6 +107,12 @@ func NewAppServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(appServiceMethods.ByName("List")),
 			connect.WithClientOptions(opts...),
 		),
+		tail: connect.NewClient[wafl.AppTailRequest, wafl.Log](
+			httpClient,
+			baseURL+AppServiceTailProcedure,
+			connect.WithSchema(appServiceMethods.ByName("Tail")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -115,6 +124,7 @@ type appServiceClient struct {
 	apply *connect.Client[wafl.AppApplyRequest, wafl.App]
 	erase *connect.Client[wafl.AppRef, wafl.AppEraseResponse]
 	list  *connect.Client[wafl.AppListRequest, wafl.AppListResponse]
+	tail  *connect.Client[wafl.AppTailRequest, wafl.Log]
 }
 
 // Add calls wafl.AppService.Add.
@@ -147,6 +157,11 @@ func (c *appServiceClient) List(ctx context.Context, req *connect.Request[wafl.A
 	return c.list.CallUnary(ctx, req)
 }
 
+// Tail calls wafl.AppService.Tail.
+func (c *appServiceClient) Tail(ctx context.Context, req *connect.Request[wafl.AppTailRequest]) (*connect.ServerStreamForClient[wafl.Log], error) {
+	return c.tail.CallServerStream(ctx, req)
+}
+
 // AppServiceHandler is an implementation of the wafl.AppService service.
 type AppServiceHandler interface {
 	Add(context.Context, *connect.Request[wafl.AppAddRequest]) (*connect.Response[wafl.App], error)
@@ -155,6 +170,7 @@ type AppServiceHandler interface {
 	Apply(context.Context, *connect.Request[wafl.AppApplyRequest]) (*connect.Response[wafl.App], error)
 	Erase(context.Context, *connect.Request[wafl.AppRef]) (*connect.Response[wafl.AppEraseResponse], error)
 	List(context.Context, *connect.Request[wafl.AppListRequest]) (*connect.Response[wafl.AppListResponse], error)
+	Tail(context.Context, *connect.Request[wafl.AppTailRequest], *connect.ServerStream[wafl.Log]) error
 }
 
 // NewAppServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -200,6 +216,12 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(appServiceMethods.ByName("List")),
 		connect.WithHandlerOptions(opts...),
 	)
+	appServiceTailHandler := connect.NewServerStreamHandler(
+		AppServiceTailProcedure,
+		svc.Tail,
+		connect.WithSchema(appServiceMethods.ByName("Tail")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/wafl.AppService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case AppServiceAddProcedure:
@@ -214,6 +236,8 @@ func NewAppServiceHandler(svc AppServiceHandler, opts ...connect.HandlerOption) 
 			appServiceEraseHandler.ServeHTTP(w, r)
 		case AppServiceListProcedure:
 			appServiceListHandler.ServeHTTP(w, r)
+		case AppServiceTailProcedure:
+			appServiceTailHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -245,4 +269,8 @@ func (UnimplementedAppServiceHandler) Erase(context.Context, *connect.Request[wa
 
 func (UnimplementedAppServiceHandler) List(context.Context, *connect.Request[wafl.AppListRequest]) (*connect.Response[wafl.AppListResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("wafl.AppService.List is not implemented"))
+}
+
+func (UnimplementedAppServiceHandler) Tail(context.Context, *connect.Request[wafl.AppTailRequest], *connect.ServerStream[wafl.Log]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("wafl.AppService.Tail is not implemented"))
 }

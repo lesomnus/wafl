@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"connectrpc.com/connect"
 	"github.com/lesomnus/wafl/kubernetes/gen/wafl/waflconnect"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
@@ -24,9 +25,9 @@ import (
 )
 
 type Controller struct {
-	Clients                                                                      *Clients
-	Namespace, Listen, ActivationListen, Control, Activate, Entrypoint, Identity string
-	Traffic                                                                      *Traffic
+	Clients                                                                              *Clients
+	Namespace, Listen, ActivationListen, Control, Activate, Entrypoint, Identity, Assets string
+	Traffic                                                                              *Traffic
 }
 
 func (c *Controller) reconcile(ctx context.Context) error {
@@ -244,6 +245,8 @@ func (c *Controller) Serve(ctx context.Context) error {
 	c.Traffic = &Traffic{Clients: c.Clients, Namespace: c.Namespace}
 	mux := http.NewServeMux()
 	mux.Handle(waflconnect.NewTrafficServiceHandler(c.Traffic))
+	mux.Handle(waflconnect.NewAppServiceHandler(&AppAPI{Clients: c.Clients}, connect.WithReadMaxBytes(2<<20)))
+	mux.HandleFunc("PUT /bundles/{digest}", c.upload)
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		check, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()

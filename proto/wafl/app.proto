@@ -9,9 +9,9 @@ import "wafl/payday/tenant.proto";
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 option features.field_presence = IMPLICIT;
 
-// Shared App fields used to generate the Kubernetes CRD spec. The native
-// controller uses Kubernetes identity/status and Deployment revisions. The
-// legacy entity fields remain wire-compatible; AppService is no longer served.
+// AppService is the platform management API. The controller stores declarations
+// in Kubernetes; clients do not need Kubernetes credentials or object types.
+// The declarative fields also generate the App CRD spec for cluster operators.
 message App {
   option (orm.message) = {rpc: {add: {}, get: {}, patch: {}, erase: {}}};
   option (payday.entity) = {
@@ -37,6 +37,17 @@ message App {
   // Kubernetes readiness; omitted means TCP listener readiness.
   Probe readiness = 21 [(orm.field) = {type: TYPE_JSON, nullable: true}];
   Rollout rollout = 22 [(orm.field) = {type: TYPE_JSON, nullable: true}];
+  // Write-only environment values. The controller stores these as Secret
+  // sources and returns references in secrets. Never stored in the App CRD.
+  map<string, string> secret_values = 23 [(orm.field) = {type: TYPE_JSON, default: ""}, (payday.field) = {secret: true}];
+  AppStatus status = 24 [(orm.field) = {type: TYPE_JSON, nullable: true}, (payday.field) = {stamped: true}];
+}
+
+message AppStatus {
+  uint32 ready = 1;
+  bool accepted = 2;
+  string reason = 3;
+  string message = 4;
 }
 
 message Probe {

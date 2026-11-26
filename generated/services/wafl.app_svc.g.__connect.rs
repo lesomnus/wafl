@@ -34,6 +34,10 @@ pub type OwnedAppListRequestView = ::buffa::view::OwnedView<
 pub type OwnedAppListResponseView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::AppListResponseView<'static>,
 >;
+///Shorthand for `OwnedView<AppTailRequestView<'static>>`.
+pub type OwnedAppTailRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::AppTailRequestView<'static>,
+>;
 impl ::connectrpc::Encodable<crate::proto::wafl::App>
 for crate::proto::wafl::__buffa::view::AppView<'_> {
     fn encode(
@@ -146,6 +150,15 @@ pub const APP_SERVICE_ERASE_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::serve
 pub const APP_SERVICE_LIST_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/wafl.AppService/List",
         ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Tail` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const APP_SERVICE_TAIL_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.AppService/Tail",
+        ::connectrpc::StreamType::ServerStream,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
 /// Server trait for AppService.
@@ -309,6 +322,26 @@ pub trait AppService: Send + Sync + 'static {
             impl ::connectrpc::Encodable<
                 crate::proto::wafl::AppListResponse,
             > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Stream one execution through the controller; no runner network access or
+    /// Kubernetes port-forward is required. Omitted instance selects a ready
+    /// execution once. The response metadata includes its wafl-instance UUID.
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call (until the response stream is returned);
+    /// message fields are read directly on it (zero-copy). Data the
+    /// returned stream needs must be copied out or converted via
+    /// `.to_owned_message()`.
+    fn tail(
+        &self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppTailRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            ::connectrpc::ServiceStream<
+                impl ::connectrpc::Encodable<crate::proto::wafl::Log> + Send + use<Self>,
+            >,
         >,
     > + Send;
 }
@@ -499,6 +532,34 @@ impl<S: AppService> AppServiceExt for S {
                 },
             )
             .with_spec(APP_SERVICE_LIST_SPEC)
+            .route_view_server_stream::<
+                _,
+                _,
+                crate::proto::wafl::Log,
+            >(
+                APP_SERVICE_SERVICE_NAME,
+                "Tail",
+                ::connectrpc::view_streaming_handler_fn({
+                    let svc = ::std::sync::Arc::clone(&self);
+                    move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::AppTailRequestView<
+                                'static,
+                            >,
+                        >|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::AppTailRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.tail(ctx, sreq).await
+                        }
+                    }
+                }),
+            )
+            .with_spec(APP_SERVICE_TAIL_SPEC)
     }
 }
 /// Type-inference marker used by [`Router::add_service`](::connectrpc::Router::add_service).
@@ -587,6 +648,12 @@ impl<T: AppService> ::connectrpc::Dispatcher for AppServiceServer<T> {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
                         .with_spec(APP_SERVICE_LIST_SPEC),
+                )
+            }
+            "Tail" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::server_streaming()
+                        .with_spec(APP_SERVICE_TAIL_SPEC),
                 )
             }
             _ => None,
@@ -717,6 +784,29 @@ impl<T: AppService> ::connectrpc::Dispatcher for AppServiceServer<T> {
         };
         let _ = (&ctx, &request, &format);
         match method {
+            "Tail" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::AppTailRequest,
+                    >(request, format)?;
+                    let req: crate::proto::wafl::__buffa::view::AppTailRequestView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::AppTailRequest,
+                    >::from_parts(&req, &body);
+                    let resp = svc.tail(ctx, req).await?;
+                    Ok(
+                        resp
+                            .map_body(|s| ::connectrpc::dispatcher::codegen::encode_response_stream::<
+                                crate::proto::wafl::Log,
+                                _,
+                                _,
+                            >(s, format)),
+                    )
+                })
+            }
             _ => ::connectrpc::dispatcher::codegen::unimplemented_streaming(path),
         }
     }
@@ -1039,6 +1129,42 @@ where
                 &self.config,
                 APP_SERVICE_SERVICE_NAME,
                 "List",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Tail RPC. Sends a request to /wafl.AppService/Tail.
+    pub async fn tail(
+        &self,
+        request: crate::proto::wafl::AppTailRequest,
+    ) -> Result<
+        ::connectrpc::client::ServerStream<
+            T::ResponseBody,
+            crate::proto::wafl::__buffa::view::LogView<'static>,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.tail_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Tail RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn tail_with_options(
+        &self,
+        request: crate::proto::wafl::AppTailRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::ServerStream<
+            T::ResponseBody,
+            crate::proto::wafl::__buffa::view::LogView<'static>,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_server_stream(
+                &self.transport,
+                &self.config,
+                APP_SERVICE_SERVICE_NAME,
+                "Tail",
                 request,
                 options,
             )

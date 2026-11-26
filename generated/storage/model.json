@@ -228,6 +228,21 @@
           "number": 22,
           "kind": "JSON",
           "nullable": true
+        },
+        {
+          "name": "secret_values",
+          "json": "secretValues",
+          "number": 23,
+          "kind": "JSON",
+          "collection": "map",
+          "default": ""
+        },
+        {
+          "name": "status",
+          "json": "status",
+          "number": 24,
+          "kind": "JSON",
+          "nullable": true
         }
       ],
       "indexes": []
