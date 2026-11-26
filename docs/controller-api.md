@@ -19,7 +19,7 @@ wafl --endpoint https://control.example.com --tenant demo app get @hello
 wafl --endpoint http://runner.example.com:8081 instance list
 ```
 
-App과 Traffic 명령의 기본 endpoint는 `http://127.0.0.1:8082`, runner 명령은 `http://127.0.0.1:8081`입니다. `--endpoint` 또는 `WAFL_ENDPOINT`가 있으면 그 주소를 사용합니다. 관리 API는 운영자가 접근 가능한 주소로 제공합니다. 앱 트래픽을 받는 Traefik 주소와 관리 API 주소를 구분합니다.
+App과 Traffic 명령의 기본 endpoint는 `http://127.0.0.1:8082`, runner 명령은 `http://127.0.0.1:8081`입니다. `--endpoint` 또는 `WAFL_ENDPOINT`가 있으면 그 주소를 사용합니다. 관리 API는 운영자가 접근 가능한 주소로 제공합니다. 앱 트래픽을 받는 proxy 주소와 관리 API 주소를 구분합니다.
 
 ## Runner·Instance·Reservation 집계
 

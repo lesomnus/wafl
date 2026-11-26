@@ -25,6 +25,7 @@ jobs:
           toolchain: 1.100.0
           components: rustfmt, clippy
           targets: wasm32-wasip2
+      - run: sudo apt-get update && sudo apt-get install -y cmake
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all -- --check
       - run: bash scripts/test.sh --tests -- --include-ignored
@@ -36,8 +37,6 @@ jobs:
           go-version: '1.26'
           cache: false
       - run: go test -race ./...
-        working-directory: plugins/traefik
-      - run: go test -race ./...
         working-directory: kubernetes
       - name: Install kind
         run: |
@@ -45,7 +44,7 @@ jobs:
           echo 'aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  /tmp/kind' | sha256sum --check
           chmod +x /tmp/kind
           sudo mv /tmp/kind /usr/local/bin/kind
-      - name: Test native Kubernetes platform with real WASM and Traefik
+      - name: Test native Kubernetes platform with real WASM and Pingora
         run: bash scripts/test-kubernetes.sh
       - name: Kubernetes diagnostics
         if: failure()

@@ -84,6 +84,20 @@ pub trait AppServiceLayer<N: AppService>: Send + Sync + 'static {
     > + Send {
         next.list(ctx, request)
     }
+    fn wake<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::App,
+            > + Send + use<'a, Self, N>,
+        >,
+    > + Send {
+        next.wake(ctx, request)
+    }
     fn tail(
         &self,
         next: &N,
@@ -175,6 +189,17 @@ impl<N: AppService, L: AppServiceLayer<N>> AppService for AppServiceOverlay<N, L
         >,
     > + Send {
         self.layer.list(&self.next, ctx, request)
+    }
+    fn wake<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<crate::proto::wafl::App> + Send + use<'a, N, L>,
+        >,
+    > + Send {
+        self.layer.wake(&self.next, ctx, request)
     }
     fn tail(
         &self,
@@ -285,6 +310,22 @@ impl AppService for AppServiceUnimplemented {
             Err(
                 ::connectrpc::ConnectError::unimplemented(
                     concat!(stringify!(AppService), ".", stringify!(list)),
+                ),
+            )
+        }
+    }
+    fn wake<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<crate::proto::wafl::App>,
+    > + Send {
+        let _ = (ctx, request);
+        async {
+            Err(
+                ::connectrpc::ConnectError::unimplemented(
+                    concat!(stringify!(AppService), ".", stringify!(wake)),
                 ),
             )
         }

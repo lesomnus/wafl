@@ -187,7 +187,7 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 ### Kubernetes gateway와 연동
 
-기본 proxy 모드에서는 Traefik/Envoy 등의 upstream을 runner의 `listen`으로 연결하고, 플랫폼 제어평면이 runner와 Instance ID를 선택해 `wafl-instance`를 설정합니다. 외부 클라이언트의 해당 헤더는 gateway가 선택한 값으로 덮어씁니다. 도메인과 TLS는 gateway가 관리합니다. [Controller + Traefik](controller.md)은 직결 모드를 사용해 runner에 고정 replica를 배치하고 동적으로 `Instance.endpoint`를 backend로 배포합니다. 부하 기반 자동 확장, activator와 Kubernetes chart는 후속 범위입니다.
+기본 proxy 모드에서는 Traefik/Envoy 등의 upstream을 runner의 `listen`으로 연결하고, 플랫폼 제어평면이 runner와 Instance ID를 선택해 `wafl-instance`를 설정합니다. 외부 클라이언트의 해당 헤더는 gateway가 선택한 값으로 덮어씁니다. 도메인과 TLS는 gateway가 관리합니다. [Controller와 Pingora proxy](controller.md)는 직결 모드를 사용하며 첫 요청 기동·자동 증감과 스트림 drain을 제공합니다. 프록시는 배정된 `Instance.endpoint`로 연결합니다.
 
 ## 실행 제약과 개발
 

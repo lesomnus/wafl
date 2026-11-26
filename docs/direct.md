@@ -7,7 +7,7 @@
 제어평면  → runner 관리 API → 실행·조회·Drain·Release
 ```
 
-`direct`를 생략한 기본 proxy 모드는 기존 `wafl-instance` 라우팅·요청 계측·유휴 재기동을 유지합니다. 아래 기능은 runner의 직결 계약입니다. 자동 배치와 Traefik 설정 배포는 [Controller 튜토리얼](controller.md), 첫 요청 기동과 부하 증감은 [자동 증감](autoscaling.md)을 참고하세요. 일반 TCP 앱의 플랫폼 경로와 복수 소켓은 [TCP 튜토리얼](tcp.md)에 있습니다.
+`direct`를 생략한 기본 proxy 모드는 기존 `wafl-instance` 라우팅·요청 계측·유휴 재기동을 유지합니다. 아래 기능은 runner의 직결 계약입니다. 자동 배치와 Pingora 프록시 연동은 [Controller 튜토리얼](controller.md), 첫 요청 기동과 부하 증감은 [자동 증감](autoscaling.md)을 참고하세요. 일반 TCP 앱의 플랫폼 경로와 복수 소켓은 [TCP 튜토리얼](tcp.md)에 있습니다.
 
 ## 로컬에서 두 인스턴스 실행
 
@@ -153,7 +153,7 @@ gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합
 | `wafl.instance.active` gauge | 의미 없는 0을 보내지 않고 생략 |
 | 유휴 회수·요청 한도·HTTP/gRPC 기한·재시도 | L7·제어평면·앱에서 처리 |
 | `wafl-instance`, `wafl-session` 앱 트래픽 헤더 | 선택 기능 없음. 필요한 외부 헤더 정책은 L7에서 처리 |
-| scale-to-zero의 첫 요청 | 외부 activator가 실행을 준비하고 endpoint를 공개한 뒤 전달해야 함 |
+| scale-to-zero의 첫 요청 | WAFL proxy가 controller에 기동을 요청하고 endpoint 준비를 기다린 뒤 전달 |
 
 `Runner.ingress`는 빈 문자열이고 capabilities에 `direct-endpoint-v1`, `external-drain-v1`, `reservation-recovery-v1`을 제공합니다. 기본 proxy 모드는 `proxy-ingress`, `drain`을 제공합니다. runner의 `capacity.requests`와 `usage.requests`는 직결 HTTP 부하 제한·관측으로 사용할 수 없습니다. CPU/fuel quota를 추가하지 않았으며 메모리 제한도 process RSS 전체 제한과는 다릅니다.
 
@@ -171,4 +171,4 @@ cargo test --locked --lib endpoint::
 - runner를 강제 종료·재시작해도 이전 주소를 새 앱에 재사용하지 않습니다.
 - 이전 세션의 예약을 조건부 회수한 뒤 같은 포트를 재사용하고, 오래된 token의 재시도가 새 앱을 건드리지 않는지 검증합니다.
 
-위 file provider 예제 외에, CI는 실제 Traefik의 HTTP provider를 controller에 연결해 두 runner의 HTTP·gRPC 라우팅과 장애 복구를 검증합니다. 실행 방법은 [Controller 튜토리얼](controller.md)에 있습니다.
+위 file provider 예제는 독립적인 runner 연결 예제입니다. 플랫폼 CI는 실제 Pingora proxy를 controller에 연결해 두 runner의 HTTP·gRPC·TCP 라우팅과 장애 복구를 검증합니다. 실행 방법은 [Controller 튜토리얼](controller.md)에 있습니다.

@@ -11,10 +11,18 @@ option go_package = "github.com/lesomnus/wafl/proto/wafl";
 // App.revision returned by Get. IDs are assigned by this backend; Add.id must
 // be omitted. Alias identifies the declaration and cannot be renamed in place.
 service AppService {
+  // Request at least one execution for an autoscaling App. Idempotent across
+  // controllers; fixed-zero Apps remain suspended. Does not wait for readiness
+  // or carry application bytes. Proxies retain the request/connection locally.
+  rpc Wake(AppWakeRequest) returns (App);
   // Stream one execution through the controller; no runner network access or
   // Kubernetes port-forward is required. Omitted instance selects a ready
   // execution once. The response metadata includes its wafl-instance UUID.
   rpc Tail(AppTailRequest) returns (stream Log);
+}
+message AppWakeRequest {
+  // Use an ID to fence removal/recreation while a proxy holds a cold request.
+  AppRef ref = 1;
 }
 message AppTailRequest {
   AppRef ref = 1;

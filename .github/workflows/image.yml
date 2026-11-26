@@ -41,6 +41,7 @@ jobs:
           docker run --rm "$WAFL_IMAGE" --help
           docker run --rm "$WAFL_IMAGE" app --help
           docker run --rm "$WAFL_IMAGE" serve controller --help
+          docker run --rm "$WAFL_IMAGE" serve proxy --help
           docker run --rm --entrypoint wafl-kube "$WAFL_IMAGE" bootstrap --help
           docker run -d --name wafl-image-smoke -p 127.0.0.1::8081 "$WAFL_IMAGE" \
             serve runner /var/lib/wafl/cache --control 0.0.0.0:8081 --listen 0.0.0.0:8080
@@ -54,42 +55,11 @@ jobs:
             sleep 1
           done
           exit 1
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.traefik
-          platforms: linux/amd64
-          load: true
-          tags: ghcr.io/lesomnus/wafl-traefik:sha-${{ github.sha }}
-          labels: org.opencontainers.image.revision=${{ github.sha }}
-      - name: Verify bundled Traefik plugin loads
-        env:
-          WAFL_GATEWAY_IMAGE: ghcr.io/lesomnus/wafl-traefik:sha-${{ github.sha }}
-        run: |
-          set -euo pipefail
-          docker run --rm "$WAFL_GATEWAY_IMAGE" version
-          docker run -d --name wafl-gateway-smoke -p 127.0.0.1::8080 "$WAFL_GATEWAY_IMAGE" \
-            --entrypoints.web.address=:8080 \
-            --experimental.localplugins.wafl.modulename=github.com/lesomnus/wafl/traefik
-          trap 'docker logs wafl-gateway-smoke; docker rm -f wafl-gateway-smoke' EXIT
-          port=$(docker inspect -f '{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostPort}}' wafl-gateway-smoke)
-          for attempt in $(seq 1 60); do
-            if [ "$(curl --silent --output /dev/null --write-out '%{http_code}' "http://127.0.0.1:$port/")" = 404 ]; then
-              if docker logs wafl-gateway-smoke 2>&1 | grep -qi 'plugins are disabled'; then exit 1; fi
-              exit 0
-            fi
-            sleep 1
-          done
-          exit 1
       - name: Push commit and latest tags
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           WAFL_IMAGE: ghcr.io/lesomnus/wafl:sha-${{ github.sha }}
-          WAFL_GATEWAY_IMAGE: ghcr.io/lesomnus/wafl-traefik:sha-${{ github.sha }}
         run: |
           docker push "$WAFL_IMAGE"
           docker tag "$WAFL_IMAGE" ghcr.io/lesomnus/wafl:latest
           docker push ghcr.io/lesomnus/wafl:latest
-          docker push "$WAFL_GATEWAY_IMAGE"
-          docker tag "$WAFL_GATEWAY_IMAGE" ghcr.io/lesomnus/wafl-traefik:latest
-          docker push ghcr.io/lesomnus/wafl-traefik:latest

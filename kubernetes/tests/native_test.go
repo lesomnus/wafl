@@ -253,7 +253,7 @@ func TestNativePlatform(t *testing.T) {
 	})
 	s.gateway = os.Getenv("WAFL_TEST_GATEWAY")
 	if s.gateway == "" {
-		s.gateway = s.forward("svc/wafl-traefik", 80)
+		s.gateway = s.forward("svc/wafl-proxy", 80)
 	}
 	socket := s.bundle("socket")
 	grpc := s.bundle("grpc")
@@ -285,7 +285,7 @@ func TestNativePlatform(t *testing.T) {
 			t.Fatal(e)
 		}
 		_ = services
-		body := s.command("kubectl", "--kubeconfig", s.kubeconfig, "-n", "wafl-system", "exec", "deployment/wafl-traefik", "--", "wget", "-qO-", "http://"+services.Items[0].Name+"."+s.ns+".svc/")
+		body := s.command("kubectl", "--kubeconfig", s.kubeconfig, "-n", "wafl-system", "exec", "deployment/wafl-assets", "--", "wget", "-qO-", "http://"+services.Items[0].Name+"."+s.ns+".svc/")
 		if !strings.HasPrefix(string(body), "new:") {
 			t.Fatalf("ClusterIP route failed: %s", body)
 		}

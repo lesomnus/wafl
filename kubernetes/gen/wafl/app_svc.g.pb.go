@@ -965,6 +965,50 @@ func (x *AppFilter) GetRef() *AppRef {
 	return nil
 }
 
+type AppWakeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ref           *AppRef                `protobuf:"bytes,1,opt,name=ref" json:"ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppWakeRequest) Reset() {
+	*x = AppWakeRequest{}
+	mi := &file_wafl_app_svc_g_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppWakeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppWakeRequest) ProtoMessage() {}
+
+func (x *AppWakeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_wafl_app_svc_g_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppWakeRequest.ProtoReflect.Descriptor instead.
+func (*AppWakeRequest) Descriptor() ([]byte, []int) {
+	return file_wafl_app_svc_g_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AppWakeRequest) GetRef() *AppRef {
+	if x != nil {
+		return x.Ref
+	}
+	return nil
+}
+
 type AppTailRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ref           *AppRef                `protobuf:"bytes,1,opt,name=ref" json:"ref,omitempty"`
@@ -978,7 +1022,7 @@ type AppTailRequest struct {
 
 func (x *AppTailRequest) Reset() {
 	*x = AppTailRequest{}
-	mi := &file_wafl_app_svc_g_proto_msgTypes[10]
+	mi := &file_wafl_app_svc_g_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -990,7 +1034,7 @@ func (x *AppTailRequest) String() string {
 func (*AppTailRequest) ProtoMessage() {}
 
 func (x *AppTailRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_wafl_app_svc_g_proto_msgTypes[10]
+	mi := &file_wafl_app_svc_g_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1003,7 +1047,7 @@ func (x *AppTailRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AppTailRequest.ProtoReflect.Descriptor instead.
 func (*AppTailRequest) Descriptor() ([]byte, []int) {
-	return file_wafl_app_svc_g_proto_rawDescGZIP(), []int{10}
+	return file_wafl_app_svc_g_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AppTailRequest) GetRef() *AppRef {
@@ -1135,13 +1179,15 @@ const file_wafl_app_svc_g_proto_rawDesc = "" +
 	"\x05items\x18\x01 \x03(\v2\t.wafl.AppR\x05items\x12\x19\n" +
 	"\x04next\x18\x02 \x01(\tB\x05\xaa\x01\x02\b\x02R\x04next\"+\n" +
 	"\tAppFilter\x12\x1e\n" +
+	"\x03ref\x18\x01 \x01(\v2\f.wafl.AppRefR\x03ref\"0\n" +
+	"\x0eAppWakeRequest\x12\x1e\n" +
 	"\x03ref\x18\x01 \x01(\v2\f.wafl.AppRefR\x03ref\"\xba\x01\n" +
 	"\x0eAppTailRequest\x12\x1e\n" +
 	"\x03ref\x18\x01 \x01(\v2\f.wafl.AppRefR\x03ref\x12-\n" +
 	"\binstance\x18\x02 \x01(\v2\x11.wafl.InstanceRefR\binstance\x12\x1d\n" +
 	"\x06follow\x18\x03 \x01(\bB\x05\xaa\x01\x02\b\x02R\x06follow\x12\x1d\n" +
 	"\x06cursor\x18\x04 \x01(\x04B\x05\xaa\x01\x02\b\x02R\x06cursor\x12\x1b\n" +
-	"\x05limit\x18\x05 \x01(\rB\x05\xaa\x01\x02\b\x02R\x05limit2\xbf\x02\n" +
+	"\x05limit\x18\x05 \x01(\rB\x05\xaa\x01\x02\b\x02R\x05limit2\xe8\x02\n" +
 	"\n" +
 	"AppService\x12%\n" +
 	"\x03Add\x12\x13.wafl.AppAddRequest\x1a\t.wafl.App\x12%\n" +
@@ -1149,7 +1195,8 @@ const file_wafl_app_svc_g_proto_rawDesc = "" +
 	"\x05Patch\x12\x15.wafl.AppPatchRequest\x1a\t.wafl.App\x12)\n" +
 	"\x05Apply\x12\x15.wafl.AppApplyRequest\x1a\t.wafl.App\x12-\n" +
 	"\x05Erase\x12\f.wafl.AppRef\x1a\x16.wafl.AppEraseResponse\x123\n" +
-	"\x04List\x12\x14.wafl.AppListRequest\x1a\x15.wafl.AppListResponse\x12)\n" +
+	"\x04List\x12\x14.wafl.AppListRequest\x1a\x15.wafl.AppListResponse\x12'\n" +
+	"\x04Wake\x12\x14.wafl.AppWakeRequest\x1a\t.wafl.App\x12)\n" +
 	"\x04Tail\x12\x14.wafl.AppTailRequest\x1a\t.wafl.Log0\x01B%Z#github.com/lesomnus/wafl/proto/waflb\beditionsp\xe8\a"
 
 var (
@@ -1164,7 +1211,7 @@ func file_wafl_app_svc_g_proto_rawDescGZIP() []byte {
 	return file_wafl_app_svc_g_proto_rawDescData
 }
 
-var file_wafl_app_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_wafl_app_svc_g_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_wafl_app_svc_g_proto_goTypes = []any{
 	(*AppAddRequest)(nil),    // 0: wafl.AppAddRequest
 	(*AppGetRequest)(nil),    // 1: wafl.AppGetRequest
@@ -1176,77 +1223,81 @@ var file_wafl_app_svc_g_proto_goTypes = []any{
 	(*AppListRequest)(nil),   // 7: wafl.AppListRequest
 	(*AppListResponse)(nil),  // 8: wafl.AppListResponse
 	(*AppFilter)(nil),        // 9: wafl.AppFilter
-	(*AppTailRequest)(nil),   // 10: wafl.AppTailRequest
-	nil,                      // 11: wafl.AppAddRequest.SecretValuesEntry
-	nil,                      // 12: wafl.AppPatchRequest.SecretValuesEntry
-	(*TenantRef)(nil),        // 13: wafl.TenantRef
-	(*Manifest)(nil),         // 14: wafl.Manifest
-	(*Scaling)(nil),          // 15: wafl.Scaling
-	(*ScaleState)(nil),       // 16: wafl.ScaleState
-	(*AppSourceRef)(nil),     // 17: wafl.AppSourceRef
-	(*Secret)(nil),           // 18: wafl.Secret
-	(*Probe)(nil),            // 19: wafl.Probe
-	(*Rollout)(nil),          // 20: wafl.Rollout
-	(*AppStatus)(nil),        // 21: wafl.AppStatus
-	(*Listener)(nil),         // 22: wafl.Listener
-	(*TenantSelect)(nil),     // 23: wafl.TenantSelect
-	(*AppSourceSelect)(nil),  // 24: wafl.AppSourceSelect
-	(*patchpb.Patch)(nil),    // 25: patch.Patch
-	(*App)(nil),              // 26: wafl.App
-	(*InstanceRef)(nil),      // 27: wafl.InstanceRef
-	(*Log)(nil),              // 28: wafl.Log
+	(*AppWakeRequest)(nil),   // 10: wafl.AppWakeRequest
+	(*AppTailRequest)(nil),   // 11: wafl.AppTailRequest
+	nil,                      // 12: wafl.AppAddRequest.SecretValuesEntry
+	nil,                      // 13: wafl.AppPatchRequest.SecretValuesEntry
+	(*TenantRef)(nil),        // 14: wafl.TenantRef
+	(*Manifest)(nil),         // 15: wafl.Manifest
+	(*Scaling)(nil),          // 16: wafl.Scaling
+	(*ScaleState)(nil),       // 17: wafl.ScaleState
+	(*AppSourceRef)(nil),     // 18: wafl.AppSourceRef
+	(*Secret)(nil),           // 19: wafl.Secret
+	(*Probe)(nil),            // 20: wafl.Probe
+	(*Rollout)(nil),          // 21: wafl.Rollout
+	(*AppStatus)(nil),        // 22: wafl.AppStatus
+	(*Listener)(nil),         // 23: wafl.Listener
+	(*TenantSelect)(nil),     // 24: wafl.TenantSelect
+	(*AppSourceSelect)(nil),  // 25: wafl.AppSourceSelect
+	(*patchpb.Patch)(nil),    // 26: patch.Patch
+	(*App)(nil),              // 27: wafl.App
+	(*InstanceRef)(nil),      // 28: wafl.InstanceRef
+	(*Log)(nil),              // 29: wafl.Log
 }
 var file_wafl_app_svc_g_proto_depIdxs = []int32{
-	13, // 0: wafl.AppAddRequest.tenant:type_name -> wafl.TenantRef
-	14, // 1: wafl.AppAddRequest.manifest:type_name -> wafl.Manifest
-	15, // 2: wafl.AppAddRequest.scaling:type_name -> wafl.Scaling
-	16, // 3: wafl.AppAddRequest.state:type_name -> wafl.ScaleState
-	17, // 4: wafl.AppAddRequest.source:type_name -> wafl.AppSourceRef
-	18, // 5: wafl.AppAddRequest.secrets:type_name -> wafl.Secret
-	19, // 6: wafl.AppAddRequest.readiness:type_name -> wafl.Probe
-	20, // 7: wafl.AppAddRequest.rollout:type_name -> wafl.Rollout
-	11, // 8: wafl.AppAddRequest.secret_values:type_name -> wafl.AppAddRequest.SecretValuesEntry
-	21, // 9: wafl.AppAddRequest.status:type_name -> wafl.AppStatus
-	22, // 10: wafl.AppAddRequest.listeners:type_name -> wafl.Listener
+	14, // 0: wafl.AppAddRequest.tenant:type_name -> wafl.TenantRef
+	15, // 1: wafl.AppAddRequest.manifest:type_name -> wafl.Manifest
+	16, // 2: wafl.AppAddRequest.scaling:type_name -> wafl.Scaling
+	17, // 3: wafl.AppAddRequest.state:type_name -> wafl.ScaleState
+	18, // 4: wafl.AppAddRequest.source:type_name -> wafl.AppSourceRef
+	19, // 5: wafl.AppAddRequest.secrets:type_name -> wafl.Secret
+	20, // 6: wafl.AppAddRequest.readiness:type_name -> wafl.Probe
+	21, // 7: wafl.AppAddRequest.rollout:type_name -> wafl.Rollout
+	12, // 8: wafl.AppAddRequest.secret_values:type_name -> wafl.AppAddRequest.SecretValuesEntry
+	22, // 9: wafl.AppAddRequest.status:type_name -> wafl.AppStatus
+	23, // 10: wafl.AppAddRequest.listeners:type_name -> wafl.Listener
 	2,  // 11: wafl.AppGetRequest.ref:type_name -> wafl.AppRef
 	3,  // 12: wafl.AppGetRequest.select:type_name -> wafl.AppSelect
-	23, // 13: wafl.AppSelect.tenant:type_name -> wafl.TenantSelect
-	24, // 14: wafl.AppSelect.source:type_name -> wafl.AppSourceSelect
+	24, // 13: wafl.AppSelect.tenant:type_name -> wafl.TenantSelect
+	25, // 14: wafl.AppSelect.source:type_name -> wafl.AppSourceSelect
 	2,  // 15: wafl.AppPatchRequest.ref:type_name -> wafl.AppRef
-	14, // 16: wafl.AppPatchRequest.manifest:type_name -> wafl.Manifest
-	15, // 17: wafl.AppPatchRequest.scaling:type_name -> wafl.Scaling
-	16, // 18: wafl.AppPatchRequest.state:type_name -> wafl.ScaleState
-	18, // 19: wafl.AppPatchRequest.secrets:type_name -> wafl.Secret
-	19, // 20: wafl.AppPatchRequest.readiness:type_name -> wafl.Probe
-	20, // 21: wafl.AppPatchRequest.rollout:type_name -> wafl.Rollout
-	12, // 22: wafl.AppPatchRequest.secret_values:type_name -> wafl.AppPatchRequest.SecretValuesEntry
-	21, // 23: wafl.AppPatchRequest.status:type_name -> wafl.AppStatus
+	15, // 16: wafl.AppPatchRequest.manifest:type_name -> wafl.Manifest
+	16, // 17: wafl.AppPatchRequest.scaling:type_name -> wafl.Scaling
+	17, // 18: wafl.AppPatchRequest.state:type_name -> wafl.ScaleState
+	19, // 19: wafl.AppPatchRequest.secrets:type_name -> wafl.Secret
+	20, // 20: wafl.AppPatchRequest.readiness:type_name -> wafl.Probe
+	21, // 21: wafl.AppPatchRequest.rollout:type_name -> wafl.Rollout
+	13, // 22: wafl.AppPatchRequest.secret_values:type_name -> wafl.AppPatchRequest.SecretValuesEntry
+	22, // 23: wafl.AppPatchRequest.status:type_name -> wafl.AppStatus
 	2,  // 24: wafl.AppApplyRequest.ref:type_name -> wafl.AppRef
-	25, // 25: wafl.AppApplyRequest.patch:type_name -> patch.Patch
+	26, // 25: wafl.AppApplyRequest.patch:type_name -> patch.Patch
 	9,  // 26: wafl.AppListRequest.filters:type_name -> wafl.AppFilter
-	26, // 27: wafl.AppListResponse.items:type_name -> wafl.App
+	27, // 27: wafl.AppListResponse.items:type_name -> wafl.App
 	2,  // 28: wafl.AppFilter.ref:type_name -> wafl.AppRef
-	2,  // 29: wafl.AppTailRequest.ref:type_name -> wafl.AppRef
-	27, // 30: wafl.AppTailRequest.instance:type_name -> wafl.InstanceRef
-	0,  // 31: wafl.AppService.Add:input_type -> wafl.AppAddRequest
-	1,  // 32: wafl.AppService.Get:input_type -> wafl.AppGetRequest
-	4,  // 33: wafl.AppService.Patch:input_type -> wafl.AppPatchRequest
-	5,  // 34: wafl.AppService.Apply:input_type -> wafl.AppApplyRequest
-	2,  // 35: wafl.AppService.Erase:input_type -> wafl.AppRef
-	7,  // 36: wafl.AppService.List:input_type -> wafl.AppListRequest
-	10, // 37: wafl.AppService.Tail:input_type -> wafl.AppTailRequest
-	26, // 38: wafl.AppService.Add:output_type -> wafl.App
-	26, // 39: wafl.AppService.Get:output_type -> wafl.App
-	26, // 40: wafl.AppService.Patch:output_type -> wafl.App
-	26, // 41: wafl.AppService.Apply:output_type -> wafl.App
-	6,  // 42: wafl.AppService.Erase:output_type -> wafl.AppEraseResponse
-	8,  // 43: wafl.AppService.List:output_type -> wafl.AppListResponse
-	28, // 44: wafl.AppService.Tail:output_type -> wafl.Log
-	38, // [38:45] is the sub-list for method output_type
-	31, // [31:38] is the sub-list for method input_type
-	31, // [31:31] is the sub-list for extension type_name
-	31, // [31:31] is the sub-list for extension extendee
-	0,  // [0:31] is the sub-list for field type_name
+	2,  // 29: wafl.AppWakeRequest.ref:type_name -> wafl.AppRef
+	2,  // 30: wafl.AppTailRequest.ref:type_name -> wafl.AppRef
+	28, // 31: wafl.AppTailRequest.instance:type_name -> wafl.InstanceRef
+	0,  // 32: wafl.AppService.Add:input_type -> wafl.AppAddRequest
+	1,  // 33: wafl.AppService.Get:input_type -> wafl.AppGetRequest
+	4,  // 34: wafl.AppService.Patch:input_type -> wafl.AppPatchRequest
+	5,  // 35: wafl.AppService.Apply:input_type -> wafl.AppApplyRequest
+	2,  // 36: wafl.AppService.Erase:input_type -> wafl.AppRef
+	7,  // 37: wafl.AppService.List:input_type -> wafl.AppListRequest
+	10, // 38: wafl.AppService.Wake:input_type -> wafl.AppWakeRequest
+	11, // 39: wafl.AppService.Tail:input_type -> wafl.AppTailRequest
+	27, // 40: wafl.AppService.Add:output_type -> wafl.App
+	27, // 41: wafl.AppService.Get:output_type -> wafl.App
+	27, // 42: wafl.AppService.Patch:output_type -> wafl.App
+	27, // 43: wafl.AppService.Apply:output_type -> wafl.App
+	6,  // 44: wafl.AppService.Erase:output_type -> wafl.AppEraseResponse
+	8,  // 45: wafl.AppService.List:output_type -> wafl.AppListResponse
+	27, // 46: wafl.AppService.Wake:output_type -> wafl.App
+	29, // 47: wafl.AppService.Tail:output_type -> wafl.Log
+	40, // [40:48] is the sub-list for method output_type
+	32, // [32:40] is the sub-list for method input_type
+	32, // [32:32] is the sub-list for extension type_name
+	32, // [32:32] is the sub-list for extension extendee
+	0,  // [0:32] is the sub-list for field type_name
 }
 
 func init() { file_wafl_app_svc_g_proto_init() }
@@ -1272,7 +1323,7 @@ func file_wafl_app_svc_g_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_wafl_app_svc_g_proto_rawDesc), len(file_wafl_app_svc_g_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

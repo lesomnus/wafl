@@ -40,6 +40,9 @@ hyper-util = { version = "0.1", features = ["tokio", "server-auto"] }
 opentelemetry = { version = "0.32", default-features = false, features = ["metrics"] }
 opentelemetry_sdk = { version = "0.32", default-features = false, features = ["metrics"] }
 opentelemetry-otlp = { version = "0.32", default-features = false, features = ["http-proto", "metrics", "reqwest-blocking-client", "reqwest-rustls"] }
+pingora = { version = "=0.9.1", default-features = false, features = ["proxy", "openssl"] }
+log = "0.4"
+env_logger = "0.11"
 paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021" }
 paydirt-server = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021" }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking"] }
@@ -57,6 +60,7 @@ wasmtime-wasi = { version = "=51.0.0", default-features = false, features = ["p2
 libc = "0.2"
 
 [dev-dependencies]
+axum = { version = "0.8", default-features = false, features = ["json"] }
 h2 = "0.4"
 opentelemetry-proto = { version = "0.32", default-features = false, features = ["gen-tonic-messages", "metrics"] }
 prost = "0.14"

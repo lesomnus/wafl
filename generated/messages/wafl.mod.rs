@@ -27,6 +27,7 @@ include!("wafl.placement.rs");
 include!("wafl.placement_svc.g.rs");
 include!("wafl.reservation.rs");
 include!("wafl.reservation_svc.g.rs");
+include!("wafl.routing.rs");
 include!("wafl.runner.rs");
 include!("wafl.runner_svc.g.rs");
 include!("wafl.traffic.rs");
@@ -75,6 +76,7 @@ pub mod __buffa {
         include!("wafl.placement_svc.g.__view.rs");
         include!("wafl.reservation.__view.rs");
         include!("wafl.reservation_svc.g.__view.rs");
+        include!("wafl.routing.__view.rs");
         include!("wafl.runner.__view.rs");
         include!("wafl.runner_svc.g.__view.rs");
         include!("wafl.traffic.__view.rs");
@@ -179,6 +181,7 @@ pub mod __buffa {
         reg.register_json_any(super::__APP_LIST_REQUEST_JSON_ANY);
         reg.register_json_any(super::__APP_LIST_RESPONSE_JSON_ANY);
         reg.register_json_any(super::__APP_FILTER_JSON_ANY);
+        reg.register_json_any(super::__APP_WAKE_REQUEST_JSON_ANY);
         reg.register_json_any(super::__APP_TAIL_REQUEST_JSON_ANY);
         reg.register_json_any(super::__CONTROLLER_JSON_ANY);
         reg.register_json_any(super::__CONTROLLER_REF_JSON_ANY);
@@ -238,6 +241,9 @@ pub mod __buffa {
         reg.register_json_any(super::__RESERVATION_FILTER_JSON_ANY);
         reg.register_json_any(super::__RESERVATION_RELEASE_REQUEST_JSON_ANY);
         reg.register_json_any(super::__RESERVATION_RELEASE_RESPONSE_JSON_ANY);
+        reg.register_json_any(super::__ROUTING_JSON_ANY);
+        reg.register_json_any(super::__ROUTE_JSON_ANY);
+        reg.register_json_any(super::__ROUTE_TARGET_JSON_ANY);
         reg.register_json_any(super::__RUNNER_JSON_ANY);
         reg.register_json_any(super::__CAPACITY_JSON_ANY);
         reg.register_json_any(super::__USAGE_JSON_ANY);
@@ -496,6 +502,10 @@ pub use self::__buffa::view::AppFilterView;
 #[doc(inline)]
 pub use self::__buffa::view::AppFilterOwnedView;
 #[doc(inline)]
+pub use self::__buffa::view::AppWakeRequestView;
+#[doc(inline)]
+pub use self::__buffa::view::AppWakeRequestOwnedView;
+#[doc(inline)]
 pub use self::__buffa::view::AppTailRequestView;
 #[doc(inline)]
 pub use self::__buffa::view::AppTailRequestOwnedView;
@@ -731,6 +741,18 @@ pub use self::__buffa::view::ReservationReleaseRequestOwnedView;
 pub use self::__buffa::view::ReservationReleaseResponseView;
 #[doc(inline)]
 pub use self::__buffa::view::ReservationReleaseResponseOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RoutingView;
+#[doc(inline)]
+pub use self::__buffa::view::RoutingOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RouteView;
+#[doc(inline)]
+pub use self::__buffa::view::RouteOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RouteTargetView;
+#[doc(inline)]
+pub use self::__buffa::view::RouteTargetOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::RunnerView;
 #[doc(inline)]

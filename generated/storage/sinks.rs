@@ -607,6 +607,23 @@ for crate::storage::intercept::Layer {
             call.unary::<crate::proto::r#wafl::r#AppListResponse, _>(reply)
         }
     }
+    fn wake<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<crate::proto::wafl::App> + Send + use<'a, N>,
+        >,
+    > + Send {
+        async move {
+            let mut call = self.enter("/wafl.AppService/Wake", ctx)?;
+            call.receive(request.bytes())?;
+            let reply = next.wake(call.ctx.clone(), request).await;
+            call.unary::<crate::proto::r#wafl::r#App, _>(reply)
+        }
+    }
     fn tail(
         &self,
         next: &N,
@@ -1870,6 +1887,60 @@ mod sink_wafl_app {
                 Ok(response)
             }
         }
+        fn wake<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<crate::proto::wafl::App> + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let ctx = Database::presence_request(
+                    ctx,
+                    || request.to_owned_message(),
+                )?;
+                let mut ctx = ctx;
+                let attempt = crate::transport::access::Attempt::start(
+                    &mut ctx,
+                    "wafl.AppWakeRequest",
+                    "wafl.App",
+                    "/wafl.AppService/Wake",
+                    false,
+                    || {
+                        serde_json::to_value(request.to_owned_message())
+                            .map_err(|_| connectrpc::ConnectError::invalid_argument(
+                                "invalid access request",
+                            ))
+                    },
+                )?;
+                let ctx = match self
+                    .db
+                    .authorize(
+                        ctx,
+                        "wafl.App",
+                        "Wake",
+                        self.public.contains(&"/wafl.AppService/Wake"),
+                        false,
+                        false,
+                    )
+                    .await
+                {
+                    Ok(c) => c,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                let response = match next.wake(ctx.clone(), request).await {
+                    Ok(v) => v,
+                    Err(e) => return Err(attempt.failed(&self.db, e).await),
+                };
+                attempt
+                    .output::<crate::proto::r#wafl::r#App, _>(&self.db, &response.body)
+                    .await?;
+                Ok(response)
+            }
+        }
         fn tail(
             &self,
             next: &N,
@@ -2108,6 +2179,34 @@ mod sink_wafl_app {
                     )
                     .await?;
                 let result = next.list(ctx, request).await;
+                if let Some(guard) = guard {
+                    guard.finish(result.is_ok()).await?;
+                }
+                result
+            }
+        }
+        fn wake<'a>(
+            &'a self,
+            next: &'a N,
+            ctx: ::connectrpc::RequestContext,
+            request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+        ) -> impl ::std::future::Future<
+            Output = ::connectrpc::ServiceResult<
+                impl ::connectrpc::Encodable<crate::proto::wafl::App> + Send + use<'a, N>,
+            >,
+        > + Send {
+            async move {
+                let mut ctx = ctx;
+                let guard = self
+                    .0
+                    .begin_request(
+                        &mut ctx,
+                        "wafl.App",
+                        "Wake",
+                        || request.to_owned_message(),
+                    )
+                    .await?;
+                let result = next.wake(ctx, request).await;
                 if let Some(guard) = guard {
                     guard.finish(result.is_ok()).await?;
                 }
@@ -6814,6 +6913,27 @@ pub trait AppCalls: crate::services::r#wafl::AppService {
             .await?;
         let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
         crate::proto::r#wafl::r#AppListResponse::decode_from_slice(&wire)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream response",
+            ))
+    }
+    async fn wake_owned(
+        &self,
+        ctx: &RequestContext,
+        req: crate::proto::r#wafl::r#AppWakeRequest,
+    ) -> Result<crate::proto::r#wafl::r#App, ::connectrpc::ConnectError> {
+        use buffa::{Message, HasMessageView};
+        use connectrpc::Encodable;
+        let bytes = req.encode_to_bytes();
+        let view = crate::proto::r#wafl::r#AppWakeRequest::decode_view(&bytes)
+            .map_err(|_| connectrpc::ConnectError::internal(
+                "invalid downstream request",
+            ))?;
+        let reply = self
+            .wake(ctx.clone(), ServiceRequest::from_parts(&view, &bytes))
+            .await?;
+        let wire = reply.body.encode(connectrpc::CodecFormat::Proto)?;
+        crate::proto::r#wafl::r#App::decode_from_slice(&wire)
             .map_err(|_| connectrpc::ConnectError::internal(
                 "invalid downstream response",
             ))

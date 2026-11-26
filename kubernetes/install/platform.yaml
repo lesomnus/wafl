@@ -115,7 +115,6 @@ spec:
           args: [serve, controller, --system-namespace, wafl-system]
           ports:
             - {name: control, containerPort: 8082}
-            - {name: activation, containerPort: 8083}
           readinessProbe: {httpGet: {path: /health, port: control}, periodSeconds: 2, timeoutSeconds: 2}
           resources:
             requests: {cpu: 50m, memory: 128Mi}
@@ -130,23 +129,7 @@ spec:
   selector: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: controller}
   ports:
     - {name: control, port: 8082, targetPort: control}
-    - {name: activation, port: 8083, targetPort: activation}
-    - {name: tcp-10000, port: 10000, targetPort: 10000}
-    - {name: tcp-10001, port: 10001, targetPort: 10001}
-    - {name: tcp-10002, port: 10002, targetPort: 10002}
-    - {name: tcp-10003, port: 10003, targetPort: 10003}
-    - {name: tcp-10004, port: 10004, targetPort: 10004}
-    - {name: tcp-10005, port: 10005, targetPort: 10005}
-    - {name: tcp-10006, port: 10006, targetPort: 10006}
-    - {name: tcp-10007, port: 10007, targetPort: 10007}
-    - {name: tcp-10008, port: 10008, targetPort: 10008}
-    - {name: tcp-10009, port: 10009, targetPort: 10009}
-    - {name: tcp-10010, port: 10010, targetPort: 10010}
-    - {name: tcp-10011, port: 10011, targetPort: 10011}
-    - {name: tcp-10012, port: 10012, targetPort: 10012}
-    - {name: tcp-10013, port: 10013, targetPort: 10013}
-    - {name: tcp-10014, port: 10014, targetPort: 10014}
-    - {name: tcp-10015, port: 10015, targetPort: 10015}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -209,45 +192,24 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: wafl-traefik
+  name: wafl-proxy
   namespace: wafl-system
 spec:
   replicas: 1
   selector:
-    matchLabels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: traefik}
+    matchLabels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: proxy}
   template:
     metadata:
-      labels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: traefik}
+      labels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: proxy}
     spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 45
       containers:
-        - name: traefik
-          image: ghcr.io/lesomnus/wafl-traefik:latest
-          args:
-            - --entrypoints.web.address=:8080
-            - --entrypoints.tcp-10000.address=:10000
-            - --entrypoints.tcp-10001.address=:10001
-            - --entrypoints.tcp-10002.address=:10002
-            - --entrypoints.tcp-10003.address=:10003
-            - --entrypoints.tcp-10004.address=:10004
-            - --entrypoints.tcp-10005.address=:10005
-            - --entrypoints.tcp-10006.address=:10006
-            - --entrypoints.tcp-10007.address=:10007
-            - --entrypoints.tcp-10008.address=:10008
-            - --entrypoints.tcp-10009.address=:10009
-            - --entrypoints.tcp-10010.address=:10010
-            - --entrypoints.tcp-10011.address=:10011
-            - --entrypoints.tcp-10012.address=:10012
-            - --entrypoints.tcp-10013.address=:10013
-            - --entrypoints.tcp-10014.address=:10014
-            - --entrypoints.tcp-10015.address=:10015
-            - --entrypoints.web.transport.respondingtimeouts.readtimeout=0s
-            - --entrypoints.web.transport.respondingtimeouts.writetimeout=0s
-            - --experimental.localplugins.wafl.modulename=github.com/lesomnus/wafl/traefik
-            - --providers.http.endpoint=http://wafl-controller.wafl-system.svc:8082/traefik
-            - --providers.http.pollinterval=1s
-            - --providers.providersthrottleduration=100ms
-          ports: [{name: web, containerPort: 8080}]
-          readinessProbe: {tcpSocket: {port: web}, periodSeconds: 2}
+        - name: proxy
+          image: ghcr.io/lesomnus/wafl:latest
+          args: [serve, proxy, --controller, http://wafl-controller.wafl-system.svc:8082]
+          ports: [{name: web, containerPort: 8080}, {name: health, containerPort: 8084}]
+          readinessProbe: {httpGet: {path: /health, port: health}, periodSeconds: 2, timeoutSeconds: 2}
           resources:
             requests: {cpu: 50m, memory: 64Mi}
             limits: {memory: 256Mi}
@@ -255,11 +217,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: wafl-traefik
+  name: wafl-proxy
   namespace: wafl-system
 spec:
   type: NodePort
-  selector: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: traefik}
+  selector: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: proxy}
   ports:
     - {name: web, port: 80, targetPort: web, nodePort: 30080}
     - {name: tcp-10000, port: 10000, targetPort: 10000, nodePort: 31000}

@@ -98,7 +98,7 @@ func (s *suite) tcp(t *testing.T) {
 		})
 		// No client bytes precede this greeting: server-first protocols must also
 		// trigger activation. Real published NodePorts avoid port-forward's stream
-		// abstraction, so FIN travels through the actual Traefik TCP path.
+		// abstraction, so FIN travels through the actual Pingora TCP path.
 		old, err := tcpConnect(address(0), "old:8080\n")
 		if err != nil {
 			t.Fatal(err)

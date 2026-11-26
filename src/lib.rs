@@ -4,6 +4,7 @@ mod compiler;
 pub mod config;
 pub mod control;
 mod endpoint;
+pub mod gateway;
 pub mod host;
 mod logs;
 pub mod proxy;

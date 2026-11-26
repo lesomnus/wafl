@@ -82,13 +82,17 @@ func (t *Traffic) Add(ctx context.Context, r *connect.Request[wf.TrafficAddReque
 	session := r.Msg.GetSession()
 	allowed := true
 	r.Msg.ProtoReflect().Range(func(f protoreflect.FieldDescriptor, _ protoreflect.Value) bool {
-		if f.Name() != "id" && f.Name() != "placement" && f.Name() != "session" {
+		if f.Name() != "id" && f.Name() != "placement" && f.Name() != "session" && f.Name() != "app" {
 			allowed = false
 		}
 		return true
 	})
-	if !allowed || !validID(id, 13) || !validID(placement, 11) || !regexp.MustCompile(`^[A-Za-z0-9-]{1,128}$`).MatchString(session) {
+	waiting := r.Msg.App != nil && r.Msg.Placement == nil && validID(r.Msg.App.GetId(), 10)
+	if !allowed || !validID(id, 13) || !(waiting || r.Msg.App == nil && validID(placement, 11)) || !regexp.MustCompile(`^[A-Za-z0-9-]{1,128}$`).MatchString(session) {
 		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid observer identity"))
+	}
+	if waiting {
+		return t.addWaiting(ctx, r)
 	}
 	pods, err := t.Clients.Kube.CoreV1().Pods("").List(ctx, meta.ListOptions{LabelSelector: Placement + "=" + UUID(placement)})
 	if err != nil {
@@ -149,8 +153,8 @@ func (t *Traffic) List(ctx context.Context, r *connect.Request[wf.TrafficListReq
 func (t *Traffic) Report(ctx context.Context, r *connect.Request[wf.TrafficReportRequest]) (*connect.Response[wf.Traffic], error) {
 	m := r.Msg
 	v, e := t.update(ctx, m.GetRef().GetId(), func(cm *core.ConfigMap, v *wf.Traffic) error {
-		if v.Activation {
-			return connect.NewError(connect.CodeFailedPrecondition, errors.New("activation observations are internal"))
+		if v.Activation && (m.Active > 1 || m.Started != 1 || m.Closed && m.Active != 0) {
+			return connect.NewError(connect.CodeFailedPrecondition, errors.New("waiting observer tracks exactly one request"))
 		}
 		if m.Sequence <= v.Sequence {
 			return nil
@@ -161,13 +165,15 @@ func (t *Traffic) Report(ctx context.Context, r *connect.Request[wf.TrafficRepor
 		if m.Started < v.Started || m.BusyMs < v.BusyMs || uint64(m.Active) > m.Started || v.Closed && (!m.Closed || m.Active > v.Active || m.Started != v.Started) {
 			return connect.NewError(connect.CodeFailedPrecondition, errors.New("observer counters cannot move backwards"))
 		}
-		p, e := t.pod(ctx, cm)
-		if apierrors.IsNotFound(e) {
-			v.Draining = true
-		} else if e != nil {
-			return e
-		} else if !ready(p) {
-			v.Draining = true
+		if !v.Activation {
+			p, e := t.pod(ctx, cm)
+			if apierrors.IsNotFound(e) {
+				v.Draining = true
+			} else if e != nil {
+				return e
+			} else if !ready(p) {
+				v.Draining = true
+			}
 		}
 		v.Sequence = m.Sequence
 		v.Active = m.Active

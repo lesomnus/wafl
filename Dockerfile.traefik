@@ -1,6 +1,0 @@
-FROM traefik:v3.8.0
-LABEL org.opencontainers.image.source="https://github.com/lesomnus/wafl"
-COPY plugins/traefik/wafl.go plugins/traefik/go.mod plugins/traefik/.traefik.yml /plugins-local/src/github.com/lesomnus/wafl/traefik/
-WORKDIR /
-USER 65532:65532
-EXPOSE 8080
