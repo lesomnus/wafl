@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	wf "github.com/lesomnus/wafl/kubernetes/gen/wafl"
 	"google.golang.org/protobuf/encoding/protowire"
 	core "k8s.io/api/core/v1"
 )
@@ -97,4 +98,16 @@ func probe(ctx context.Context, pod *core.Pod, address string) error {
 		_ = c.Close()
 	}
 	return e
+}
+
+func probeInstance(ctx context.Context, pod *core.Pod, i *wf.Instance) error {
+	if len(i.Endpoints) == 0 || pod.Spec.Containers[0].ReadinessProbe.TCPSocket == nil {
+		return probe(ctx, pod, i.GetEndpoint().GetAddress())
+	}
+	for _, endpoint := range i.Endpoints {
+		if err := probe(ctx, pod, endpoint.Address); err != nil {
+			return err
+		}
+	}
+	return nil
 }

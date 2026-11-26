@@ -71,6 +71,36 @@
                       }
                     ]
                   },
+                  "listeners": {
+                    "items": {
+                      "properties": {
+                        "port": {
+                          "format": "int64",
+                          "maximum": 10015,
+                          "minimum": 10000,
+                          "type": "integer"
+                        },
+                        "socket": {
+                          "pattern": "^[a-z]([a-z0-9-]{0,13}[a-z0-9])?$",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "socket",
+                        "port"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 16,
+                    "minItems": 1,
+                    "type": "array",
+                    "x-kubernetes-validations": [
+                      {
+                        "message": "listeners are immutable; create a new App",
+                        "rule": "self == oldSelf"
+                      }
+                    ]
+                  },
                   "manifest": {
                     "properties": {
                       "abi": {
@@ -143,7 +173,6 @@
                         "type": "integer"
                       },
                       "port": {
-                        "default": 8080,
                         "format": "int64",
                         "maximum": 65535,
                         "minimum": 1,
@@ -153,7 +182,8 @@
                         "enum": [
                           "",
                           "http",
-                          "h2c"
+                          "h2c",
+                          "tcp"
                         ],
                         "type": "string"
                       },
@@ -163,6 +193,46 @@
                           "wasmtime"
                         ],
                         "type": "string"
+                      },
+                      "sockets": {
+                        "items": {
+                          "properties": {
+                            "name": {
+                              "pattern": "^[a-z]([a-z0-9-]{0,13}[a-z0-9])?$",
+                              "type": "string"
+                            },
+                            "port": {
+                              "format": "int64",
+                              "maximum": 65535,
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "protocol": {
+                              "enum": [
+                                "",
+                                "http",
+                                "h2c"
+                              ],
+                              "type": "string"
+                            },
+                            "transport": {
+                              "enum": [
+                                "",
+                                "tcp"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "port"
+                          ],
+                          "type": "object"
+                        },
+                        "maxItems": 16,
+                        "minItems": 1,
+                        "type": "array",
+                        "x-kubernetes-list-type": "atomic"
                       },
                       "startupMs": {
                         "format": "int64",
@@ -356,7 +426,6 @@
                   }
                 },
                 "required": [
-                  "domain",
                   "manifest"
                 ],
                 "type": "object",
@@ -364,6 +433,14 @@
                   {
                     "message": "replicas must be omitted or zero with scaling",
                     "rule": "!has(self.scaling) || !has(self.replicas) || self.replicas == 0"
+                  },
+                  {
+                    "message": "choose an HTTP domain or TCP listeners",
+                    "rule": "has(self.domain) != has(self.listeners)"
+                  },
+                  {
+                    "message": "routing kind is immutable; create a new App",
+                    "rule": "has(self.domain) == has(oldSelf.domain) \u0026\u0026 has(self.listeners) == has(oldSelf.listeners)"
                   }
                 ]
               },

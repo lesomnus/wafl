@@ -72,11 +72,11 @@ func definition() object {
 	fields := object{}
 	for _, f := range messages[".wafl.App"].GetField() {
 		switch f.GetName() {
-		case "name", "domain", "manifest", "replicas", "scaling", "secrets", "readiness", "rollout":
+		case "name", "domain", "manifest", "replicas", "scaling", "secrets", "readiness", "rollout", "listeners":
 			fields[f.GetJsonName()] = field(f)
 		}
 	}
-	spec := object{"type": "object", "required": []string{"domain", "manifest"}, "properties": fields,
+	spec := object{"type": "object", "required": []string{"manifest"}, "properties": fields,
 		"x-kubernetes-validations": []any{object{"rule": "!has(self.scaling) || !has(self.replicas) || self.replicas == 0", "message": "replicas must be omitted or zero with scaling"}}}
 	domain := at(spec, "domain")
 	domain["minLength"], domain["maxLength"] = 1, 253
@@ -114,8 +114,27 @@ func definition() object {
 	m["required"] = []string{"bundle"}
 	at(m, "runtime")["enum"] = []string{"", "wasmtime"}
 	at(m, "abi")["enum"] = []string{"", "wasip2"}
-	at(m, "protocol")["enum"] = []string{"", "http", "h2c"}
-	at(m, "port")["minimum"], at(m, "port")["maximum"], at(m, "port")["default"] = 1, 65535, 8080
+	at(m, "protocol")["enum"] = []string{"", "http", "h2c", "tcp"}
+	at(m, "port")["minimum"], at(m, "port")["maximum"] = 1, 65535
+
+	sockets := at(m, "sockets")
+	sockets["minItems"], sockets["maxItems"] = 1, 16
+	sockets["x-kubernetes-list-type"] = "atomic" // First socket has compatibility meaning.
+	socket := sockets["items"].(object)
+	socket["required"] = []string{"name", "port"}
+	at(socket, "name")["pattern"] = `^[a-z]([a-z0-9-]{0,13}[a-z0-9])?$`
+	at(socket, "port")["minimum"], at(socket, "port")["maximum"] = 1, 65535
+	at(socket, "transport")["enum"] = []string{"", "tcp"}
+	at(socket, "protocol")["enum"] = []string{"", "http", "h2c"}
+	listeners := at(spec, "listeners")
+	listeners["minItems"], listeners["maxItems"] = 1, 16
+	listeners["x-kubernetes-validations"] = []any{object{"rule": "self == oldSelf", "message": "listeners are immutable; create a new App"}}
+	listener := listeners["items"].(object)
+	listener["required"] = []string{"socket", "port"}
+	at(listener, "socket")["pattern"] = `^[a-z]([a-z0-9-]{0,13}[a-z0-9])?$`
+	at(listener, "port")["minimum"], at(listener, "port")["maximum"] = 10000, 10015
+	spec["x-kubernetes-validations"] = append(spec["x-kubernetes-validations"].([]any), object{"rule": "has(self.domain) != has(self.listeners)", "message": "choose an HTTP domain or TCP listeners"})
+	spec["x-kubernetes-validations"] = append(spec["x-kubernetes-validations"].([]any), object{"rule": "has(self.domain) == has(oldSelf.domain) && has(self.listeners) == has(oldSelf.listeners)", "message": "routing kind is immutable; create a new App"})
 	at(m, "idleMs")["maximum"], at(m, "maxActive")["maximum"] = 0, 0
 	at(m, "bundle")["required"] = []string{"url", "digest"}
 	at(m, "bundle", "url")["minLength"], at(m, "bundle", "url")["maxLength"] = 1, 8192
