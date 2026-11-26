@@ -13,6 +13,14 @@ use std::{
 };
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
+static INSTANCE: std::sync::LazyLock<String> = std::sync::LazyLock::new(|| {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos()
+        .to_string()
+});
+
 struct Io(TcpStream);
 impl AsyncRead for Io {
     fn poll_read(
@@ -73,6 +81,13 @@ async fn echo(
     let health = request.uri().path() == "/grpc.health.v1.Health/Check";
     let headers = http::Response::builder()
         .header("content-type", "application/grpc")
+        .header("echo-instance", INSTANCE.as_str())
+        // Compile-time identity: changing an env/Secret at runtime cannot fake
+        // the binary replacement exercised by the Kubernetes rollout tests.
+        .header(
+            "echo-build",
+            option_env!("WAFL_TEST_BUILD_VERSION").unwrap_or("base"),
+        )
         .header(
             "echo-version",
             std::env::var("GREETING").unwrap_or_else(|_| "initial".into()),

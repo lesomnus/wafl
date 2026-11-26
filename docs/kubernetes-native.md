@@ -108,6 +108,10 @@ kubectl -n demo get pods -w
 
 runner를 늘리는 작업은 `kubectl -n wafl-system scale deployment/wafl-runner --replicas=3`입니다. runner Pod의 종료 hook은 먼저 가상 Node를 cordon하고 실행들을 drain합니다. 예제 runner Pod의 종료 유예는 60초이므로 더 긴 앱 스트림을 정상 완료시키려면 Pod 유예와 hook 대기 시간도 함께 조정해야 합니다. 강제 종료나 host 장애 시 진행 중이던 요청 자체를 재실행하지는 않습니다.
 
+runner 이미지 교체는 앱 복제본이 2개 이상이어도 모든 실행의 재기동이 겹칠 수 있습니다. runner Pod의 readiness는 앱의 readiness와 다릅니다.
+준비된 실행이 일시적으로 없으면 고정 복제본 App도 activator에서 새 실행을 기다립니다. 기본 대기 한도는 30초이며 gRPC deadline이나 클라이언트 취소가 먼저 발생하면 대기를 끝냅니다.
+이는 짧은 응답 시간을 보장하는 업데이트가 아닙니다. `replicas: 0`으로 중지한 고정 복제본 App은 요청으로 기동하지 않습니다.
+
 `wafl-kube bootstrap dev --load --image LOCAL_TAG --gateway-image GATEWAY_TAG`는 로컬 Docker 이미지 두 개를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
 
 ## 이전 버전에서 전환
@@ -115,3 +119,33 @@ runner를 늘리는 작업은 `kubectl -n wafl-system scale deployment/wafl-runn
 기존 PostgreSQL controller와 새 Kubernetes controller가 같은 runner를 동시에 관리하지 않도록 분리합니다. 기존 플랫폼에서 App YAML·secret 참조를 내보내고 새 클러스터에 등록하여 검증한 뒤 도메인의 게이트웨이를 전환합니다. 기존 요청을 drain한 뒤 이전 controller와 runner를 종료합니다. 기존 App/Placement UUID를 새 Pod의 UID로 재사용하지 않습니다.
 
 기존 controller JSON·`--configure`·PlacementService 관리 API는 새 제어평면에서 제공하지 않습니다. `AppService`는 Kubernetes 저장소를 사용하는 controller API로 제공하며 `wafl app`은 endpoint/tenant만 사용합니다. kubeconfig와 namespace 기반 CLI 명령은 제거했고 설치 명령은 운영자 도구 `wafl-kube bootstrap install/dev`로 분리했습니다. `wafl instance`, `wafl runner`, `wafl reservation`은 같은 RPC로 controller의 집계 범위 또는 개별 runner 범위를 선택합니다. App 수정은 `kubectl apply` 또는 `wafl app patch NAME --file patch.yaml`로 수행합니다. 자동 migration이나 기존 PostgreSQL 데이터 삭제는 하지 않습니다.
+
+## 실행 수명 통합 검증
+
+Docker·kind·Rust·Go·kubectl이 있는 환경에서 다음 명령으로 전용 테스트 클러스터를 만듭니다.
+현재 Kubernetes context를 사용하지 않습니다. CI도 같은 스크립트를 실행합니다.
+
+```sh
+bash scripts/test-kubernetes.sh
+```
+
+[기본 통합 테스트](../kubernetes/tests/native_test.go)는 실제 controller·Virtual Kubelet provider·Rust runner·WASM·Traefik을 사용합니다.
+readiness 실패 시 기존 실행 유지, Secret 교체 중 gRPC 스트림 보존, 첫 요청 기동·부하 확장·유휴 회수, runner 장애 복구,
+provider 재시작과 controller 리더 교체를 검사합니다.
+
+[업데이트·runner 수명 테스트](../kubernetes/tests/lifecycle_test.go)는 다음을 추가로 검사합니다.
+
+| 시나리오 | 확인 |
+|---|---|
+| 배정 전 취소 | runner 용량을 초과해 Pending인 Pod를 0개로 축소했을 때 provider 없이도 finalizer와 Pod가 정리되는지 확인합니다 |
+| WASM A → B → A | 컴파일 시 버전이 다른 실행 파일과 tar.gz digest를 사용합니다. 새 요청의 응답에서 바이너리를 식별하고 기존 gRPC 스트림이 정상 종료된 뒤 이전 실행과 receipt가 제거되는지 확인합니다 |
+| runner 2 → 3 → 2 | 실제 Deployment의 replicas를 바꿉니다. 가상 Node가 늘고 새 runner에 WASM이 배정되며, 축소할 때 기존 스트림을 완료하고 실행·가상 Node를 회수하는지 확인합니다 |
+| runner/provider 이미지 교체 | 게시된 `2e463666` 이미지의 고정 digest에서 현재 소스로 빌드한 이미지로 두 컨테이너를 교체합니다. 실제 image ID 변경·앱 재배정·기존 스트림 완료·이전 실행 회수를 확인합니다 |
+
+각 전환 동안 별도의 클라이언트가 요청을 계속 보내고 응답 본문과 gRPC trailer를 검사합니다. 오류를 재시도로 감추지 않으며,
+요청 수·오류 수·최대 응답 시간을 테스트 로그에 남깁니다. 요청의 gRPC deadline은 기본 기동 대기 한도에 맞춘 30초입니다.
+runner 증감·이미지 교체는 복제본을 서로 다른 runner에 배정하고 여유 용량을 둔 조건입니다.
+단일 복제본이나 유예 시간을 넘기는 스트림, 임의의 과거 버전 조합에 대한 무중단 보장을 뜻하지 않습니다.
+
+기본 baseline 이미지의 digest는 [테스트 스크립트](../scripts/test-kubernetes.sh)에 고정되어 있습니다.
+테스트가 끝나면 `kind delete cluster --name wafl-test`로 전용 클러스터를 정리합니다.
