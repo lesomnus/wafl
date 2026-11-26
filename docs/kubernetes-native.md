@@ -108,6 +108,10 @@ kubectl -n demo get pods -w
 
 runner를 늘리는 작업은 `kubectl -n wafl-system scale deployment/wafl-runner --replicas=3`입니다. runner Pod의 종료 hook은 먼저 가상 Node를 cordon하고 실행들을 drain합니다. 예제 runner Pod의 종료 유예는 60초이므로 더 긴 앱 스트림을 정상 완료시키려면 Pod 유예와 hook 대기 시간도 함께 조정해야 합니다. 강제 종료나 host 장애 시 진행 중이던 요청 자체를 재실행하지는 않습니다.
 
+runner 이미지 교체는 앱 복제본이 2개 이상이어도 모든 실행의 재기동이 겹칠 수 있습니다. runner Pod의 readiness는 앱의 readiness와 다릅니다.
+준비된 실행이 일시적으로 없으면 고정 복제본 App도 activator에서 새 실행을 기다립니다. 기본 대기 한도는 30초이며 gRPC deadline이나 클라이언트 취소가 먼저 발생하면 대기를 끝냅니다.
+이는 짧은 응답 시간을 보장하는 업데이트가 아닙니다. `replicas: 0`으로 중지한 고정 복제본 App은 요청으로 기동하지 않습니다.
+
 `wafl-kube bootstrap dev --load --image LOCAL_TAG --gateway-image GATEWAY_TAG`는 로컬 Docker 이미지 두 개를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
 
 ## 이전 버전에서 전환
@@ -139,7 +143,8 @@ provider 재시작과 controller 리더 교체를 검사합니다.
 | runner/provider 이미지 교체 | 게시된 `2e463666` 이미지의 고정 digest에서 현재 소스로 빌드한 이미지로 두 컨테이너를 교체합니다. 실제 image ID 변경·앱 재배정·기존 스트림 완료·이전 실행 회수를 확인합니다 |
 
 각 전환 동안 별도의 클라이언트가 요청을 계속 보내고 응답 본문과 gRPC trailer를 검사합니다. 오류를 재시도로 감추지 않으며,
-요청 수·오류 수를 테스트 로그에 남깁니다. runner 증감·이미지 교체는 복제본을 서로 다른 runner에 배정하고 여유 용량을 둔 조건입니다.
+요청 수·오류 수·최대 응답 시간을 테스트 로그에 남깁니다. 요청의 gRPC deadline은 기본 기동 대기 한도에 맞춘 30초입니다.
+runner 증감·이미지 교체는 복제본을 서로 다른 runner에 배정하고 여유 용량을 둔 조건입니다.
 단일 복제본이나 유예 시간을 넘기는 스트림, 임의의 과거 버전 조합에 대한 무중단 보장을 뜻하지 않습니다.
 
 기본 baseline 이미지의 digest는 [테스트 스크립트](../scripts/test-kubernetes.sh)에 고정되어 있습니다.

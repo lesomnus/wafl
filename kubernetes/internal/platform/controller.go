@@ -224,7 +224,9 @@ func (c *Controller) configuration(ctx context.Context) (map[string]any, error) 
 			services[name] = map[string]any{"weighted": map[string]any{"services": backends}}
 		} else {
 			servers := []any{}
-			if spec.Scaling != nil {
+			// Fixed replicas can also temporarily have no ready execution during
+			// runner replacement. Queue them through the same bounded activator.
+			if spec.Scaling != nil || spec.Replicas > 0 {
 				url := c.Activate
 				if spec.Manifest.Protocol == "h2c" {
 					url = strings.Replace(url, "http://", "h2c://", 1)

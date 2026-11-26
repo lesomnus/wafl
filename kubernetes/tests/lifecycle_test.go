@@ -29,18 +29,29 @@ func (s *suite) probe(name string, builds ...string) func() {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.Protocols = new(http.Protocols)
 	transport.Protocols.SetUnencryptedHTTP2(true)
-	client := &http.Client{Transport: transport, Timeout: 10 * time.Second}
+	// Match the default 30-second activation budget, including runner cold
+	// starts. The client allows the server to return its gRPC deadline result.
+	client := &http.Client{Transport: transport, Timeout: 35 * time.Second}
 	var stop atomic.Bool
 	var count, failed atomic.Int64
+	var longest atomic.Int64
 	var mu sync.Mutex
 	var first string
+	var samples []string
 	var wg sync.WaitGroup
 	for range 2 {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			for !stop.Load() {
+				started := time.Now()
 				build, err := s.call(client, name)
+				elapsed := time.Since(started).Nanoseconds()
+				for old := longest.Load(); elapsed > old; old = longest.Load() {
+					if longest.CompareAndSwap(old, elapsed) {
+						break
+					}
+				}
 				valid := false
 				for _, want := range builds {
 					valid = valid || build == want
@@ -50,6 +61,14 @@ func (s *suite) probe(name string, builds ...string) func() {
 					mu.Lock()
 					if first == "" {
 						first = fmt.Sprintf("build=%q error=%v", build, err)
+					}
+					message := fmt.Sprintf("build=%q error=%v", build, err)
+					known := false
+					for _, sample := range samples {
+						known = known || sample == message
+					}
+					if !known && len(samples) < 5 {
+						samples = append(samples, message)
 					}
 					mu.Unlock()
 				}
@@ -64,8 +83,9 @@ func (s *suite) probe(name string, builds ...string) func() {
 			stop.Store(true)
 			wg.Wait()
 			transport.CloseIdleConnections()
-			s.t.Logf("gateway requests=%d errors=%d first_error=%s", count.Load(), failed.Load(), first)
+			s.t.Logf("gateway requests=%d errors=%d max_latency=%s first_error=%s", count.Load(), failed.Load(), time.Duration(longest.Load()).Round(time.Millisecond), first)
 			if count.Load() < 10 || failed.Load() != 0 {
+				s.t.Logf("error samples: %q", samples)
 				s.t.Errorf("transition traffic: requests=%d failures=%d: %s", count.Load(), failed.Load(), first)
 			}
 		})
@@ -83,7 +103,7 @@ func (s *suite) call(client *http.Client, name string) (string, error) {
 	r.Host = name + "." + s.ns + ".example"
 	r.Header.Set("Content-Type", "application/grpc")
 	r.Header.Set("TE", "trailers")
-	r.Header.Set("Grpc-Timeout", "10S")
+	r.Header.Set("Grpc-Timeout", "30S")
 	v, err := client.Do(r)
 	if err != nil {
 		return "", err
