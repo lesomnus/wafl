@@ -39,6 +39,8 @@ type App struct {
 	Secrets       []*Secret              `protobuf:"bytes,20,rep,name=secrets" json:"secrets,omitempty"`
 	Readiness     *Probe                 `protobuf:"bytes,21,opt,name=readiness" json:"readiness,omitempty"`
 	Rollout       *Rollout               `protobuf:"bytes,22,opt,name=rollout" json:"rollout,omitempty"`
+	SecretValues  map[string]string      `protobuf:"bytes,23,rep,name=secret_values,json=secretValues" json:"secret_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Status        *AppStatus             `protobuf:"bytes,24,opt,name=status" json:"status,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -171,6 +173,88 @@ func (x *App) GetRollout() *Rollout {
 	return nil
 }
 
+func (x *App) GetSecretValues() map[string]string {
+	if x != nil {
+		return x.SecretValues
+	}
+	return nil
+}
+
+func (x *App) GetStatus() *AppStatus {
+	if x != nil {
+		return x.Status
+	}
+	return nil
+}
+
+type AppStatus struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Ready         uint32                 `protobuf:"varint,1,opt,name=ready" json:"ready,omitempty"`
+	Accepted      bool                   `protobuf:"varint,2,opt,name=accepted" json:"accepted,omitempty"`
+	Reason        string                 `protobuf:"bytes,3,opt,name=reason" json:"reason,omitempty"`
+	Message       string                 `protobuf:"bytes,4,opt,name=message" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AppStatus) Reset() {
+	*x = AppStatus{}
+	mi := &file_wafl_app_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AppStatus) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AppStatus) ProtoMessage() {}
+
+func (x *AppStatus) ProtoReflect() protoreflect.Message {
+	mi := &file_wafl_app_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AppStatus.ProtoReflect.Descriptor instead.
+func (*AppStatus) Descriptor() ([]byte, []int) {
+	return file_wafl_app_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AppStatus) GetReady() uint32 {
+	if x != nil {
+		return x.Ready
+	}
+	return 0
+}
+
+func (x *AppStatus) GetAccepted() bool {
+	if x != nil {
+		return x.Accepted
+	}
+	return false
+}
+
+func (x *AppStatus) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *AppStatus) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 type Probe struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Types that are valid to be assigned to Kind:
@@ -188,7 +272,7 @@ type Probe struct {
 
 func (x *Probe) Reset() {
 	*x = Probe{}
-	mi := &file_wafl_app_proto_msgTypes[1]
+	mi := &file_wafl_app_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -200,7 +284,7 @@ func (x *Probe) String() string {
 func (*Probe) ProtoMessage() {}
 
 func (x *Probe) ProtoReflect() protoreflect.Message {
-	mi := &file_wafl_app_proto_msgTypes[1]
+	mi := &file_wafl_app_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -213,7 +297,7 @@ func (x *Probe) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Probe.ProtoReflect.Descriptor instead.
 func (*Probe) Descriptor() ([]byte, []int) {
-	return file_wafl_app_proto_rawDescGZIP(), []int{1}
+	return file_wafl_app_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Probe) GetKind() isProbe_Kind {
@@ -296,7 +380,7 @@ type Rollout struct {
 
 func (x *Rollout) Reset() {
 	*x = Rollout{}
-	mi := &file_wafl_app_proto_msgTypes[2]
+	mi := &file_wafl_app_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -308,7 +392,7 @@ func (x *Rollout) String() string {
 func (*Rollout) ProtoMessage() {}
 
 func (x *Rollout) ProtoReflect() protoreflect.Message {
-	mi := &file_wafl_app_proto_msgTypes[2]
+	mi := &file_wafl_app_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -321,7 +405,7 @@ func (x *Rollout) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Rollout.ProtoReflect.Descriptor instead.
 func (*Rollout) Descriptor() ([]byte, []int) {
-	return file_wafl_app_proto_rawDescGZIP(), []int{2}
+	return file_wafl_app_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Rollout) GetSurge() uint32 {
@@ -361,7 +445,7 @@ type Scaling struct {
 
 func (x *Scaling) Reset() {
 	*x = Scaling{}
-	mi := &file_wafl_app_proto_msgTypes[3]
+	mi := &file_wafl_app_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -373,7 +457,7 @@ func (x *Scaling) String() string {
 func (*Scaling) ProtoMessage() {}
 
 func (x *Scaling) ProtoReflect() protoreflect.Message {
-	mi := &file_wafl_app_proto_msgTypes[3]
+	mi := &file_wafl_app_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -386,7 +470,7 @@ func (x *Scaling) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Scaling.ProtoReflect.Descriptor instead.
 func (*Scaling) Descriptor() ([]byte, []int) {
-	return file_wafl_app_proto_rawDescGZIP(), []int{3}
+	return file_wafl_app_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Scaling) GetMin() uint32 {
@@ -465,7 +549,7 @@ type ScaleState struct {
 
 func (x *ScaleState) Reset() {
 	*x = ScaleState{}
-	mi := &file_wafl_app_proto_msgTypes[4]
+	mi := &file_wafl_app_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -477,7 +561,7 @@ func (x *ScaleState) String() string {
 func (*ScaleState) ProtoMessage() {}
 
 func (x *ScaleState) ProtoReflect() protoreflect.Message {
-	mi := &file_wafl_app_proto_msgTypes[4]
+	mi := &file_wafl_app_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -490,7 +574,7 @@ func (x *ScaleState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScaleState.ProtoReflect.Descriptor instead.
 func (*ScaleState) Descriptor() ([]byte, []int) {
-	return file_wafl_app_proto_rawDescGZIP(), []int{4}
+	return file_wafl_app_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ScaleState) GetDesired() uint32 {
@@ -581,7 +665,7 @@ var File_wafl_app_proto protoreflect.FileDescriptor
 
 const file_wafl_app_proto_rawDesc = "" +
 	"\n" +
-	"\x0ewafl/app.proto\x12\x04wafl\x1a\fpayday.proto\x1a\torm.proto\x1a\x13wafl/manifest.proto\x1a\x15wafl/app_source.proto\x1a\x11wafl/secret.proto\x1a\x18wafl/payday/tenant.proto\"\x90\x05\n" +
+	"\x0ewafl/app.proto\x12\x04wafl\x1a\fpayday.proto\x1a\torm.proto\x1a\x13wafl/manifest.proto\x1a\x15wafl/app_source.proto\x1a\x11wafl/secret.proto\x1a\x18wafl/payday/tenant.proto\"\xdd\x06\n" +
 	"\x03App\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\f.wafl.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12\x1f\n" +
@@ -597,13 +681,23 @@ const file_wafl_app_proto_rawDesc = "" +
 	"\x06source\x18\x13 \x01(\v2\x0f.wafl.AppSourceB\x0e\xf2\x82\x16\x048\x01@\x01\xaa\xc1\x16\x02\x10\x01R\x06source\x121\n" +
 	"\asecrets\x18\x14 \x03(\v2\f.wafl.SecretB\t\xea\x82\x16\x05\x10B\x82\x01\x00R\asecrets\x123\n" +
 	"\treadiness\x18\x15 \x01(\v2\v.wafl.ProbeB\b\xea\x82\x16\x04\x10B8\x01R\treadiness\x121\n" +
-	"\arollout\x18\x16 \x01(\v2\r.wafl.RolloutB\b\xea\x82\x16\x04\x10B8\x01R\arollout:4\xca\xfc\x15\x0e\x12\f\x82\x01\x00\x8a\x01\x00\x92\x01\x00\x9a\x01\x00\x8a\xbb\x16\x1e\b\n" +
+	"\arollout\x18\x16 \x01(\v2\r.wafl.RolloutB\b\xea\x82\x16\x04\x10B8\x01R\arollout\x12Q\n" +
+	"\rsecret_values\x18\x17 \x03(\v2\x1b.wafl.App.SecretValuesEntryB\x0f\xea\x82\x16\x05\x10B\x82\x01\x00\xaa\xc1\x16\x02\b\x01R\fsecretValues\x127\n" +
+	"\x06status\x18\x18 \x01(\v2\x0f.wafl.AppStatusB\x0e\xea\x82\x16\x04\x10B8\x01\xaa\xc1\x16\x02\x10\x01R\x06status\x1a?\n" +
+	"\x11SecretValuesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:4\xca\xfc\x15\x0e\x12\f\x82\x01\x00\x8a\x01\x00\x92\x01\x00\x9a\x01\x00\x8a\xbb\x16\x1e\b\n" +
 	"2\x16\n" +
 	"\x06\n" +
 	"\x04\n" +
 	"\x02id\x1a\x05\n" +
 	"\x03ref d(\xe8\a0@B\x02\n" +
-	"\x00\"\xc5\x01\n" +
+	"\x00\"o\n" +
+	"\tAppStatus\x12\x14\n" +
+	"\x05ready\x18\x01 \x01(\rR\x05ready\x12\x1a\n" +
+	"\baccepted\x18\x02 \x01(\bR\baccepted\x12\x16\n" +
+	"\x06reason\x18\x03 \x01(\tR\x06reason\x12\x18\n" +
+	"\amessage\x18\x04 \x01(\tR\amessage\"\xc5\x01\n" +
 	"\x05Probe\x12\x14\n" +
 	"\x04http\x18\x01 \x01(\tH\x00R\x04http\x12\x14\n" +
 	"\x04grpc\x18\x02 \x01(\tH\x00R\x04grpc\x12%\n" +
@@ -655,32 +749,36 @@ func file_wafl_app_proto_rawDescGZIP() []byte {
 	return file_wafl_app_proto_rawDescData
 }
 
-var file_wafl_app_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_wafl_app_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_wafl_app_proto_goTypes = []any{
 	(*App)(nil),        // 0: wafl.App
-	(*Probe)(nil),      // 1: wafl.Probe
-	(*Rollout)(nil),    // 2: wafl.Rollout
-	(*Scaling)(nil),    // 3: wafl.Scaling
-	(*ScaleState)(nil), // 4: wafl.ScaleState
-	(*Tenant)(nil),     // 5: wafl.Tenant
-	(*Manifest)(nil),   // 6: wafl.Manifest
-	(*AppSource)(nil),  // 7: wafl.AppSource
-	(*Secret)(nil),     // 8: wafl.Secret
+	(*AppStatus)(nil),  // 1: wafl.AppStatus
+	(*Probe)(nil),      // 2: wafl.Probe
+	(*Rollout)(nil),    // 3: wafl.Rollout
+	(*Scaling)(nil),    // 4: wafl.Scaling
+	(*ScaleState)(nil), // 5: wafl.ScaleState
+	nil,                // 6: wafl.App.SecretValuesEntry
+	(*Tenant)(nil),     // 7: wafl.Tenant
+	(*Manifest)(nil),   // 8: wafl.Manifest
+	(*AppSource)(nil),  // 9: wafl.AppSource
+	(*Secret)(nil),     // 10: wafl.Secret
 }
 var file_wafl_app_proto_depIdxs = []int32{
-	5, // 0: wafl.App.tenant:type_name -> wafl.Tenant
-	6, // 1: wafl.App.manifest:type_name -> wafl.Manifest
-	3, // 2: wafl.App.scaling:type_name -> wafl.Scaling
-	4, // 3: wafl.App.state:type_name -> wafl.ScaleState
-	7, // 4: wafl.App.source:type_name -> wafl.AppSource
-	8, // 5: wafl.App.secrets:type_name -> wafl.Secret
-	1, // 6: wafl.App.readiness:type_name -> wafl.Probe
-	2, // 7: wafl.App.rollout:type_name -> wafl.Rollout
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	7,  // 0: wafl.App.tenant:type_name -> wafl.Tenant
+	8,  // 1: wafl.App.manifest:type_name -> wafl.Manifest
+	4,  // 2: wafl.App.scaling:type_name -> wafl.Scaling
+	5,  // 3: wafl.App.state:type_name -> wafl.ScaleState
+	9,  // 4: wafl.App.source:type_name -> wafl.AppSource
+	10, // 5: wafl.App.secrets:type_name -> wafl.Secret
+	2,  // 6: wafl.App.readiness:type_name -> wafl.Probe
+	3,  // 7: wafl.App.rollout:type_name -> wafl.Rollout
+	6,  // 8: wafl.App.secret_values:type_name -> wafl.App.SecretValuesEntry
+	1,  // 9: wafl.App.status:type_name -> wafl.AppStatus
+	10, // [10:10] is the sub-list for method output_type
+	10, // [10:10] is the sub-list for method input_type
+	10, // [10:10] is the sub-list for extension type_name
+	10, // [10:10] is the sub-list for extension extendee
+	0,  // [0:10] is the sub-list for field type_name
 }
 
 func init() { file_wafl_app_proto_init() }
@@ -692,7 +790,7 @@ func file_wafl_app_proto_init() {
 	file_wafl_app_source_proto_init()
 	file_wafl_secret_proto_init()
 	file_wafl_payday_tenant_proto_init()
-	file_wafl_app_proto_msgTypes[1].OneofWrappers = []any{
+	file_wafl_app_proto_msgTypes[2].OneofWrappers = []any{
 		(*Probe_Http)(nil),
 		(*Probe_Grpc)(nil),
 	}
@@ -702,7 +800,7 @@ func file_wafl_app_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_wafl_app_proto_rawDesc), len(file_wafl_app_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

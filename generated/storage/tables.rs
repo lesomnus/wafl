@@ -61,6 +61,10 @@
         f21 -> Nullable<Text>,
         /// wafl.App.rollout
         f22 -> Nullable<Text>,
+        /// wafl.App.secret_values
+        f23 -> Text,
+        /// wafl.App.status
+        f24 -> Nullable<Text>,
     }
 }
 ::diesel::table! {

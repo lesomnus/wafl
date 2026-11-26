@@ -1,58 +1,46 @@
 package cli
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 
-	"github.com/lesomnus/wafl/kubernetes/internal/platform"
+	wf "github.com/lesomnus/wafl/kubernetes/gen/wafl"
 	"github.com/spf13/cobra"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func trafficCommand(o *options) *cobra.Command {
-	root := &cobra.Command{Use: "traffic", Short: "Inspect durable gateway observers"}
-	root.AddCommand(&cobra.Command{Use: "list", RunE: func(cmd *cobra.Command, _ []string) error {
-		c, e := o.clients()
-		if e != nil {
-			return e
+	root := &cobra.Command{Use: "traffic", Short: "Inspect gateway observers through the controller"}
+	root.AddCommand(&cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		q := &wf.TrafficListRequest{}
+		for {
+			r, e := o.traffic().List(cmd.Context(), request(o, q))
+			if e != nil {
+				return e
+			}
+			for _, v := range r.Msg.Items {
+				if e = output(v); e != nil {
+					return e
+				}
+			}
+			if r.Msg.Next == "" {
+				return nil
+			}
+			q.After = r.Msg.Next
 		}
-		v, e := c.Kube.CoreV1().ConfigMaps(o.system).List(cmd.Context(), meta.ListOptions{LabelSelector: platform.Kind + "=traffic"})
-		if e != nil {
-			return e
-		}
-		for _, cm := range v.Items {
-			fmt.Println(cm.Name, cm.Data["value"])
-		}
-		return nil
 	}})
 	var withdrawn bool
-	close := &cobra.Command{Use: "close CONFIGMAP", Short: "Recover a stopped observer after all its connections have ended", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+	close := &cobra.Command{Use: "close ID", Args: cobra.ExactArgs(1), Short: "Recover an observer after all its connections have stopped", RunE: func(cmd *cobra.Command, args []string) error {
 		if !withdrawn {
 			return errors.New("--withdrawn confirms the observer and all its connections have stopped")
 		}
-		c, e := o.clients()
+		id, e := parseID(args[0], 13)
 		if e != nil {
 			return e
 		}
-		cm, e := c.Kube.CoreV1().ConfigMaps(o.system).Get(cmd.Context(), args[0], meta.GetOptions{})
+		r, e := o.traffic().Close(cmd.Context(), request(o, &wf.TrafficCloseRequest{Ref: &wf.TrafficRef{Key: &wf.TrafficRef_Id{Id: id}}, Withdrawn: true}))
 		if e != nil {
 			return e
 		}
-		if cm.Labels[platform.Kind] != "traffic" {
-			return errors.New("not a WAFL observer")
-		}
-		var v map[string]any
-		if e = json.Unmarshal([]byte(cm.Data["value"]), &v); e != nil {
-			return e
-		}
-		v["closed"] = true
-		v["draining"] = true
-		v["active"] = 0
-		data, _ := json.Marshal(v)
-		cm.Data["value"] = string(data)
-		_, e = c.Kube.CoreV1().ConfigMaps(o.system).Update(cmd.Context(), cm, meta.UpdateOptions{})
-		return e
+		return output(r.Msg)
 	}}
 	close.Flags().BoolVar(&withdrawn, "withdrawn", false, "Confirm completed observer and connection withdrawal")
 	root.AddCommand(close)

@@ -22,7 +22,7 @@ metadata:
 rules:
   - apiGroups: [wafl.opt.td]
     resources: [apps, apps/status]
-    verbs: [get, list, watch, update, patch]
+    verbs: [get, list, watch, create, update, patch, delete]
   - apiGroups: [apps]
     resources: [deployments, replicasets]
     verbs: [get, list, watch, create, update, patch, delete]
@@ -112,7 +112,7 @@ spec:
       containers:
         - name: controller
           image: ghcr.io/lesomnus/wafl:latest
-          args: [--system-namespace, wafl-system, serve, controller]
+          args: [serve, controller, --system-namespace, wafl-system]
           ports:
             - {name: control, containerPort: 8082}
             - {name: activation, containerPort: 8083}
@@ -160,7 +160,7 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: [/usr/local/bin/wafl-kube, --system-namespace, wafl-system, node-drain]
+                command: [/usr/local/bin/wafl-kube, node-drain, --system-namespace, wafl-system]
           ports: [{name: control, containerPort: 8081}]
           readinessProbe: {tcpSocket: {port: control}, periodSeconds: 2}
           resources:
@@ -171,7 +171,7 @@ spec:
             - {name: config, mountPath: /etc/wafl, readOnly: true}
         - name: node
           image: ghcr.io/lesomnus/wafl:latest
-          args: [--system-namespace, wafl-system, serve, node, --node, "wafl-$(POD_NAME)", --runner, "http://$(POD_IP):8081"]
+          args: [serve, node, --system-namespace, wafl-system, --node, "wafl-$(POD_NAME)", --runner, "http://$(POD_IP):8081"]
           env:
             - name: POD_NAME
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
@@ -180,7 +180,7 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: [/usr/local/bin/wafl-kube, --system-namespace, wafl-system, node-drain]
+                command: [/usr/local/bin/wafl-kube, node-drain, --system-namespace, wafl-system]
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {memory: 512Mi}

@@ -24,6 +24,12 @@ func generateGo(root string, set *descriptorpb.FileDescriptorSet, check bool) er
 		if strings.HasPrefix(f.GetName(), "google/protobuf/") {
 			continue
 		}
+		if strings.HasPrefix(f.GetName(), "patch/") {
+			// Use the reference patch engine's bindings, avoiding duplicate
+			// registration of patch descriptors in the controller/client binary.
+			parameters = append(parameters, "M"+f.GetName()+"=github.com/lesomnus/protobuf-patch/patchpb")
+			continue
+		}
 		req.FileToGenerate = append(req.FileToGenerate, f.GetName())
 		parameters = append(parameters, "M"+f.GetName()+"="+module+"/gen/"+strings.ReplaceAll(f.GetPackage(), ".", "/"))
 	}

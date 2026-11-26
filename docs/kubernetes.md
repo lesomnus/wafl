@@ -3,13 +3,13 @@
 Kubernetes는 WAFL 플랫폼의 필수 제어평면입니다. 이전 선택적 App importer와 PostgreSQL 상태 저장소를 대체했습니다. 설치와 전체 예제는 [Kubernetes native 튜토리얼](kubernetes-native.md)을 참고하세요.
 
 ```sh
-wafl install
+wafl-kube bootstrap install
 kubectl create namespace demo
 # URL과 압축 파일의 SHA-256 digest를 수정한 뒤 제출합니다.
 kubectl apply -f deploy/kubernetes/app.yaml
 kubectl -n demo get apps.wafl.opt.td,deployments,pods
 kubectl -n demo describe app hello
-wafl --namespace demo app logs hello
+wafl --endpoint http://CONTROLLER:8082 --tenant demo app logs @hello
 ```
 
 App은 `wafl.opt.td/v1alpha1`의 namespaced CRD입니다. `spec`은 공통 protobuf 계약에서 생성하며 manifest·replicas 또는 scaling·secrets·readiness·rollout을 받습니다. 앱의 domain은 생성 후 바꿀 수 없습니다. 같은 domain을 여러 App이 요청하면 먼저 만들어진 App만 조정합니다.

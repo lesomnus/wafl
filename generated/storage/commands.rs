@@ -142,6 +142,24 @@ async fn dispatch(
                 .await?;
             emit(serde_json::to_value(res.into_owned())?)?;
         }
+        ("wafl.App", "Tail") => {
+            let mut stream = call_server_stream::<
+                _,
+                proto::r#wafl::r#AppTailRequest,
+                <proto::r#wafl::r#Log as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Tail",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            while let Some(msg) = stream.message::<proto::r#wafl::r#Log>().await? {
+                emit(serde_json::to_value(msg.to_owned_message())?)?;
+            }
+        }
         ("wafl.AppSource", "Get") => {
             let res = call_unary::<
                 _,

@@ -1,97 +1,75 @@
+// Package cli talks only to WAFL APIs. It neither loads kubeconfig nor imports
+// Kubernetes clients, shells out to kubectl, or discovers runner Pod addresses.
 package cli
 
 import (
-	"context"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"time"
+	"strings"
 
-	"github.com/lesomnus/wafl/kubernetes/internal/platform"
+	"connectrpc.com/connect"
+	"github.com/lesomnus/wafl/kubernetes/gen/wafl/waflconnect"
 	"github.com/spf13/cobra"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 type options struct {
-	kubeconfig, context, namespace, system string
-	json                                   bool
+	endpoint, tenant string
+	json             bool
 }
 
-func (o *options) clients() (*platform.Clients, error) { return platform.Open(o.kubeconfig, o.context) }
+func env(name, fallback string) string {
+	if v := os.Getenv(name); v != "" {
+		return v
+	}
+	return fallback
+}
 func Command() *cobra.Command {
 	o := &options{}
-	root := &cobra.Command{Use: "wafl", Short: "WAFL Kubernetes application platform", SilenceUsage: true, SilenceErrors: true}
+	root := &cobra.Command{Use: "wafl", Short: "Manage applications through the WAFL controller API", SilenceUsage: true, SilenceErrors: true}
 	f := root.PersistentFlags()
-	f.StringVar(&o.kubeconfig, "kubeconfig", "", "Kubeconfig file (otherwise standard Kubernetes discovery)")
-	f.StringVar(&o.context, "context", "", "Kubernetes context")
-	f.StringVarP(&o.namespace, "namespace", "n", "default", "App namespace")
-	f.StringVar(&o.system, "system-namespace", "wafl-system", "WAFL infrastructure namespace")
-	f.BoolVar(&o.json, "json", false, "Print Kubernetes JSON")
-	serve := &cobra.Command{Use: "serve", Short: "Run a WAFL service in the foreground"}
-	controller := &platform.Controller{}
-	control := &cobra.Command{Use: "controller", Short: "Run the Kubernetes App controller", RunE: func(cmd *cobra.Command, _ []string) error {
-		c, e := o.clients()
-		if e != nil {
-			return e
-		}
-		controller.Clients = c
-		controller.Namespace = o.system
-		if !cmd.Flags().Changed("control") {
-			controller.Control = fmt.Sprintf("http://wafl-controller.%s.svc:8082", o.system)
-		}
-		if !cmd.Flags().Changed("activate") {
-			controller.Activate = fmt.Sprintf("http://wafl-controller.%s.svc:8083", o.system)
-		}
-		hostname, _ := os.Hostname()
-		controller.Identity = fmt.Sprintf("%s-%d", hostname, os.Getpid())
-		return controller.Serve(cmd.Context())
-	}}
-	cf := control.Flags()
-	cf.StringVar(&controller.Listen, "listen", "0.0.0.0:8082", "Controller API and Traefik configuration address")
-	cf.StringVar(&controller.ActivationListen, "activation-listen", "0.0.0.0:8083", "HTTP/gRPC activation address")
-	cf.StringVar(&controller.Control, "control", "http://wafl-controller.wafl-system.svc:8082", "Controller origin reachable by Traefik")
-	cf.StringVar(&controller.Activate, "activate", "http://wafl-controller.wafl-system.svc:8083", "Activator origin reachable by Traefik")
-	cf.StringVar(&controller.Entrypoint, "entrypoint", "web", "Traefik entrypoint")
-	var node, runner string
-	agent := &cobra.Command{Use: "node", Short: "Connect one runner to a Virtual Kubelet node", RunE: func(cmd *cobra.Command, _ []string) error {
-		if node == "" {
-			return fmt.Errorf("--node is required")
-		}
-		c, e := o.clients()
-		if e != nil {
-			return e
-		}
-		return platform.NewProvider(c, node, runner, o.system).Serve(cmd.Context())
-	}}
-	agent.Flags().StringVar(&node, "node", "", "Stable virtual node name for this runner Pod")
-	agent.Flags().StringVar(&runner, "runner", "http://127.0.0.1:8081", "Runner control origin reachable from controllers and CLI")
-	serve.AddCommand(control, agent)
-	root.AddCommand(serve, appCommand(o), installCommand(o), devCommand(o), trafficCommand(o))
-	var directory, listen string
-	assets := &cobra.Command{Use: "assets", Hidden: true, RunE: func(cmd *cobra.Command, _ []string) error {
-		server := &http.Server{Addr: listen, Handler: http.FileServer(http.Dir(directory)), ReadHeaderTimeout: 10 * time.Second}
-		go func() { <-cmd.Context().Done(); _ = server.Shutdown(context.Background()) }()
-		e := server.ListenAndServe()
-		if e == http.ErrServerClosed {
-			return nil
-		}
-		return e
-	}}
-	assets.Flags().StringVar(&directory, "directory", "/assets", "Bundle directory")
-	assets.Flags().StringVar(&listen, "listen", ":8090", "Listen address")
-	root.AddCommand(assets)
-	var drainNode string
-	var drainTimeout time.Duration
-	drain := &cobra.Command{Use: "node-drain", Hidden: true, RunE: func(cmd *cobra.Command, _ []string) error {
-		c, e := o.clients()
-		if e != nil {
-			return e
-		}
-		ctx, cancel := context.WithTimeout(cmd.Context(), drainTimeout)
-		defer cancel()
-		return platform.DrainNode(ctx, c, drainNode)
-	}}
-	drain.Flags().StringVar(&drainNode, "node", "wafl-"+os.Getenv("POD_NAME"), "Virtual node name")
-	drain.Flags().DurationVar(&drainTimeout, "timeout", 45*time.Second, "Maximum graceful runner drain")
-	root.AddCommand(drain)
+	f.StringVar(&o.endpoint, "endpoint", env("WAFL_ENDPOINT", "http://127.0.0.1:8082"), "Controller API endpoint")
+	f.StringVar(&o.tenant, "tenant", env("WAFL_TENANT", "default"), "Tenant alias or ID")
+	f.BoolVar(&o.json, "json", false, "Print protobuf JSON")
+	root.AddCommand(appCommand(o), trafficCommand(o))
 	return root
+}
+func (o *options) apps() waflconnect.AppServiceClient {
+	return waflconnect.NewAppServiceClient(http.DefaultClient, o.endpoint, connect.WithProtoJSON())
+}
+func (o *options) traffic() waflconnect.TrafficServiceClient {
+	return waflconnect.NewTrafficServiceClient(http.DefaultClient, o.endpoint, connect.WithProtoJSON())
+}
+func request[T any](o *options, v *T) *connect.Request[T] {
+	r := connect.NewRequest(v)
+	r.Header().Set("wafl-tenant", strings.TrimPrefix(o.tenant, "@"))
+	return r
+}
+func output(v proto.Message) error {
+	b, e := protojson.MarshalOptions{Multiline: true, Indent: "  "}.Marshal(v)
+	if e == nil {
+		_, e = fmt.Fprintln(os.Stdout, string(b))
+	}
+	return e
+}
+func uuid(id []byte) string {
+	if len(id) != 16 {
+		return ""
+	}
+	h := hex.EncodeToString(id)
+	return h[:8] + "-" + h[8:12] + "-" + h[12:16] + "-" + h[16:20] + "-" + h[20:]
+}
+func parseID(value string, domain byte) ([]byte, error) {
+	if len(value) != 36 || value[8] != '-' || value[13] != '-' || value[18] != '-' || value[23] != '-' {
+		return nil, errors.New("invalid UUID")
+	}
+	b, e := hex.DecodeString(strings.ReplaceAll(value, "-", ""))
+	if e != nil || len(b) != 16 || b[6]>>4 != 8 || b[8]&0xc0 != 0x80 || b[9] != domain {
+		return nil, errors.New("invalid resource ID")
+	}
+	return b, nil
 }

@@ -84,6 +84,22 @@ pub trait AppServiceLayer<N: AppService>: Send + Sync + 'static {
     > + Send {
         next.list(ctx, request)
     }
+    fn tail(
+        &self,
+        next: &N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppTailRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            ::connectrpc::ServiceStream<
+                impl ::connectrpc::Encodable<
+                    crate::proto::wafl::Log,
+                > + Send + use<Self, N>,
+            >,
+        >,
+    > + Send {
+        next.tail(ctx, request)
+    }
 }
 pub struct AppServiceOverlay<N, L> {
     pub next: N,
@@ -159,6 +175,19 @@ impl<N: AppService, L: AppServiceLayer<N>> AppService for AppServiceOverlay<N, L
         >,
     > + Send {
         self.layer.list(&self.next, ctx, request)
+    }
+    fn tail(
+        &self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppTailRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            ::connectrpc::ServiceStream<
+                impl ::connectrpc::Encodable<crate::proto::wafl::Log> + Send + use<N, L>,
+            >,
+        >,
+    > + Send {
+        self.layer.tail(&self.next, ctx, request)
     }
 }
 pub struct AppServiceUnimplemented;
@@ -256,6 +285,24 @@ impl AppService for AppServiceUnimplemented {
             Err(
                 ::connectrpc::ConnectError::unimplemented(
                     concat!(stringify!(AppService), ".", stringify!(list)),
+                ),
+            )
+        }
+    }
+    fn tail(
+        &self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppTailRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            ::connectrpc::ServiceStream<crate::proto::wafl::Log>,
+        >,
+    > + Send {
+        let _ = (ctx, request);
+        async {
+            Err(
+                ::connectrpc::ConnectError::unimplemented(
+                    concat!(stringify!(AppService), ".", stringify!(tail)),
                 ),
             )
         }

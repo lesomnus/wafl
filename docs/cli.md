@@ -1,6 +1,6 @@
 # wafl CLI
 
-플랫폼은 `wafl dev` 또는 `wafl install`로 설치하고 `wafl app add app.yaml`로 앱을 등록합니다. App 명령은 kubeconfig와 namespace를 사용합니다. 전체 과정은 [Kubernetes native 튜토리얼](kubernetes-native.md)에 있습니다. 아래 Instance 명령은 개별 runner에 직접 연결하며 Kubernetes가 필요 없습니다.
+`wafl app`과 `wafl traffic`은 controller API만 사용합니다. `--endpoint`/`WAFL_ENDPOINT`로 주소를 지정하며 Kubernetes API, kubeconfig, kubectl을 사용하지 않습니다. 설치는 운영자 도구 `wafl-kube bootstrap`이 담당합니다. 전체 과정은 [Kubernetes native 튜토리얼](kubernetes-native.md)에 있습니다. 아래 Instance 명령은 개별 runner에 직접 연결하며 Kubernetes가 필요 없습니다.
 
 이 문서의 기본 예제는 proxy 모드입니다. L7에서 WASM 소켓에 직접 연결하는 설정, endpoint 출력과 `release` 명령은 [직결 튜토리얼](direct.md)을 참고하세요. 직결 출력은 `<UUID>\t@alias\t<endpoint.address>`이며 `--idle-ms`·`--max-active`는 생략 또는 0만 허용합니다.
 

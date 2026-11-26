@@ -99,7 +99,7 @@ func definition() object {
 	secrets["x-kubernetes-list-type"] = "map"
 	secrets["x-kubernetes-list-map-keys"] = []string{"env"}
 	secret := secrets["items"].(object)
-	delete(props(secret), "file") // CLI imports files as Kubernetes Secrets.
+	delete(props(secret), "file") // Controller imports CLI values as Kubernetes Secrets.
 	secret["required"] = []string{"env", "secretKeyRef"}
 	at(secret, "env")["pattern"] = `^[A-Za-z_][A-Za-z0-9_]*$`
 	at(secret, "env")["maxLength"] = 128

@@ -7,8 +7,8 @@
 package wafl
 
 import (
+	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	_ "github.com/lesomnus/wafl/kubernetes/gen/orm"
-	patch "github.com/lesomnus/wafl/kubernetes/gen/patch"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -429,7 +429,7 @@ func (x *TenantPatchRequest) GetDateUpdatedForce() bool {
 type TenantApplyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ref           *TenantRef             `protobuf:"bytes,1,opt,name=ref" json:"ref,omitempty"`
-	Patch         *patch.Patch           `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
+	Patch         *patchpb.Patch         `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -471,7 +471,7 @@ func (x *TenantApplyRequest) GetRef() *TenantRef {
 	return nil
 }
 
-func (x *TenantApplyRequest) GetPatch() *patch.Patch {
+func (x *TenantApplyRequest) GetPatch() *patchpb.Patch {
 	if x != nil {
 		return x.Patch
 	}
@@ -778,7 +778,7 @@ var file_wafl_payday_tenant_svc_g_proto_goTypes = []any{
 	nil,                           // 10: wafl.TenantAddRequest.LabelsEntry
 	nil,                           // 11: wafl.TenantPatchRequest.LabelsEntry
 	(*timestamppb.Timestamp)(nil), // 12: google.protobuf.Timestamp
-	(*patch.Patch)(nil),           // 13: patch.Patch
+	(*patchpb.Patch)(nil),         // 13: patch.Patch
 	(*Tenant)(nil),                // 14: wafl.Tenant
 }
 var file_wafl_payday_tenant_svc_g_proto_depIdxs = []int32{

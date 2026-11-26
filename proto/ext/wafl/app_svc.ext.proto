@@ -1,0 +1,26 @@
+edition = "2023";
+package wafl;
+import "wafl/app.proto";
+import "wafl/instance_svc.g.proto";
+import "wafl/log.proto";
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+
+// Generated CRUD and Apply are backed by the controller. wafl-tenant metadata
+// selects a tenant alias (default: default); the Kubernetes backend maps it to
+// a namespace. wafl-revision optionally fences Patch/Apply/Erase against the
+// App.revision returned by Get. IDs are assigned by this backend; Add.id must
+// be omitted. Alias identifies the declaration and cannot be renamed in place.
+service AppService {
+  // Stream one execution through the controller; no runner network access or
+  // Kubernetes port-forward is required. Omitted instance selects a ready
+  // execution once. The response metadata includes its wafl-instance UUID.
+  rpc Tail(AppTailRequest) returns (stream Log);
+}
+message AppTailRequest {
+  AppRef ref = 1;
+  InstanceRef instance = 2;
+  bool follow = 3 [features.field_presence = IMPLICIT];
+  // Resume requires an explicit instance so a cursor cannot change replicas.
+  uint64 cursor = 4 [features.field_presence = IMPLICIT];
+  uint32 limit = 5 [features.field_presence = IMPLICIT];
+}

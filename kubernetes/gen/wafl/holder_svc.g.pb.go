@@ -7,8 +7,8 @@
 package wafl
 
 import (
+	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	_ "github.com/lesomnus/wafl/kubernetes/gen/orm"
-	patch "github.com/lesomnus/wafl/kubernetes/gen/patch"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -505,7 +505,7 @@ func (x *HolderPatchRequest) GetDateUpdatedForce() bool {
 type HolderApplyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ref           *HolderRef             `protobuf:"bytes,1,opt,name=ref" json:"ref,omitempty"`
-	Patch         *patch.Patch           `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
+	Patch         *patchpb.Patch         `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -547,7 +547,7 @@ func (x *HolderApplyRequest) GetRef() *HolderRef {
 	return nil
 }
 
-func (x *HolderApplyRequest) GetPatch() *patch.Patch {
+func (x *HolderApplyRequest) GetPatch() *patchpb.Patch {
 	if x != nil {
 		return x.Patch
 	}
@@ -1055,7 +1055,7 @@ var file_wafl_payday_holder_svc_g_proto_goTypes = []any{
 	(*TenantRef)(nil),             // 17: wafl.TenantRef
 	(*timestamppb.Timestamp)(nil), // 18: google.protobuf.Timestamp
 	(*TenantSelect)(nil),          // 19: wafl.TenantSelect
-	(*patch.Patch)(nil),           // 20: patch.Patch
+	(*patchpb.Patch)(nil),         // 20: patch.Patch
 	(*Holder)(nil),                // 21: wafl.Holder
 }
 var file_wafl_payday_holder_svc_g_proto_depIdxs = []int32{

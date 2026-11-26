@@ -10,24 +10,27 @@ Kubernetes가 복제본 유지와 rolling update를 담당하고, WAFL이 WASM �
 
 ## 로컬 개발과 설치
 
-앱 코드는 기존 언어 도구로 실행하고 디버깅합니다. WASM 번들만 확인하려면 단독 runner를 사용합니다. 전체 플랫폼을 로컬에서 검증할 때는 Docker와 kind를 설치하고 `wafl dev`를 실행합니다. 이 명령은 전용 kind 클러스터를 만들거나 재사용하고 controller·runner·Traefik을 설치합니다. 클러스터는 명령 종료 뒤에도 유지됩니다.
+`wafl app`·`wafl traffic`은 controller API만 호출하고, `wafl instance`·`wafl runner`·`wafl reservation`은 runner API만 호출합니다. 앱 사용자에게 Kubernetes 접근 권한을 요구하지 않습니다. 설치 전에 controller가 존재할 수 없으므로 최초 클러스터 설치는 별도 운영자 도구가 맡습니다. [API 계약](controller-api.md)을 참고하세요.
+
+앱 코드는 기존 언어 도구로 실행하고 디버깅합니다. WASM 번들만 확인하려면 단독 runner를 사용합니다. 전체 플랫폼을 로컬에서 검증할 때는 Docker와 kind를 설치하고 `wafl-kube bootstrap dev`를 실행합니다. 이 명령은 전용 kind 클러스터를 만들거나 재사용하고 controller·runner·Traefik을 설치합니다. 클러스터는 명령 종료 뒤에도 유지됩니다.
 
 ```sh
 bash scripts/build.sh
 export PATH="$PWD/target/debug:$PATH"
 bash scripts/bundle.sh "$PWD/examples/local/hello.tar.gz"
-wafl dev examples/local/app.yaml
-# 출력된 kubeconfig를 사용합니다.
-export KUBECONFIG="$HOME/.cache/wafl/dev/wafl/kubeconfig"
-kubectl get apps.wafl.opt.td,pods
+wafl-kube bootstrap dev examples/local/app.yaml
+# CLI에는 출력된 controller 주소만 필요합니다.
+export WAFL_ENDPOINT="http://127.0.0.1:8082"
+wafl app get @hello
 curl -H 'Host: hello.localhost' http://127.0.0.1:8080/
 ```
 
-다른 Kubernetes 클러스터에는 `wafl install`로 설치합니다. 클러스터당 WAFL 플랫폼 하나를 설치하고 controller replicas를 늘려 가용성을 확보합니다. 기본 인프라 namespace는 `wafl-system`입니다. 게이트웨이 Service는 NodePort 30080을 사용하며 운영 환경에 맞게 LoadBalancer나 기존 외부 프록시에 연결할 수 있습니다. CLI가 이미지를 내려받아 호스트에서 실행하지는 않습니다. 설치한 Deployment가 이미지를 사용합니다.
+다른 Kubernetes 클러스터에는 `wafl-kube bootstrap install`로 설치합니다. 클러스터당 WAFL 플랫폼 하나를 설치하고 controller replicas를 늘려 가용성을 확보합니다. 기본 인프라 namespace는 `wafl-system`입니다. 게이트웨이 Service는 NodePort 30080을 사용하며 운영 환경에 맞게 LoadBalancer나 기존 외부 프록시에 연결할 수 있습니다. CLI가 이미지를 내려받아 호스트에서 실행하지는 않습니다. 설치한 Deployment가 이미지를 사용합니다.
 
 ```sh
-wafl --context production install
-wafl --context production --namespace demo app add app.yaml
+wafl-kube bootstrap --context production install
+# 운영자가 제공한 controller 관리 API 주소로 연결합니다.
+wafl --endpoint https://control.example.com --tenant demo app add app.yaml
 ```
 
 ## App 예제
@@ -60,9 +63,9 @@ secrets:
     file: ./database-url
 ```
 
-`wafl app add`는 파일 번들 또는 HTTP(S) 번들의 digest를 계산합니다. 파일 번들은 `wafl dev` 클러스터의 개발용 asset 서버에 전달됩니다. 원격 클러스터에서는 runner가 접근할 수 있는 HTTP(S) URL을 사용하세요. Kubernetes에 직접 제출하는 App에는 `manifest.bundle.digest`가 필요합니다. mutable URL의 내용을 바꿔도 기존 배포의 실행 코드가 달라지지 않습니다.
+`wafl app add`는 로컬 파일 번들의 digest를 계산한 뒤 controller의 업로드 API로 보냅니다. 로컬 bootstrap은 업로드용 asset 서버를 설정합니다. HTTP(S) URL에 digest가 없으면 controller가 다운로드해 digest를 고정합니다. 원격 클러스터에서는 runner가 접근할 수 있는 HTTP(S) URL을 사용하세요. Kubernetes에 직접 제출하는 App에는 `manifest.bundle.digest`가 필요합니다. mutable URL의 내용을 바꿔도 기존 배포의 실행 코드가 달라지지 않습니다.
 
-일반 YAML의 secret 파일은 **CLI가 YAML 파일 기준 상대 경로에서 읽어** Kubernetes Secret으로 저장합니다. 이전 버전의 controller 파일 root 설정과 달라졌습니다. Kubernetes App의 `spec.secrets`에서는 같은 namespace의 `secretKeyRef`를 사용합니다. 파일의 개행을 포함한 UTF-8 내용을 그대로 전달합니다.
+일반 YAML의 secret 파일은 **CLI가 YAML 파일 기준 상대 경로에서 읽어** 쓰기 전용 값으로 controller에 보냅니다. controller가 Kubernetes Secret을 저장하며 로컬 경로를 읽지는 않습니다. Kubernetes App의 `spec.secrets`에서는 같은 namespace의 `secretKeyRef`를 사용합니다. 파일의 개행을 포함한 UTF-8 내용을 그대로 전달합니다.
 
 controller는 source Secret의 UID/resourceVersion과 값을 한 번 읽고 불변 Secret snapshot을 만듭니다. source 변경은 새 Pod template을 만들며 이전 ReplicaSet은 이전 snapshot을 계속 참조합니다. 보관된 ReplicaSet·Pod·Deployment 또는 App source가 참조하지 않는 오래된 snapshot은 GC합니다. 값은 App·Pod annotation·Instance 응답에 기록하지 않습니다. 원래 Kubernetes Secret과 snapshot은 Kubernetes Secret의 저장·접근 정책을 따릅니다.
 
@@ -72,7 +75,7 @@ App의 manifest, readiness, secret source 변경은 Deployment의 Pod template�
 
 readiness를 생략하면 TCP listen을 확인합니다. HTTP path 또는 gRPC Health service를 지정하면 앱 준비 상태를 확인합니다. gRPC 예시는 `readiness: {grpc: ""}`입니다. 빈 service 이름은 gRPC Health의 전체 서버 상태입니다.
 
-삭제되는 Pod는 새 요청을 받지 않고 기존 요청·스트림을 마무리합니다. 종료 유예 시간이 지나면 runner의 `Halt`가 실행을 종료하지만 **주소 예약은 유지**합니다. 모든 gateway observer가 닫혔고 활성 요청이 0임을 확인한 뒤 `Release`와 `Erase`를 수행합니다. 누락된 heartbeat는 연결 종료의 증거로 사용하지 않습니다. 관측이 유실되면 Pod finalizer 또는 실행 receipt가 남을 수 있으며, 해당 gateway와 연결이 실제로 종료됐음을 확인한 뒤 `wafl traffic close CONFIGMAP --withdrawn`으로 회수합니다.
+삭제되는 Pod는 새 요청을 받지 않고 기존 요청·스트림을 마무리합니다. 종료 유예 시간이 지나면 runner의 `Halt`가 실행을 종료하지만 **주소 예약은 유지**합니다. 모든 gateway observer가 닫혔고 활성 요청이 0임을 확인한 뒤 `Release`와 `Erase`를 수행합니다. 누락된 heartbeat는 연결 종료의 증거로 사용하지 않습니다. 관측이 유실되면 Pod finalizer 또는 실행 receipt가 남을 수 있으며, 해당 gateway와 연결이 실제로 종료됐음을 확인한 뒤 `wafl traffic close ID --withdrawn`으로 회수합니다.
 
 Traefik은 준비된 guest socket으로 직접 요청을 전달합니다. App용 ClusterIP Service도 Traefik을 통해 같은 관측 경로를 사용합니다. 정상 실행 중인 앱에 대한 요청마다 Kubernetes API를 호출하지 않습니다. guest 주소로 직접 요청하면 이 drain 계약에 포함되지 않으므로 플랫폼 앱 트래픽은 gateway 또는 App Service를 사용해야 합니다.
 
@@ -105,10 +108,10 @@ kubectl -n demo get pods -w
 
 runner를 늘리는 작업은 `kubectl -n wafl-system scale deployment/wafl-runner --replicas=3`입니다. runner Pod의 종료 hook은 먼저 가상 Node를 cordon하고 실행들을 drain합니다. 예제 runner Pod의 종료 유예는 60초이므로 더 긴 앱 스트림을 정상 완료시키려면 Pod 유예와 hook 대기 시간도 함께 조정해야 합니다. 강제 종료나 host 장애 시 진행 중이던 요청 자체를 재실행하지는 않습니다.
 
-`wafl dev --load --image LOCAL_TAG --gateway-image GATEWAY_TAG`는 로컬 Docker 이미지 두 개를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
+`wafl-kube bootstrap dev --load --image LOCAL_TAG --gateway-image GATEWAY_TAG`는 로컬 Docker 이미지 두 개를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
 
 ## 이전 버전에서 전환
 
 기존 PostgreSQL controller와 새 Kubernetes controller가 같은 runner를 동시에 관리하지 않도록 분리합니다. 기존 플랫폼에서 App YAML·secret 참조를 내보내고 새 클러스터에 등록하여 검증한 뒤 도메인의 게이트웨이를 전환합니다. 기존 요청을 drain한 뒤 이전 controller와 runner를 종료합니다. 기존 App/Placement UUID를 새 Pod의 UID로 재사용하지 않습니다.
 
-기존 controller JSON·`--configure`·AppService/PlacementService 관리 API는 새 제어평면에서 제공하지 않습니다. `wafl app`은 kubeconfig/namespace를 사용합니다. 기존 `wafl instance`, `wafl runner`, `wafl reservation`은 계속 runner endpoint를 사용합니다. App 수정은 `kubectl apply` 또는 `wafl app patch NAME --file patch.yaml`로 수행합니다. 자동 migration이나 기존 PostgreSQL 데이터 삭제는 하지 않습니다.
+기존 controller JSON·`--configure`·PlacementService 관리 API는 새 제어평면에서 제공하지 않습니다. `AppService`는 Kubernetes 저장소를 사용하는 controller API로 제공하며 `wafl app`은 endpoint/tenant만 사용합니다. kubeconfig와 namespace 기반 CLI 명령은 제거했고 설치 명령은 운영자 도구 `wafl-kube bootstrap install/dev`로 분리했습니다. 기존 `wafl instance`, `wafl runner`, `wafl reservation`은 계속 runner endpoint를 사용합니다. App 수정은 `kubectl apply` 또는 `wafl app patch NAME --file patch.yaml`로 수행합니다. 자동 migration이나 기존 PostgreSQL 데이터 삭제는 하지 않습니다.

@@ -5,6 +5,8 @@ import "orm.proto";
 import "patch/patch.proto";
 import "wafl/app.proto";
 import "wafl/app_source_svc.g.proto";
+import "wafl/instance_svc.g.proto";
+import "wafl/log.proto";
 import "wafl/manifest.proto";
 import "wafl/payday/tenant_svc.g.proto";
 import "wafl/secret.proto";
@@ -24,6 +26,10 @@ service AppService {
   rpc Erase(AppRef) returns (AppEraseResponse);
   // List reads Apps a page at a time.
   rpc List(AppListRequest) returns (AppListResponse);
+  // Stream one execution through the controller; no runner network access or
+  // Kubernetes port-forward is required. Omitted instance selects a ready
+  // execution once. The response metadata includes its wafl-instance UUID.
+  rpc Tail(AppTailRequest) returns (stream Log);
 }
 
 message AppAddRequest {
@@ -41,6 +47,8 @@ message AppAddRequest {
   repeated Secret secrets = 20 [(orm.field) = {type: TYPE_JSON}];
   Probe readiness = 21 [(orm.field) = {type: TYPE_JSON}];
   Rollout rollout = 22 [(orm.field) = {type: TYPE_JSON}];
+  map<string, string> secret_values = 23 [(orm.field) = {type: TYPE_JSON}];
+  AppStatus status = 24 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message AppGetRequest {
@@ -71,6 +79,8 @@ message AppSelect {
   bool secrets = 20;
   bool readiness = 21;
   bool rollout = 22;
+  bool secret_values = 23;
+  bool status = 24;
 }
 
 message AppPatchRequest {
@@ -110,6 +120,13 @@ message AppPatchRequest {
   // "leave it alone", so no value could have meant NULL. It wins
   // outright: setting both this and rollout clears.
   bool rollout_null = 45;
+  map<string, string> secret_values = 46 [(orm.field) = {type: TYPE_JSON}];
+  AppStatus status = 48 [(orm.field) = {type: TYPE_JSON}];
+  // Clear status instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and status clears.
+  bool status_null = 49;
 }
 
 message AppApplyRequest {
@@ -164,4 +181,13 @@ message AppListResponse {
 
 message AppFilter {
   AppRef ref = 1;
+}
+
+message AppTailRequest {
+  AppRef ref = 1;
+  InstanceRef instance = 2;
+  bool follow = 3 [features.field_presence = IMPLICIT];
+  // Resume requires an explicit instance so a cursor cannot change replicas.
+  uint64 cursor = 4 [features.field_presence = IMPLICIT];
+  uint32 limit = 5 [features.field_presence = IMPLICIT];
 }

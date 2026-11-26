@@ -7,8 +7,8 @@
 package wafl
 
 import (
+	patchpb "github.com/lesomnus/protobuf-patch/patchpb"
 	_ "github.com/lesomnus/wafl/kubernetes/gen/orm"
-	patch "github.com/lesomnus/wafl/kubernetes/gen/patch"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
@@ -709,7 +709,7 @@ func (x *AuditPatchRequest) GetDigestFields() []uint32 {
 type AuditApplyRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Ref           *AuditRef              `protobuf:"bytes,1,opt,name=ref" json:"ref,omitempty"`
-	Patch         *patch.Patch           `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
+	Patch         *patchpb.Patch         `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -751,7 +751,7 @@ func (x *AuditApplyRequest) GetRef() *AuditRef {
 	return nil
 }
 
-func (x *AuditApplyRequest) GetPatch() *patch.Patch {
+func (x *AuditApplyRequest) GetPatch() *patchpb.Patch {
 	if x != nil {
 		return x.Patch
 	}
@@ -1123,7 +1123,7 @@ var file_wafl_payday_audit_svc_g_proto_goTypes = []any{
 	(*AuditListResponse)(nil),     // 8: wafl.AuditListResponse
 	(*AuditFilter)(nil),           // 9: wafl.AuditFilter
 	(*timestamppb.Timestamp)(nil), // 10: google.protobuf.Timestamp
-	(*patch.Patch)(nil),           // 11: patch.Patch
+	(*patchpb.Patch)(nil),         // 11: patch.Patch
 	(*Audit)(nil),                 // 12: wafl.Audit
 }
 var file_wafl_payday_audit_svc_g_proto_depIdxs = []int32{
