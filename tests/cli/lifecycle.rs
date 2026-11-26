@@ -1,7 +1,7 @@
 use super::*;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-async fn cli_discovers_session_drains_resumes_and_rejects_pre_restart_mutations() {
+async fn cli_discovers_session_drains_resumes_and_rejects_pre_restart_requests() {
     let directory = tempfile::tempdir().unwrap();
     let source = tempfile::tempdir().unwrap();
     let path = source.path().join("bundle.tgz");
@@ -15,6 +15,13 @@ async fn cli_discovers_session_drains_resumes_and_rejects_pre_restart_mutations(
     assert_eq!(status.ingress, server.ingress.to_string());
     assert!(status.accepting);
     let session = paydirt::format_id(&status.id).unwrap();
+    for args in [vec!["runner", "list"], vec!["runner", "get", &session]] {
+        let mut flags = vec!["--json"];
+        flags.extend(args);
+        let row: wafl_runner::proto::wafl::Runner =
+            serde_json::from_slice(&success(cli(&server.endpoint, &flags).await)).unwrap();
+        assert_eq!(row.id, status.id);
+    }
     let id = paydirt::format_id(&paydirt::mint(7)).unwrap();
     let app = instance(
         &server.endpoint,
@@ -95,6 +102,27 @@ async fn cli_discovers_session_drains_resumes_and_rejects_pre_restart_mutations(
         .success()
     );
     instance(&restarted.endpoint, &["add", url.as_str(), "--id", &id]).await;
+    for args in [
+        vec!["runner", "get"],
+        vec!["runner", "list"],
+        vec!["instance", "get", &id],
+        vec!["instance", "list"],
+        vec!["instance", "logs", &id],
+        vec!["reservation", "get", "127.0.0.1:20000"],
+        vec!["reservation", "list"],
+    ] {
+        let mut flags = vec!["--session", &session];
+        flags.extend(args);
+        let output = cli(&restarted.endpoint, &flags).await;
+        assert!(!output.status.success(), "stale read succeeded: {flags:?}");
+        assert!(
+            String::from_utf8_lossy(&output.stderr)
+                .to_lowercase()
+                .contains("runner session changed"),
+            "stale read did not reject the session: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
     restarted.stop().await;
 }
 

@@ -27,7 +27,7 @@ struct Cli {
     /// Print protobuf JSON responses (one record per line for logs).
     #[arg(long, global = true)]
     json: bool,
-    /// Reject a mutation if the runner process has restarted.
+    /// Select a runner session through a controller; fence mutations on a runner.
     #[arg(long, global = true)]
     session: Option<String>,
     /// Require this lifecycle revision (requires --session).
@@ -47,7 +47,7 @@ enum Command {
         #[command(subcommand)]
         action: reservations::Command,
     },
-    /// Inspect the current runner session and capacity.
+    /// Inspect runner sessions and capacity through either endpoint.
     Runner {
         #[command(subcommand)]
         action: RunnerCommand,
@@ -65,7 +65,11 @@ enum Command {
 }
 #[derive(Subcommand)]
 enum RunnerCommand {
-    Get,
+    Get {
+        #[arg(value_name = "ID|@ALIAS", default_value = "@self")]
+        reference: String,
+    },
+    List,
 }
 #[derive(Subcommand)]
 enum Serve {
@@ -219,6 +223,60 @@ fn print_instance(instance: &Instance, json: bool) -> Result<()> {
     }
     Ok(())
 }
+
+fn warning_headers(headers: &http::HeaderMap) {
+    use std::{
+        collections::HashSet,
+        sync::{Mutex, OnceLock},
+    };
+    static SEEN: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    for value in headers.get_all("wafl-warning") {
+        if let Ok(value) = value.to_str()
+            && let Ok(mut seen) = SEEN.get_or_init(Default::default).lock()
+            && seen.insert(value.to_owned())
+        {
+            eprintln!("warning: {value}");
+        }
+    }
+}
+fn owned<V: buffa::MessageView<'static>>(
+    response: connectrpc::client::UnaryResponse<buffa::OwnedView<V>>,
+) -> V::Owned {
+    warning_headers(response.headers());
+    response.into_owned()
+}
+fn runner_reference(value: &str) -> Result<RunnerRef> {
+    let key = if let Some(alias) = value.strip_prefix('@') {
+        ensure!(!alias.is_empty(), "runner alias must not be empty");
+        runner_ref::Key::Alias(alias.into())
+    } else {
+        runner_ref::Key::Id(
+            paydirt::parse_id(value)
+                .filter(|id| paydirt::has_domain(id, 8))
+                .context("expected a Runner UUID or @alias")?
+                .to_vec(),
+        )
+    };
+    Ok(RunnerRef {
+        key: Some(key),
+        ..Default::default()
+    })
+}
+fn print_runner(value: &Runner, json: bool) -> Result<()> {
+    if json {
+        println!("{}", serde_json::to_string(value)?);
+    } else {
+        println!(
+            "{}\t@{}\tingress={}\tcontrol={}\taccepting={}",
+            paydirt::format_id(&value.id).context("invalid runner ID")?,
+            value.alias,
+            value.ingress,
+            value.control,
+            value.accepting
+        );
+    }
+    Ok(())
+}
 impl Add {
     fn request(self) -> Result<InstanceAddRequest> {
         let tenant = paydirt::parse_id(&self.tenant)
@@ -351,34 +409,35 @@ async fn main() -> Result<()> {
             eprintln!("bundle directory: {}", config.directory()?.display());
             return host::serve(config).await;
         }
-        Command::Runner {
-            action: RunnerCommand::Get,
-        } => {
+        Command::Runner { action } => {
             let client = RunnerServiceClient::new(
                 HttpClient::plaintext(),
-                client_config(&cli.endpoint, None, None)?,
+                client_config(&cli.endpoint, cli.session.as_deref(), None)?,
             );
-            let value = client
-                .get(RunnerGetRequest {
-                    r#ref: Some(RunnerRef {
-                        key: Some(runner_ref::Key::Alias("self".into())),
-                        ..Default::default()
-                    })
-                    .into(),
-                    ..Default::default()
-                })
-                .await?
-                .into_owned();
-            if cli.json {
-                println!("{}", serde_json::to_string(&value)?);
-            } else {
-                println!(
-                    "{}\tingress={}\tcontrol={}\taccepting={}",
-                    paydirt::format_id(&value.id).context("invalid runner ID")?,
-                    value.ingress,
-                    value.control,
-                    value.accepting
-                );
+            match action {
+                RunnerCommand::Get { reference } => {
+                    let value = client
+                        .get(RunnerGetRequest {
+                            r#ref: Some(runner_reference(&reference)?).into(),
+                            ..Default::default()
+                        })
+                        .await
+                        .map(owned)?;
+                    print_runner(&value, cli.json)?;
+                }
+                RunnerCommand::List => {
+                    let mut request = RunnerListRequest::default();
+                    loop {
+                        let page = client.list(request.clone()).await.map(owned)?;
+                        for value in &page.items {
+                            print_runner(value, cli.json)?;
+                        }
+                        if page.next.is_empty() {
+                            break;
+                        }
+                        request.after = page.next;
+                    }
+                }
             }
             return Ok(());
         }
@@ -389,18 +448,17 @@ async fn main() -> Result<()> {
         client_config(&cli.endpoint, cli.session.as_deref(), cli.revision)?,
     );
     match action {
-        InstanceCommand::Add(args) => print_instance(
-            &client.add((*args).request()?).await?.into_owned(),
-            cli.json,
-        )?,
+        InstanceCommand::Add(args) => {
+            print_instance(&client.add((*args).request()?).await.map(owned)?, cli.json)?
+        }
         InstanceCommand::Get(args) => print_instance(
             &client
                 .get(InstanceGetRequest {
                     r#ref: Some(reference(&args.reference)?).into(),
                     ..Default::default()
                 })
-                .await?
-                .into_owned(),
+                .await
+                .map(owned)?,
             cli.json,
         )?,
         InstanceCommand::Start(args) => print_instance(
@@ -409,8 +467,8 @@ async fn main() -> Result<()> {
                     r#ref: Some(reference(&args.reference)?).into(),
                     ..Default::default()
                 })
-                .await?
-                .into_owned(),
+                .await
+                .map(owned)?,
             cli.json,
         )?,
         InstanceCommand::Stop(args) => print_instance(
@@ -419,8 +477,8 @@ async fn main() -> Result<()> {
                     r#ref: Some(reference(&args.reference)?).into(),
                     ..Default::default()
                 })
-                .await?
-                .into_owned(),
+                .await
+                .map(owned)?,
             cli.json,
         )?,
         InstanceCommand::Drain(args) => print_instance(
@@ -431,8 +489,8 @@ async fn main() -> Result<()> {
                     force: args.force,
                     ..Default::default()
                 })
-                .await?
-                .into_owned(),
+                .await
+                .map(owned)?,
             cli.json,
         )?,
         InstanceCommand::Release(args) => print_instance(
@@ -442,15 +500,12 @@ async fn main() -> Result<()> {
                     generation: args.generation,
                     ..Default::default()
                 })
-                .await?
-                .into_owned(),
+                .await
+                .map(owned)?,
             cli.json,
         )?,
         InstanceCommand::Erase(args) => {
-            let result = client
-                .erase(reference(&args.reference)?)
-                .await?
-                .into_owned();
+            let result = client.erase(reference(&args.reference)?).await.map(owned)?;
             if cli.json {
                 println!("{}", serde_json::to_string(&result)?);
             } else {
@@ -460,7 +515,7 @@ async fn main() -> Result<()> {
         InstanceCommand::List => {
             let mut request = InstanceListRequest::default();
             loop {
-                let page = client.list(request.clone()).await?.into_owned();
+                let page = client.list(request.clone()).await.map(owned)?;
                 for instance in &page.items {
                     print_instance(instance, cli.json)?;
                 }
@@ -480,6 +535,7 @@ async fn main() -> Result<()> {
                     ..Default::default()
                 })
                 .await?;
+            warning_headers(stream.headers());
             loop {
                 let message = tokio::select! { message = stream.message() => message?, _ = tokio::signal::ctrl_c() => break };
                 let Some(message) = message else {
@@ -511,7 +567,7 @@ fn client_config(
     let uri: http::Uri = endpoint.parse().context("invalid endpoint")?;
     ensure!(
         uri.scheme_str() == Some("http") && uri.authority().is_some(),
-        "runner endpoint must be an http:// address"
+        "management endpoint must be an http:// address"
     );
     let mut headers = http::HeaderMap::new();
     if let Some(session) = session {

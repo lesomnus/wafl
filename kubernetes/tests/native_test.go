@@ -57,7 +57,15 @@ func (s *suite) command(name string, args ...string) []byte {
 }
 func (s *suite) client(args ...string) []byte {
 	s.t.Helper()
-	cmd := exec.CommandContext(s.ctx, s.cli, append([]string{"--endpoint", s.control, "--tenant", s.ns}, args...)...)
+	stdout, stderr, e := s.clientOutput(append([]string{"--tenant", s.ns}, args...)...)
+	if e != nil {
+		s.t.Fatalf("WAFL API client failed: %v\n%s\n%s", e, stdout, stderr)
+	}
+	return stdout
+}
+func (s *suite) clientOutput(args ...string) ([]byte, []byte, error) {
+	s.t.Helper()
+	cmd := exec.CommandContext(s.ctx, s.cli, append([]string{"--endpoint", s.control}, args...)...)
 	// Only the test harness is an operator. The client has neither Kubernetes
 	// credentials nor kubectl/Docker/kind executables available.
 	for _, variable := range os.Environ() {
@@ -69,11 +77,10 @@ func (s *suite) client(args ...string) []byte {
 		}
 	}
 	cmd.Env = append(cmd.Env, "PATH=/no-kubernetes-helpers", "KUBECONFIG=/unavailable/kubeconfig", "KUBERNETES_SERVICE_HOST=127.0.0.1", "KUBERNETES_SERVICE_PORT=1")
-	data, e := cmd.CombinedOutput()
-	if e != nil {
-		s.t.Fatalf("WAFL API client failed: %v\n%s", e, data)
-	}
-	return data
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout, cmd.Stderr = &stdout, &stderr
+	e := cmd.Run()
+	return stdout.Bytes(), stderr.Bytes(), e
 }
 func (s *suite) bundle(guest string) map[string]any {
 	s.t.Helper()
@@ -255,6 +262,7 @@ func TestNativePlatform(t *testing.T) {
 		s.t = t
 		a := s.add("web", map[string]any{"manifest": map[string]any{"bundle": socket, "env": map[string]any{"GREETING": "old"}}, "readiness": map[string]any{"http": "/ready"}})
 		old := s.ready(a)
+		s.catalog(old)
 		s.response("web", "old:")
 		s.patch("web", map[string]any{"manifest": map[string]any{"env": map[string]any{"GREETING": "new", "READY": "false"}}})
 		eventually(t, "unready replacement exists", 30*time.Second, func() bool { return len(s.pods(a)) >= 2 })

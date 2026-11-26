@@ -1,6 +1,6 @@
 # wafl CLI
 
-`wafl app`과 `wafl traffic`은 controller API만 사용합니다. `--endpoint`/`WAFL_ENDPOINT`로 주소를 지정하며 Kubernetes API, kubeconfig, kubectl을 사용하지 않습니다. 설치는 운영자 도구 `wafl-kube bootstrap`이 담당합니다. 전체 과정은 [Kubernetes native 튜토리얼](kubernetes-native.md)에 있습니다. 아래 Instance 명령은 개별 runner에 직접 연결하며 Kubernetes가 필요 없습니다.
+`wafl app`과 `wafl traffic`은 controller API를 사용합니다. `wafl instance`·`wafl runner`·`wafl reservation`은 controller 또는 개별 runner에 연결합니다. `--endpoint`/`WAFL_ENDPOINT`로 주소를 지정하며 Kubernetes API, kubeconfig, kubectl을 사용하지 않습니다. 설치는 운영자 도구 `wafl-kube bootstrap`이 담당합니다. 전체 과정은 [Kubernetes native 튜토리얼](kubernetes-native.md)에 있습니다. 아래 예제는 단독 runner를 사용합니다.
 
 이 문서의 기본 예제는 proxy 모드입니다. L7에서 WASM 소켓에 직접 연결하는 설정, endpoint 출력과 `release` 명령은 [직결 튜토리얼](direct.md)을 참고하세요. 직결 출력은 `<UUID>\t@alias\t<endpoint.address>`이며 `--idle-ms`·`--max-active`는 생략 또는 0만 허용합니다.
 
@@ -64,6 +64,10 @@ hello 예제는 시작과 요청을 stdout에 기록합니다. `logs -f` 터미�
 ## 연결과 실행 설정
 
 기본 관리 endpoint는 `http://127.0.0.1:8081`입니다. `--endpoint` 또는 `WAFL_ENDPOINT`로 변경합니다. CLI의 관리 연결은 현재 HTTP Connect transport를 사용합니다. 번들 소스는 HTTP·HTTPS·file을 지원합니다.
+
+플랫폼 전체를 조회할 때는 `WAFL_ENDPOINT=http://127.0.0.1:8082`로 controller를 지정합니다. `wafl runner list`는 runner별 세션·alias·주소를, `wafl runner get <ID|@alias>`는 선택한 runner를 반환합니다. 표 출력은 `<UUID>\t@alias\tingress=...\tcontrol=...\taccepting=...`이고 `--json`으로 capacity·usage 등 전체 protobuf 필드를 볼 수 있습니다. 단독 runner의 `runner get`은 인자를 생략하면 `@self`입니다.
+
+controller에서는 연결에 실패한 runner의 경고를 stderr에 출력하면서 정상 목록을 반환합니다. 목록 명령은 전체 runner가 실패해 빈 결과를 반환해도 성공합니다. `--session <Runner ID>`로 runner 하나의 범위를 선택하며, alias를 사용하는 변경 명령과 `instance add`, `reservation release`에는 이 선택이 필수입니다. 사용 예와 오류·커서 계약은 [controller 집계 API](controller-api.md#runnerinstancereservation-집계)에 있습니다.
 
 ```sh
 wafl serve runner /srv/wafl-cache \

@@ -15,9 +15,9 @@ wafl runner get
 wafl --json runner get
 ```
 
-`Runner`는 domain 8의 일반 Payday entity입니다. 여러 tenant를 호스팅하는 프로세스의 정보이므로 `global: {}`를 명시하며 tenant를 임의로 붙이지 않습니다. 생성된 `RunnerService.Get`/`List`를 runner의 메모리 layer가 구현합니다. `Get`의 ref는 현재 Runner ID 또는 `{"alias":"self"}`입니다. `List`는 현재 프로세스 한 개만 반환하며 다른 runner를 검색하지 않습니다. Get select는 ID와 선택한 필드를 반환합니다.
+`Runner`는 domain 8의 일반 Payday entity입니다. 여러 tenant를 호스팅하는 프로세스의 정보이므로 `global: {}`를 명시하며 tenant를 임의로 붙이지 않습니다. 생성된 `RunnerService.Get`/`List`를 runner의 메모리 layer가 구현합니다. runner의 `Get` ref는 현재 Runner ID 또는 `{"alias":"self"}`이며 `List`는 현재 프로세스 한 개만 반환합니다. controller는 같은 RPC로 감독하는 runner들을 집계하며 alias는 virtual Node 이름입니다. Get select는 ID와 선택한 필드를 반환합니다. [집계 API 계약](controller-api.md)에 부분 장애와 세션 선택 예제가 있습니다.
 
-ID는 **실행 세션**이며 재시작마다 바뀝니다. Instance의 `session`과 OTLP `service.instance.id`가 같은 세션을 가리킵니다. `runtime`, `abi`, `version`, `capabilities`, `ingress`, `control`, `accepting`, `capacity`, `usage`를 조회할 수 있습니다. 주소는 bind 주소이며 외부에서 접근 가능한 advertise 주소나 gateway 경로를 자동 계산하지 않습니다. `0.0.0.0`을 접속 대상으로 사용하면 안 됩니다.
+ID는 **실행 세션**이며 재시작마다 바뀝니다. Instance의 `session`과 OTLP `service.instance.id`가 같은 세션을 가리킵니다. `runtime`, `abi`, `version`, `capabilities`, `ingress`, `control`, `accepting`, `capacity`, `usage`를 조회할 수 있습니다. runner 응답의 주소는 bind 주소이며 외부에서 접근 가능한 advertise 주소나 gateway 경로를 자동 계산하지 않습니다. `0.0.0.0`을 접속 대상으로 사용하면 안 됩니다. controller 응답의 `control`은 controller가 조회한 runner URL입니다.
 
 ## 수락 제한
 
@@ -90,6 +90,8 @@ wafl --session "$session" --revision "$revision" instance drain @hello
 ```
 
 관리 RPC metadata의 `wafl-session`은 domain-8 UUID 문자열이고 `wafl-revision`은 십진 uint64 문자열입니다. revision을 지정하려면 session도 필요합니다. Add는 session만 받고 Start/Stop/Drain/Erase는 둘 다 받습니다. 기존 generated Add/Erase 요청 모양을 유지하기 위해 metadata를 사용합니다. 생략한 호출은 기존대로 현재 상태를 대상으로 실행합니다.
+
+Runner·Instance·Reservation의 Get/List와 Instance.Tail도 선택적인 `wafl-session`을 검사합니다. controller가 조회한 후 runner가 재시작되더라도 이전 세션으로 다른 실행의 결과나 로그를 반환하지 않습니다.
 
 다른 세션은 `FAILED_PRECONDITION`, 다른 revision은 `ABORTED`입니다. revision 검사와 변경은 같은 잠금 안에서 처리합니다. revision은 프로세스 전체에서 단조 증가하므로 같은 ID를 Erase 후 다시 Add해도 옛 명령이 새 Instance에 적용되지 않습니다. Get/List의 조회 값과 후속 명령 사이에 상태가 바뀌면 다시 조회하고 판단합니다. 요청 수의 변화마다 revision을 올리지는 않습니다.
 
