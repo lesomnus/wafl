@@ -131,9 +131,10 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
     async fn get(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceGetRequest>,
     ) -> ServiceResult<Instance> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let req = req.to_owned_message();
         let mut value = self
             .0
@@ -201,9 +202,10 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
     async fn list(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceListRequest>,
     ) -> ServiceResult<InstanceListResponse> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let req = req.to_owned_message();
         if req.filters.len() > 64 {
             return Err(ConnectError::invalid_argument(
@@ -331,9 +333,10 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
     async fn tail(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, InstanceTailRequest>,
     ) -> ServiceResult<connectrpc::ServiceStream<Log>> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let req = req.to_owned_message();
         Response::ok(
             self.app(&req.r#ref)?
@@ -408,9 +411,10 @@ impl<N: RunnerService> RunnerServiceLayer<N> for Instances {
     async fn get(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, RunnerGetRequest>,
     ) -> ServiceResult<crate::proto::wafl::Runner> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let req = req.to_owned_message();
         if !self.runner_match(&req.r#ref)? {
             return Err(ConnectError::not_found("runner session not found"));
@@ -455,9 +459,10 @@ impl<N: RunnerService> RunnerServiceLayer<N> for Instances {
     async fn list(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, RunnerListRequest>,
     ) -> ServiceResult<RunnerListResponse> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let req = req.to_owned_message();
         if req.filters.len() > 64 {
             return Err(ConnectError::invalid_argument(

@@ -28,6 +28,8 @@ type Controller struct {
 	Clients                                                                              *Clients
 	Namespace, Listen, ActivationListen, Control, Activate, Entrypoint, Identity, Assets string
 	Traffic                                                                              *Traffic
+	RunnerTimeout                                                                        time.Duration
+	RunnerParallel                                                                       int
 }
 
 func (c *Controller) reconcile(ctx context.Context) error {
@@ -242,8 +244,15 @@ func (c *Controller) configuration(ctx context.Context) (map[string]any, error) 
 	return map[string]any{"http": httpConfig}, nil
 }
 func (c *Controller) Serve(ctx context.Context) error {
+	if c.RunnerTimeout < 0 || c.RunnerParallel < 0 || c.RunnerParallel > 128 {
+		return errors.New("runner query timeout must be nonnegative and parallelism must be between 0 and 128; zero uses the default")
+	}
 	c.Traffic = &Traffic{Clients: c.Clients, Namespace: c.Namespace}
+	catalog := &Catalog{Clients: c.Clients, Namespace: c.Namespace, Timeout: c.RunnerTimeout, Parallel: c.RunnerParallel}
 	mux := http.NewServeMux()
+	mux.Handle(waflconnect.NewRunnerServiceHandler(&RunnerAPI{Catalog: catalog}))
+	mux.Handle(waflconnect.NewInstanceServiceHandler(&InstanceAPI{Catalog: catalog}, connect.WithReadMaxBytes(2<<20)))
+	mux.Handle(waflconnect.NewReservationServiceHandler(&ReservationAPI{Catalog: catalog}))
 	mux.Handle(waflconnect.NewTrafficServiceHandler(c.Traffic))
 	mux.Handle(waflconnect.NewAppServiceHandler(&AppAPI{Clients: c.Clients}, connect.WithReadMaxBytes(2<<20)))
 	mux.HandleFunc("PUT /bundles/{digest}", c.upload)

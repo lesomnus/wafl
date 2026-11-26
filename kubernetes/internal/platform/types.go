@@ -253,14 +253,18 @@ func rpcError(err error) error {
 }
 
 type RunnerClient struct {
-	URL       string
-	Instances waflconnect.InstanceServiceClient
-	Runners   waflconnect.RunnerServiceClient
+	URL          string
+	Instances    waflconnect.InstanceServiceClient
+	Runners      waflconnect.RunnerServiceClient
+	Reservations waflconnect.ReservationServiceClient
 }
 
 func NewRunner(url string) *RunnerClient {
 	h := &http.Client{Transport: &http.Transport{DialContext: (&net.Dialer{Timeout: 5 * time.Second}).DialContext, IdleConnTimeout: time.Minute}}
-	return &RunnerClient{url, waflconnect.NewInstanceServiceClient(h, url, connect.WithProtoJSON()), waflconnect.NewRunnerServiceClient(h, url, connect.WithProtoJSON())}
+	return runnerClient(url, h)
+}
+func runnerClient(url string, h *http.Client) *RunnerClient {
+	return &RunnerClient{URL: url, Instances: waflconnect.NewInstanceServiceClient(h, url, connect.WithProtoJSON()), Runners: waflconnect.NewRunnerServiceClient(h, url, connect.WithProtoJSON()), Reservations: waflconnect.NewReservationServiceClient(h, url, connect.WithProtoJSON())}
 }
 func request[T any](msg *T, session []byte, revision uint64) *connect.Request[T] {
 	r := connect.NewRequest(msg)

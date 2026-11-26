@@ -49,6 +49,8 @@ func Command() *cobra.Command {
 	f.StringVar(&controller.Activate, "activate", "", "Activator origin reachable by Traefik")
 	f.StringVar(&controller.Entrypoint, "entrypoint", "web", "Traefik entrypoint")
 	f.StringVar(&controller.Assets, "assets", "", "Optional shared asset store origin for file uploads")
+	f.DurationVar(&controller.RunnerTimeout, "runner-timeout", 3*time.Second, "Deadline for each runner during catalog queries")
+	f.IntVar(&controller.RunnerParallel, "runner-parallel", 16, "Maximum concurrent runner catalog queries")
 	var name, runner string
 	node := &cobra.Command{Use: "node", RunE: func(cmd *cobra.Command, _ []string) error {
 		if name == "" {

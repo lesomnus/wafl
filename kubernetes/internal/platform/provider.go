@@ -580,6 +580,7 @@ func (p *Provider) Serve(ctx context.Context) error {
 		}
 	}
 	p.node = &core.Node{ObjectMeta: meta.ObjectMeta{Name: p.Name, Labels: map[string]string{Runtime: "wasmtime", "kubernetes.io/os": "wasi", "kubernetes.io/arch": "wasm32", "node.kubernetes.io/exclude-from-external-load-balancers": "true"}, Annotations: map[string]string{Runner: p.Runner.URL}}, Spec: core.NodeSpec{Taints: []core.Taint{{Key: Runtime, Value: "wasmtime", Effect: core.TaintEffectNoSchedule}}}, Status: core.NodeStatus{Conditions: []core.NodeCondition{{Type: core.NodeReady, Status: core.ConditionTrue, Reason: "RunnerReady", LastHeartbeatTime: meta.Now(), LastTransitionTime: meta.Now()}}, NodeInfo: core.NodeSystemInfo{OperatingSystem: "wasi", Architecture: "wasm32", KubeletVersion: "v1.37.1"}}}
+	p.node.Annotations[Group+"/namespace"] = p.Namespace
 	if physical := os.Getenv("POD_NAME"); physical != "" {
 		pod, e := p.Clients.Kube.CoreV1().Pods(p.Namespace).Get(ctx, physical, meta.GetOptions{})
 		if e != nil {

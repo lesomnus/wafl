@@ -15,9 +15,10 @@ impl<N: ReservationService> ReservationServiceLayer<N> for Instances {
     async fn get(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, ReservationGetRequest>,
     ) -> ServiceResult<Reservation> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let req = req.to_owned_message();
         let mut value = self.0.ports()?.get((*req.r#ref).clone()).await?;
         if let Some(select) = req.select.as_option()
@@ -51,9 +52,10 @@ impl<N: ReservationService> ReservationServiceLayer<N> for Instances {
     async fn list(
         &self,
         _: &N,
-        _: RequestContext,
+        ctx: RequestContext,
         req: ServiceRequest<'_, ReservationListRequest>,
     ) -> ServiceResult<ReservationListResponse> {
+        self.0.check_session(condition(&ctx)?.session)?;
         let mut req = req.to_owned_message();
         if req.filters.len() > 64 {
             return Err(ConnectError::invalid_argument(
