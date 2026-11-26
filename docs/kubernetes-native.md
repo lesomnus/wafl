@@ -133,6 +133,7 @@ provider 재시작과 controller 리더 교체를 검사합니다.
 
 | 시나리오 | 확인 |
 |---|---|
+| 배정 전 취소 | runner 용량을 초과해 Pending인 Pod를 0개로 축소했을 때 provider 없이도 finalizer와 Pod가 정리되는지 확인합니다 |
 | WASM A → B → A | 컴파일 시 버전이 다른 실행 파일과 tar.gz digest를 사용합니다. 새 요청의 응답에서 바이너리를 식별하고 기존 gRPC 스트림이 정상 종료된 뒤 이전 실행과 receipt가 제거되는지 확인합니다 |
 | runner 2 → 3 → 2 | 실제 Deployment의 replicas를 바꿉니다. 가상 Node가 늘고 새 runner에 WASM이 배정되며, 축소할 때 기존 스트림을 완료하고 실행·가상 Node를 회수하는지 확인합니다 |
 | runner/provider 이미지 교체 | 게시된 `2e463666` 이미지의 고정 digest에서 현재 소스로 빌드한 이미지로 두 컨테이너를 교체합니다. 실제 image ID 변경·앱 재배정·기존 스트림 완료·이전 실행 회수를 확인합니다 |

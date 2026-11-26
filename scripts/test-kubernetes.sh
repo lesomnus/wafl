@@ -29,7 +29,8 @@ if [ -z "${WAFL_TEST_KUBECONFIG:-}" ]; then
   docker build -t "$image" "$stage"
   docker build -f Dockerfile.traefik -t "$gateway" .
   "$target/debug/wafl-kube" bootstrap dev --name "$cluster" --image "$image" --gateway-image "$gateway" --load --port "${WAFL_TEST_PORT:-18080}" --control-port "${WAFL_TEST_CONTROL_PORT:-18082}"
-  if [ -z "${WAFL_TEST_BASELINE_OVERRIDE:-}" ]; then
+  # A custom WAFL_TEST_BASELINE_IMAGE must already exist in the Docker daemon.
+  if [ "$baseline" = wafl:kubernetes-baseline-2e463666 ]; then
     # Published predecessor 2e4636662980411a9d229bff32f5b8ed9d3cffdb.
     reference=ghcr.io/lesomnus/wafl@sha256:0b357c3ddeb927b5e3d587d6d5bd1a4d5f97e373ff71166f17f3fcdf2a4bedd2
     docker pull "$reference"

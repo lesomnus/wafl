@@ -17,6 +17,9 @@ import (
 // heartbeat times out. Fail its sandboxes promptly; retain receipts until all
 // observers acknowledge closure. No live runner reservation is reclaimed here.
 func (c *Controller) reap(ctx context.Context) error {
+	if e := c.reapUnscheduled(ctx); e != nil {
+		return e
+	}
 	nodes, e := c.Clients.Kube.CoreV1().Nodes().List(ctx, meta.ListOptions{LabelSelector: Runtime + "=wasmtime"})
 	if e != nil {
 		return e
@@ -108,6 +111,34 @@ func (c *Controller) reap(ctx context.Context) error {
 		}
 		if v.Closed && v.Active == 0 && time.Now().UnixMilli()-int64(v.DateSeen) > 600000 {
 			_ = c.Clients.Kube.CoreV1().ConfigMaps(c.Namespace).Delete(ctx, cm.Name, meta.DeleteOptions{Preconditions: &meta.Preconditions{ResourceVersion: Ptr(cm.ResourceVersion)}})
+		}
+	}
+	return nil
+}
+
+// A Pod cancelled before scheduling never had a provider or runner execution.
+// Its template finalizer must not leave scale-down/rollback stuck forever.
+func (c *Controller) reapUnscheduled(ctx context.Context) error {
+	pods, err := c.Clients.Kube.CoreV1().Pods("").List(ctx, meta.ListOptions{LabelSelector: Managed + "=true", FieldSelector: "spec.nodeName="})
+	if err != nil {
+		return err
+	}
+	for _, pod := range pods.Items {
+		if !managed(&pod) || pod.Spec.NodeName != "" || pod.DeletionTimestamp == nil || !slices.Contains(pod.Finalizers, Finalizer) {
+			continue
+		}
+		pod.Finalizers = slices.DeleteFunc(pod.Finalizers, func(value string) bool { return value == Finalizer })
+		// resourceVersion fences a scheduler binding after the list snapshot.
+		updated, err := c.Clients.Kube.CoreV1().Pods(pod.Namespace).Update(ctx, &pod, meta.UpdateOptions{})
+		if apierrors.IsConflict(err) || apierrors.IsNotFound(err) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		err = c.Clients.Kube.CoreV1().Pods(pod.Namespace).Delete(ctx, pod.Name, meta.DeleteOptions{GracePeriodSeconds: Ptr(int64(0)), Preconditions: &meta.Preconditions{UID: Ptr(updated.UID), ResourceVersion: Ptr(updated.ResourceVersion)}})
+		if err != nil && !apierrors.IsNotFound(err) && !apierrors.IsConflict(err) {
+			return err
 		}
 	}
 	return nil

@@ -264,6 +264,20 @@ func (s *suite) released(p core.Pod) {
 }
 
 func (s *suite) lifecycle(t *testing.T) {
+	if !t.Run("unscheduled_scale_down", func(t *testing.T) {
+		s := *s
+		s.t = t
+		app := s.add("pending", map[string]any{"replicas": int64(1), "manifest": map[string]any{"bundle": s.bundle("grpc-a"), "protocol": "h2c", "memoryBytes": s.spreadMemory() * 4}})
+		eventually(t, "capacity leaves an unassigned Pod", 30*time.Second, func() bool {
+			pods := s.pods(app)
+			return len(pods) == 1 && pods[0].Spec.NodeName == "" && pods[0].Status.Phase == core.PodPending
+		})
+		s.patch("pending", map[string]any{"replicas": int64(0)})
+		eventually(t, "cancelled unscheduled Pod is deleted", 15*time.Second, func() bool { return len(s.pods(app)) == 0 })
+		s.remove(app)
+	}) {
+		return
+	}
 	if !t.Run("binary_update_and_rollback", func(t *testing.T) {
 		s := *s
 		s.t = t
