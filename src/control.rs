@@ -305,6 +305,17 @@ impl<N: InstanceService> InstanceServiceLayer<N> for Instances {
         Response::ok(app.snapshot())
     }
 
+    async fn halt(
+        &self,
+        _: &N,
+        ctx: RequestContext,
+        req: ServiceRequest<'_, InstanceStopRequest>,
+    ) -> ServiceResult<Instance> {
+        let app = self.app(&req.to_owned_message().r#ref)?;
+        app.halt(condition(&ctx)?).await?;
+        Response::ok(app.snapshot())
+    }
+
     async fn release(
         &self,
         _: &N,

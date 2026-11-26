@@ -39,6 +39,8 @@ message AppAddRequest {
   ScaleState state = 18 [(orm.field) = {type: TYPE_JSON}];
   AppSourceRef source = 19;
   repeated Secret secrets = 20 [(orm.field) = {type: TYPE_JSON}];
+  Probe readiness = 21 [(orm.field) = {type: TYPE_JSON}];
+  Rollout rollout = 22 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message AppGetRequest {
@@ -67,6 +69,8 @@ message AppSelect {
   bool state = 18;
   AppSourceSelect source = 19;
   bool secrets = 20;
+  bool readiness = 21;
+  bool rollout = 22;
 }
 
 message AppPatchRequest {
@@ -94,6 +98,18 @@ message AppPatchRequest {
   // outright: setting both this and state clears.
   bool state_null = 37;
   repeated Secret secrets = 40 [(orm.field) = {type: TYPE_JSON}];
+  Probe readiness = 42 [(orm.field) = {type: TYPE_JSON}];
+  // Clear readiness instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and readiness clears.
+  bool readiness_null = 43;
+  Rollout rollout = 44 [(orm.field) = {type: TYPE_JSON}];
+  // Clear rollout instead of writing it.
+  // It takes a field of its own because an unset value already means
+  // "leave it alone", so no value could have meant NULL. It wins
+  // outright: setting both this and rollout clears.
+  bool rollout_null = 45;
 }
 
 message AppApplyRequest {

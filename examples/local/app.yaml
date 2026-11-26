@@ -1,0 +1,18 @@
+alias: hello
+domain: hello.localhost
+manifest:
+  bundle:
+    url: file:./hello.tar.gz
+  env:
+    GREETING: Hello
+readiness:
+  http: /
+scaling:
+  min: 0
+  max: 4
+  target: 8
+  idleMs: 60000
+rollout:
+  surge: 1
+  unavailable: 0
+  drainMs: 30000

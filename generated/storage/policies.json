@@ -506,6 +506,13 @@
         "policy": null,
         "server_stream": false
       },
+      "Halt": {
+        "client_stream": false,
+        "input": ".wafl.InstanceStopRequest",
+        "output": ".wafl.Instance",
+        "policy": null,
+        "server_stream": false
+      },
       "List": {
         "client_stream": false,
         "input": ".wafl.InstanceListRequest",

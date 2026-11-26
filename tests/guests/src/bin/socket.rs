@@ -54,6 +54,10 @@ fn main() -> std::io::Result<()> {
             .nth(1)
             .unwrap_or("/")
             .to_owned();
+        if path == "/ready" && std::env::var("READY").as_deref() == Ok("false") {
+            let _ = stream.write_all(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            continue;
+        }
         let body = match path.as_str() {
             "/secret-error" => return secret_error(),
             "/exit" => return Ok(()),

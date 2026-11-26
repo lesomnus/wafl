@@ -14,6 +14,10 @@ service InstanceService {
   // Proxy mode: refuse active requests; a later request starts the instance again.
   // Direct mode: requires the endpoint reservation to have been Released first.
   rpc Stop(InstanceStopRequest) returns (Instance);
+  // Direct mode: stop execution after its termination grace period, retaining
+  // the endpoint reservation. Requires prior Drain, session and revision.
+  // Release still requires proof that every gateway has withdrawn the endpoint.
+  rpc Halt(InstanceStopRequest) returns (Instance);
   // Proxy mode: close admission, finish requests, then stop. Start resumes it.
   // Direct mode: mark draining and return; gateways withdraw before Release.
   rpc Drain(InstanceDrainRequest) returns (Instance);

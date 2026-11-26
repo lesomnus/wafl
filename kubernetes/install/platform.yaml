@@ -1,0 +1,231 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wafl-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wafl-controller
+  namespace: wafl-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: wafl-node
+  namespace: wafl-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wafl-controller
+rules:
+  - apiGroups: [wafl.opt.td]
+    resources: [apps, apps/status]
+    verbs: [get, list, watch, update, patch]
+  - apiGroups: [apps]
+    resources: [deployments, replicasets]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [namespaces]
+    verbs: [get, list, watch]
+  - apiGroups: [""]
+    resources: [pods, nodes]
+    verbs: [get, list, watch, update, delete]
+  - apiGroups: [""]
+    resources: [pods/status]
+    verbs: [update]
+  - apiGroups: [""]
+    resources: [secrets, configmaps, services]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [discovery.k8s.io]
+    resources: [endpointslices]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: wafl-node
+rules:
+  - apiGroups: [""]
+    resources: [pods, pods/status, pods/finalizers, nodes, nodes/status, configmaps, events]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [secrets]
+    verbs: [get]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wafl-controller
+subjects:
+  - kind: ServiceAccount
+    name: wafl-controller
+    namespace: wafl-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wafl-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: wafl-node
+subjects:
+  - kind: ServiceAccount
+    name: wafl-node
+    namespace: wafl-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: wafl-node
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wafl-runner
+  namespace: wafl-system
+data:
+  runner.json: |
+    {"listen":"0.0.0.0:8080","control":"0.0.0.0:8081","directory":"/var/lib/wafl/cache","capacity":{"instances":128,"running":16,"memory_bytes":1073741824}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wafl-controller
+  namespace: wafl-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: controller}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: controller}
+    spec:
+      serviceAccountName: wafl-controller
+      containers:
+        - name: controller
+          image: ghcr.io/lesomnus/wafl:latest
+          args: [--system-namespace, wafl-system, serve, controller]
+          ports:
+            - {name: control, containerPort: 8082}
+            - {name: activation, containerPort: 8083}
+          readinessProbe: {httpGet: {path: /health, port: control}, periodSeconds: 2, timeoutSeconds: 2}
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wafl-controller
+  namespace: wafl-system
+spec:
+  selector: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: controller}
+  ports:
+    - {name: control, port: 8082, targetPort: control}
+    - {name: activation, port: 8083, targetPort: activation}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wafl-runner
+  namespace: wafl-system
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: runner}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: runner}
+    spec:
+      serviceAccountName: wafl-node
+      terminationGracePeriodSeconds: 60
+      securityContext: {fsGroup: 10001}
+      containers:
+        - name: runner
+          image: ghcr.io/lesomnus/wafl:latest
+          args: [serve, runner, --config, /etc/wafl/runner.json, --reservations, /var/lib/wafl/endpoints]
+          env:
+            - name: WAFL_DIRECT_IP
+              valueFrom: {fieldRef: {fieldPath: status.podIP}}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+          lifecycle:
+            preStop:
+              exec:
+                command: [/usr/local/bin/wafl-kube, --system-namespace, wafl-system, node-drain]
+          ports: [{name: control, containerPort: 8081}]
+          readinessProbe: {tcpSocket: {port: control}, periodSeconds: 2}
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 2Gi}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/wafl}
+            - {name: config, mountPath: /etc/wafl, readOnly: true}
+        - name: node
+          image: ghcr.io/lesomnus/wafl:latest
+          args: [--system-namespace, wafl-system, serve, node, --node, "wafl-$(POD_NAME)", --runner, "http://$(POD_IP):8081"]
+          env:
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: POD_IP
+              valueFrom: {fieldRef: {fieldPath: status.podIP}}
+          lifecycle:
+            preStop:
+              exec:
+                command: [/usr/local/bin/wafl-kube, --system-namespace, wafl-system, node-drain]
+          resources:
+            requests: {cpu: 50m, memory: 128Mi}
+            limits: {memory: 512Mi}
+      volumes:
+        - name: data
+          emptyDir: {sizeLimit: 4Gi}
+        - name: config
+          configMap: {name: wafl-runner}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wafl-traefik
+  namespace: wafl-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: traefik}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: traefik}
+    spec:
+      containers:
+        - name: traefik
+          image: ghcr.io/lesomnus/wafl-traefik:latest
+          args:
+            - --entrypoints.web.address=:8080
+            - --entrypoints.web.transport.respondingtimeouts.readtimeout=0s
+            - --entrypoints.web.transport.respondingtimeouts.writetimeout=0s
+            - --experimental.localplugins.wafl.modulename=github.com/lesomnus/wafl/traefik
+            - --providers.http.endpoint=http://wafl-controller.wafl-system.svc:8082/traefik
+            - --providers.http.pollinterval=1s
+            - --providers.providersthrottleduration=100ms
+          ports: [{name: web, containerPort: 8080}]
+          readinessProbe: {tcpSocket: {port: web}, periodSeconds: 2}
+          resources:
+            requests: {cpu: 50m, memory: 64Mi}
+            limits: {memory: 256Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wafl-traefik
+  namespace: wafl-system
+spec:
+  type: NodePort
+  selector: {app.kubernetes.io/part-of: wafl, app.kubernetes.io/component: traefik}
+  ports: [{name: web, port: 80, targetPort: web, nodePort: 30080}]

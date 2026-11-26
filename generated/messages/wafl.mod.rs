@@ -84,6 +84,7 @@ pub mod __buffa {
             use super::*;
             include!("wafl.manifest.__view_oneof.rs");
             include!("wafl.secret.__view_oneof.rs");
+            include!("wafl.app.__view_oneof.rs");
             include!("wafl.payday.tenant_svc.g.__view_oneof.rs");
             include!("wafl.app_source_svc.g.__view_oneof.rs");
             include!("wafl.app_svc.g.__view_oneof.rs");
@@ -103,6 +104,7 @@ pub mod __buffa {
         use super::*;
         include!("wafl.manifest.__oneof.rs");
         include!("wafl.secret.__oneof.rs");
+        include!("wafl.app.__oneof.rs");
         include!("wafl.payday.tenant_svc.g.__oneof.rs");
         include!("wafl.app_source_svc.g.__oneof.rs");
         include!("wafl.app_svc.g.__oneof.rs");
@@ -126,6 +128,8 @@ pub mod __buffa {
         reg.register_json_any(super::__SECRET_JSON_ANY);
         reg.register_json_any(super::__SECRET_KEY_REF_JSON_ANY);
         reg.register_json_any(super::__APP_JSON_ANY);
+        reg.register_json_any(super::__PROBE_JSON_ANY);
+        reg.register_json_any(super::__ROLLOUT_JSON_ANY);
         reg.register_json_any(super::__SCALING_JSON_ANY);
         reg.register_json_any(super::__SCALE_STATE_JSON_ANY);
         reg.register_json_any(super::__TENANT_ADD_REQUEST_JSON_ANY);
@@ -283,6 +287,14 @@ pub use self::__buffa::view::SecretKeyRefOwnedView;
 pub use self::__buffa::view::AppView;
 #[doc(inline)]
 pub use self::__buffa::view::AppOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ProbeView;
+#[doc(inline)]
+pub use self::__buffa::view::ProbeOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::RolloutView;
+#[doc(inline)]
+pub use self::__buffa::view::RolloutOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::ScalingView;
 #[doc(inline)]

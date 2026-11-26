@@ -19,14 +19,6 @@ use tokio::{
 use wafl_runner::proto::wafl::{Instance, Log, Phase};
 
 const CLI: &str = env!("CARGO_BIN_EXE_wafl");
-#[path = "cli/autoscale.rs"]
-mod autoscale;
-#[path = "cli/controller.rs"]
-mod controller;
-#[path = "cli/kubernetes.rs"]
-mod kubernetes;
-#[path = "cli/secrets.rs"]
-mod secrets;
 fn command() -> Command {
     let mut command = Command::new(CLI);
     command

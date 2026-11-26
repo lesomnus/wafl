@@ -586,6 +586,7 @@ impl Runner {
                 },
                 "command-conditions",
                 "sealed-instance-v1",
+                "halt-instance-v1",
                 "cache-v2",
                 "outbound-tcp",
                 "secret-env-v1",
@@ -982,6 +983,25 @@ impl Execution {
         .map_err(|_| ConnectError::internal("stop supervisor failed"))?;
         Ok(())
     }
+    /// End a direct execution without making its address reusable. This is the
+    /// termination-grace boundary; Release remains the gateway-withdrawal boundary.
+    pub async fn halt(self: &Arc<Self>, condition: Condition) -> Result<(), ConnectError> {
+        {
+            let state = self.state.lock().unwrap();
+            self.check(&state, condition)?;
+            if self.runtime.direct.is_none()
+                || condition.session.is_none()
+                || condition.revision.is_none()
+                || !state.draining
+            {
+                return Err(ConnectError::failed_precondition(
+                    "Halt requires direct mode, prior Drain, session and revision",
+                ));
+            }
+        }
+        self.stop_condition(false, true, condition, true).await
+    }
+
     pub async fn drain(
         self: &Arc<Self>,
         timeout_ms: u64,

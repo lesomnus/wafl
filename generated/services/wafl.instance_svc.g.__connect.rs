@@ -210,6 +210,15 @@ pub const INSTANCE_SERVICE_STOP_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::s
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Halt` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const INSTANCE_SERVICE_HALT_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.InstanceService/Halt",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
 /// Static [`Spec`](::connectrpc::Spec) for the server-side `Drain` RPC.
 ///
 /// The dispatcher surfaces this on
@@ -414,6 +423,31 @@ pub trait InstanceService: Send + Sync + 'static {
     /// `.to_owned_message()` (or copy the specific fields) for anything
     /// returned, stored, or moved into `tokio::spawn`.
     fn stop<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceStopRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Direct mode: stop execution after its termination grace period, retaining
+    /// the endpoint reservation. Requires prior Drain, session and revision.
+    /// Release still requires proof that every gateway has withdrawn the endpoint.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn halt<'a>(
         &'a self,
         ctx: ::connectrpc::RequestContext,
         request: ::connectrpc::ServiceRequest<
@@ -717,6 +751,33 @@ impl<S: InstanceService> InstanceServiceExt for S {
             .with_spec(INSTANCE_SERVICE_STOP_SPEC)
             .route_view(
                 INSTANCE_SERVICE_SERVICE_NAME,
+                "Halt",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::InstanceStopRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::InstanceStopRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.halt(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::Instance>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(INSTANCE_SERVICE_HALT_SPEC)
+            .route_view(
+                INSTANCE_SERVICE_SERVICE_NAME,
                 "Drain",
                 {
                     let svc = ::std::sync::Arc::clone(&self);
@@ -914,6 +975,12 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                         .with_spec(INSTANCE_SERVICE_STOP_SPEC),
                 )
             }
+            "Halt" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(INSTANCE_SERVICE_HALT_SPEC),
+                )
+            }
             "Drain" => {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
@@ -1061,6 +1128,25 @@ impl<T: InstanceService> ::connectrpc::Dispatcher for InstanceServiceServer<T> {
                         crate::proto::wafl::InstanceStopRequest,
                     >::from_parts(&req, &body);
                     svc.stop(ctx, req)
+                        .await?
+                        .encode::<crate::proto::wafl::Instance>(format)
+                })
+            }
+            "Halt" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::InstanceStopRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::InstanceStopRequestView<
+                        '_,
+                    > = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::InstanceStopRequest,
+                    >::from_parts(&req, &body);
+                    svc.halt(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::Instance>(format)
                 })
@@ -1500,6 +1586,44 @@ where
                 &self.config,
                 INSTANCE_SERVICE_SERVICE_NAME,
                 "Stop",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Halt RPC. Sends a request to /wafl.InstanceService/Halt.
+    pub async fn halt(
+        &self,
+        request: crate::proto::wafl::InstanceStopRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.halt_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Halt RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn halt_with_options(
+        &self,
+        request: crate::proto::wafl::InstanceStopRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<
+                crate::proto::wafl::__buffa::view::InstanceView<'static>,
+            >,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                INSTANCE_SERVICE_SERVICE_NAME,
+                "Halt",
                 request,
                 options,
             )

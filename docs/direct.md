@@ -140,7 +140,7 @@ gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합
 
 공개된 예약은 시간 경과, 죽은 PID, runner 재시작, bundle GC로 회수하지 않습니다. IP가 재사용될 수 있는 Pod 교체도 이전 IP의 예약 상태를 잃으면 안 됩니다. Kubernetes에서는 IP 재사용과 gateway 철회를 제어평면이 조정하고 상태 볼륨의 수명을 그에 맞춰야 합니다. 단순 `emptyDir`만으로 재생성된 Pod까지 보호하지 못합니다.
 
-충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 이전 저널의 업그레이드 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. controller가 만든 실행은 `wafl placement release --withdrawn`으로 철회를 확인하면 조정 루프가 해당 예약의 회수를 시도합니다. gateway의 자동 철회 확인 프로토콜은 #10의 후속 범위입니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
+충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 이전 저널의 업그레이드 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. Kubernetes가 관리하는 실행은 provider가 gateway 관측 확인 후 회수합니다. 관측이 유실된 경우 [플랫폼 복구 절차](kubernetes-native.md)를 따릅니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
 
 ## 제한과 메트릭
 

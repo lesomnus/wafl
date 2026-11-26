@@ -80,6 +80,18 @@ pub struct AppAddRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub secrets: ::buffa::alloc::vec::Vec<Secret>,
+    /// Field 21: `readiness`
+    #[serde(
+        rename = "readiness",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub readiness: ::buffa::MessageField<Probe>,
+    /// Field 22: `rollout`
+    #[serde(
+        rename = "rollout",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub rollout: ::buffa::MessageField<Rollout>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -99,6 +111,8 @@ impl ::core::fmt::Debug for AppAddRequest {
             .field("state", &self.state)
             .field("source", &self.source)
             .field("secrets", &self.secrets)
+            .field("readiness", &self.readiness)
+            .field("rollout", &self.rollout)
             .finish()
     }
 }
@@ -212,6 +226,22 @@ impl ::buffa::Message for AppAddRequest {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.readiness.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.readiness.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.rollout.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.rollout.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -263,6 +293,14 @@ impl ::buffa::Message for AppAddRequest {
         for v in &self.secrets {
             ::buffa::types::put_len_delimited_header(20u32, __cache.consume_next(), buf);
             v.write_to(__cache, buf);
+        }
+        if self.readiness.is_set() {
+            ::buffa::types::put_len_delimited_header(21u32, __cache.consume_next(), buf);
+            self.readiness.write_to(__cache, buf);
+        }
+        if self.rollout.is_set() {
+            ::buffa::types::put_len_delimited_header(22u32, __cache.consume_next(), buf);
+            self.rollout.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -389,6 +427,28 @@ impl ::buffa::Message for AppAddRequest {
                 ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
                 self.secrets.push(elem);
             }
+            21u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.readiness.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            22u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.rollout.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -409,6 +469,8 @@ impl ::buffa::Message for AppAddRequest {
         self.state = ::buffa::MessageField::none();
         self.source = ::buffa::MessageField::none();
         self.secrets.clear();
+        self.readiness = ::buffa::MessageField::none();
+        self.rollout = ::buffa::MessageField::none();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -937,6 +999,15 @@ pub struct AppSelect {
     /// Field 20: `secrets`
     #[serde(rename = "secrets", skip_serializing_if = "::core::option::Option::is_none")]
     pub secrets: ::core::option::Option<bool>,
+    /// Field 21: `readiness`
+    #[serde(
+        rename = "readiness",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub readiness: ::core::option::Option<bool>,
+    /// Field 22: `rollout`
+    #[serde(rename = "rollout", skip_serializing_if = "::core::option::Option::is_none")]
+    pub rollout: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -956,6 +1027,8 @@ impl ::core::fmt::Debug for AppSelect {
             .field("state", &self.state)
             .field("source", &self.source)
             .field("secrets", &self.secrets)
+            .field("readiness", &self.readiness)
+            .field("rollout", &self.rollout)
             .finish()
     }
 }
@@ -1037,6 +1110,20 @@ impl AppSelect {
         self.secrets = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::readiness`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_readiness(mut self, value: bool) -> Self {
+        self.readiness = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::rollout`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_rollout(mut self, value: bool) -> Self {
+        self.rollout = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(AppSelect);
 impl ::buffa::MessageName for AppSelect {
@@ -1102,6 +1189,12 @@ impl ::buffa::Message for AppSelect {
         if self.secrets.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.readiness.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.rollout.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1149,6 +1242,12 @@ impl ::buffa::Message for AppSelect {
         }
         if let Some(v) = self.secrets {
             ::buffa::types::put_bool_field(20u32, v, buf);
+        }
+        if let Some(v) = self.readiness {
+            ::buffa::types::put_bool_field(21u32, v, buf);
+        }
+        if let Some(v) = self.rollout {
+            ::buffa::types::put_bool_field(22u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1275,6 +1374,24 @@ impl ::buffa::Message for AppSelect {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            21u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.readiness = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            22u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.rollout = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1295,6 +1412,8 @@ impl ::buffa::Message for AppSelect {
         self.state = ::core::option::Option::None;
         self.source = ::buffa::MessageField::none();
         self.secrets = ::core::option::Option::None;
+        self.readiness = ::core::option::Option::None;
+        self.rollout = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -1418,6 +1537,42 @@ pub struct AppPatchRequest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub secrets: ::buffa::alloc::vec::Vec<Secret>,
+    /// Field 42: `readiness`
+    #[serde(
+        rename = "readiness",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub readiness: ::buffa::MessageField<Probe>,
+    /// Clear readiness instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and readiness clears.
+    ///
+    /// Field 43: `readiness_null`
+    #[serde(
+        rename = "readinessNull",
+        alias = "readiness_null",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub readiness_null: ::core::option::Option<bool>,
+    /// Field 44: `rollout`
+    #[serde(
+        rename = "rollout",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
+    )]
+    pub rollout: ::buffa::MessageField<Rollout>,
+    /// Clear rollout instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and rollout clears.
+    ///
+    /// Field 45: `rollout_null`
+    #[serde(
+        rename = "rolloutNull",
+        alias = "rollout_null",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub rollout_null: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -1437,6 +1592,10 @@ impl ::core::fmt::Debug for AppPatchRequest {
             .field("state", &self.state)
             .field("state_null", &self.state_null)
             .field("secrets", &self.secrets)
+            .field("readiness", &self.readiness)
+            .field("readiness_null", &self.readiness_null)
+            .field("rollout", &self.rollout)
+            .field("rollout_null", &self.rollout_null)
             .finish()
     }
 }
@@ -1501,6 +1660,20 @@ impl AppPatchRequest {
     ///Sets [`Self::state_null`] to `Some(value)`, consuming and returning `self`.
     pub fn with_state_null(mut self, value: bool) -> Self {
         self.state_null = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::readiness_null`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_readiness_null(mut self, value: bool) -> Self {
+        self.readiness_null = Some(value);
+        self
+    }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::rollout_null`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_rollout_null(mut self, value: bool) -> Self {
+        self.rollout_null = Some(value);
         self
     }
 }
@@ -1583,6 +1756,28 @@ impl ::buffa::Message for AppPatchRequest {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.readiness.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.readiness.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.readiness_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.rollout.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.rollout.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.rollout_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1633,6 +1828,20 @@ impl ::buffa::Message for AppPatchRequest {
         for v in &self.secrets {
             ::buffa::types::put_len_delimited_header(40u32, __cache.consume_next(), buf);
             v.write_to(__cache, buf);
+        }
+        if self.readiness.is_set() {
+            ::buffa::types::put_len_delimited_header(42u32, __cache.consume_next(), buf);
+            self.readiness.write_to(__cache, buf);
+        }
+        if let Some(v) = self.readiness_null {
+            ::buffa::types::put_bool_field(43u32, v, buf);
+        }
+        if self.rollout.is_set() {
+            ::buffa::types::put_len_delimited_header(44u32, __cache.consume_next(), buf);
+            self.rollout.write_to(__cache, buf);
+        }
+        if let Some(v) = self.rollout_null {
+            ::buffa::types::put_bool_field(45u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1765,6 +1974,46 @@ impl ::buffa::Message for AppPatchRequest {
                 ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
                 self.secrets.push(elem);
             }
+            42u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.readiness.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            43u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.readiness_null = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
+            44u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::Message::merge_length_delimited(
+                    self.rollout.get_or_insert_default(),
+                    buf,
+                    ctx,
+                )?;
+            }
+            45u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.rollout_null = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1785,6 +2034,10 @@ impl ::buffa::Message for AppPatchRequest {
         self.state = ::buffa::MessageField::none();
         self.state_null = ::core::option::Option::None;
         self.secrets.clear();
+        self.readiness = ::buffa::MessageField::none();
+        self.readiness_null = ::core::option::Option::None;
+        self.rollout = ::buffa::MessageField::none();
+        self.rollout_null = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }

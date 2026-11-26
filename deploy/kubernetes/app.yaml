@@ -11,7 +11,7 @@ spec:
     abi: wasip2
     bundle:
       url: https://assets.example.com/hello.tar.gz
-      # digest: sha256:<SHA-256 of the compressed bundle>
+      digest: sha256:REPLACE_WITH_ARCHIVE_SHA256
     port: 8080
     protocol: http
     memoryBytes: 67108864
@@ -25,3 +25,9 @@ spec:
     downMs: 10000
     idleMs: 30000
     waitMs: 120000
+  readiness:
+    http: /
+  rollout:
+    surge: 1
+    unavailable: 0
+    drainMs: 30000

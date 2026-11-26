@@ -214,6 +214,20 @@
           "kind": "JSON",
           "collection": "list",
           "default": ""
+        },
+        {
+          "name": "readiness",
+          "json": "readiness",
+          "number": 21,
+          "kind": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "rollout",
+          "json": "rollout",
+          "number": 22,
+          "kind": "JSON",
+          "nullable": true
         }
       ],
       "indexes": []

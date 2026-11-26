@@ -242,6 +242,45 @@ async fn direct_drain_requires_gateway_ack_and_fences_stale_release_before_port_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn direct_halt_ends_execution_but_keeps_the_address_until_gateway_release() {
+    let root = tempfile::tempdir().unwrap();
+    let runner = Runner::new(&direct_config(root.path(), 1, false))
+        .await
+        .unwrap();
+    let first = add(&runner, root.path(), "halt", "socket").await;
+    let execution = runner.instance(&first.id).unwrap();
+    let reference = json!({"id": STANDARD.encode(&first.id)});
+    assert!(execution.halt(condition(&first)).await.is_err());
+    let response = response(&first, "/slow").await;
+    execution.drain(0, false, condition(&first)).await.unwrap();
+    let draining = execution.snapshot();
+    assert!(execution.halt(condition(&first)).await.is_err());
+    let result = call(
+        &runner,
+        "/wafl.InstanceService/Halt",
+        json!({"ref":reference}),
+        &conditions(&draining),
+    )
+    .await;
+    assert_eq!(result.0, 200, "{}", result.1);
+    assert_eq!(execution.snapshot().phase, Phase::Stopped);
+    assert!(execution.snapshot().draining);
+    assert!(response.into_body().collect().await.is_err());
+    assert!(runner.erase(&first.id).await.is_err());
+    let mut next = app("reserved", "socket");
+    next.idle_ms = 0;
+    let path = root.path().join("next.tar.gz");
+    std::fs::write(&path, next.bundle()).unwrap();
+    let url = reqwest::Url::from_file_path(path).unwrap().to_string();
+    assert!(runner.add(next.request(url)).await.is_err());
+    release(&runner, &execution.snapshot()).await;
+    let next = add(&runner, root.path(), "reused", "socket").await;
+    assert_eq!(first.endpoint.address, next.endpoint.address);
+    release(&runner, &next).await;
+    runner.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn direct_restart_keeps_old_address_reserved_and_skips_busy_ports() {
     let root = tempfile::tempdir().unwrap();
     // A free ephemeral port does not imply that its next two ports are free:

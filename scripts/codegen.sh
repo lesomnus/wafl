@@ -16,5 +16,11 @@ if [[ ! -f "$tools_dir/revision" ]] || [[ $(cat "$tools_dir/revision") != "$revi
   printf '%s\n' "$revision" > "$tools_dir/revision"
 fi
 export PATH="$tools_dir/bin:$PATH"
+if [[ ! -x "$tools_dir/bin/protoc-gen-go" ]]; then
+  GOBIN="$tools_dir/bin" go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.11
+fi
+if [[ ! -x "$tools_dir/bin/protoc-gen-connect-go" ]]; then
+  GOBIN="$tools_dir/bin" go install connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
+fi
 paydirt gen "$@"
 (cd scripts/crd && go run . "$@")

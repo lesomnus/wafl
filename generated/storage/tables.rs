@@ -57,6 +57,10 @@
         f19 -> Nullable<Binary>,
         /// wafl.App.secrets
         f20 -> Text,
+        /// wafl.App.readiness
+        f21 -> Nullable<Text>,
+        /// wafl.App.rollout
+        f22 -> Nullable<Text>,
     }
 }
 ::diesel::table! {

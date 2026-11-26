@@ -93,6 +93,23 @@ pub trait InstanceServiceLayer<N: InstanceService>: Send + Sync + 'static {
     > + Send {
         next.stop(ctx, request)
     }
+    fn halt<'a>(
+        &'a self,
+        next: &'a N,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceStopRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, Self, N>,
+        >,
+    > + Send {
+        next.halt(ctx, request)
+    }
     fn drain<'a>(
         &'a self,
         next: &'a N,
@@ -256,6 +273,22 @@ for InstanceServiceOverlay<N, L> {
         >,
     > + Send {
         self.layer.stop(&self.next, ctx, request)
+    }
+    fn halt<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceStopRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<
+                crate::proto::wafl::Instance,
+            > + Send + use<'a, N, L>,
+        >,
+    > + Send {
+        self.layer.halt(&self.next, ctx, request)
     }
     fn drain<'a>(
         &'a self,
@@ -426,6 +459,25 @@ impl InstanceService for InstanceServiceUnimplemented {
             Err(
                 ::connectrpc::ConnectError::unimplemented(
                     concat!(stringify!(InstanceService), ".", stringify!(stop)),
+                ),
+            )
+        }
+    }
+    fn halt<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<
+            '_,
+            crate::proto::wafl::InstanceStopRequest,
+        >,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<crate::proto::wafl::Instance>,
+    > + Send {
+        let _ = (ctx, request);
+        async {
+            Err(
+                ::connectrpc::ConnectError::unimplemented(
+                    concat!(stringify!(InstanceService), ".", stringify!(halt)),
                 ),
             )
         }

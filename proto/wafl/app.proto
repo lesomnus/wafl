@@ -9,8 +9,9 @@ import "wafl/payday/tenant.proto";
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 option features.field_presence = IMPLICIT;
 
-// Controller-owned desired state. A manifest or fixed/scaling mode change creates a new revision;
-// placements retain that revision's manifest until explicitly released.
+// Shared App fields used to generate the Kubernetes CRD spec. The native
+// controller uses Kubernetes identity/status and Deployment revisions. The
+// legacy entity fields remain wire-compatible; AppService is no longer served.
 message App {
   option (orm.message) = {rpc: {add: {}, get: {}, patch: {}, erase: {}}};
   option (payday.entity) = {
@@ -29,10 +30,30 @@ message App {
   // Optional request-concurrency autoscaling; replicas is used only without it.
   Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON, nullable: true}];
   ScaleState state = 18 [(orm.field) = {type: TYPE_JSON, nullable: true}, (payday.field) = {stamped: true}];
-  // Set only by a configured provider. Such apps are read-only through AppService.
+  // Legacy importer ownership; unused by the Kubernetes-native controller.
   AppSource source = 19 [(orm.edge) = {nullable: true, immutable: true}, (payday.field) = {stamped: true}];
-  // Source references only; values are resolved when creating an Instance.
+  // Source references only; Kubernetes binds immutable Secret snapshots to Pods.
   repeated Secret secrets = 20 [(orm.field) = {type: TYPE_JSON, default: ""}];
+  // Kubernetes readiness; omitted means TCP listener readiness.
+  Probe readiness = 21 [(orm.field) = {type: TYPE_JSON, nullable: true}];
+  Rollout rollout = 22 [(orm.field) = {type: TYPE_JSON, nullable: true}];
+}
+
+message Probe {
+  oneof kind {
+    string http = 1;
+    string grpc = 2;
+  }
+  uint32 period_seconds = 3;
+  uint32 timeout_seconds = 4;
+  uint32 failures = 5;
+  uint32 successes = 6;
+}
+
+message Rollout {
+  uint32 surge = 1;
+  uint32 unavailable = 2;
+  uint64 drain_ms = 3;
 }
 
 message Scaling {

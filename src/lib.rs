@@ -3,8 +3,6 @@ mod bundle;
 mod compiler;
 pub mod config;
 pub mod control;
-#[cfg(feature = "client")]
-pub mod controller;
 mod endpoint;
 pub mod host;
 mod logs;

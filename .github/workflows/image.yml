@@ -39,6 +39,8 @@ jobs:
         run: |
           set -euo pipefail
           docker run --rm "$WAFL_IMAGE" --help
+          docker run --rm "$WAFL_IMAGE" app --help
+          docker run --rm "$WAFL_IMAGE" serve controller --help
           docker run -d --name wafl-image-smoke -p 127.0.0.1::8081 "$WAFL_IMAGE" \
             serve runner /var/lib/wafl/cache --control 0.0.0.0:8081 --listen 0.0.0.0:8080
           trap 'docker logs wafl-image-smoke; docker rm -f wafl-image-smoke' EXIT

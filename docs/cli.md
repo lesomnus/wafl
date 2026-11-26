@@ -1,6 +1,6 @@
 # wafl CLI
 
-플랫폼 수준의 앱 실행은 `wafl serve controller --config examples/controller.json`, `wafl --endpoint http://127.0.0.1:8082 app add <URL> --domain hello.localhost`를 사용합니다. `app get/list/patch/erase`, `placement get/list/release`와 Traefik을 함께 실행하는 과정은 [Controller 튜토리얼](controller.md)에 있습니다. 아래 Instance 명령은 개별 runner에 직접 연결합니다.
+플랫폼은 `wafl dev` 또는 `wafl install`로 설치하고 `wafl app add app.yaml`로 앱을 등록합니다. App 명령은 kubeconfig와 namespace를 사용합니다. 전체 과정은 [Kubernetes native 튜토리얼](kubernetes-native.md)에 있습니다. 아래 Instance 명령은 개별 runner에 직접 연결하며 Kubernetes가 필요 없습니다.
 
 이 문서의 기본 예제는 proxy 모드입니다. L7에서 WASM 소켓에 직접 연결하는 설정, endpoint 출력과 `release` 명령은 [직결 튜토리얼](direct.md)을 참고하세요. 직결 출력은 `<UUID>\t@alias\t<endpoint.address>`이며 `--idle-ms`·`--max-active`는 생략 또는 0만 허용합니다.
 
@@ -10,7 +10,7 @@ runner 장애로 남은 직결 포트는 `wafl reservation list`, `wafl reservat
 
 저장소 루트에서 CLI를 설치합니다. Rust와 WASIp2 target은 `rust-toolchain.toml`에 고정되어 있습니다.
 
-PostgreSQL Store 연결 때문에 빌드에 libpq가 필요합니다. Debian/Ubuntu의 개발 패키지는 `libpq-dev`입니다.
+플랫폼 CLI까지 빌드하려면 `bash scripts/build.sh`를 사용하고 생성된 `wafl`과 `wafl-kube`를 같은 디렉터리에 둡니다. 아래 `cargo install`은 단독 runner CLI만 설치합니다.
 
 ```sh
 cargo install --path . --locked --bin wafl
