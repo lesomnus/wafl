@@ -73,6 +73,8 @@ enum RunnerCommand {
 }
 #[derive(Subcommand)]
 enum Serve {
+    /// Run the Pingora HTTP/gRPC and TCP proxy.
+    Proxy(wafl_runner::gateway::Options),
     Runner(RunnerArgs),
     Controller,
     /// Run a Virtual Kubelet provider for one runner.
@@ -350,13 +352,24 @@ impl Add {
     }
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     native::dispatch()?;
     let cli = Cli::parse();
+    if let Command::Serve {
+        role: Serve::Proxy(options),
+    } = cli.command
+    {
+        return wafl_runner::gateway::serve(options);
+    }
+    tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()?
+        .block_on(run(cli))
+}
+async fn run(cli: Cli) -> Result<()> {
     let action = match cli.command {
         Command::Serve {
-            role: Serve::Controller | Serve::Node,
+            role: Serve::Controller | Serve::Node | Serve::Proxy(_),
         }
         | Command::App
         | Command::Traffic => {

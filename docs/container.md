@@ -1,8 +1,8 @@
 # 컨테이너로 실행
 
-앱 등록부터 자동 증감까지 실행하려면 [Kubernetes native 튜토리얼](kubernetes-native.md)을 사용하세요. `ghcr.io/lesomnus/wafl-traefik` 이미지는 자동 증감용 관측 미들웨어를 포함합니다. 두 이미지의 같은 `sha-<commit>` 태그로 버전을 맞출 수 있습니다.
+앱 등록부터 자동 증감까지 실행하려면 [Kubernetes native 튜토리얼](kubernetes-native.md)을 사용하세요. Pingora 프록시도 같은 WAFL 이미지에 포함됩니다.
 
-동일한 `ghcr.io/lesomnus/wafl` 이미지에서 `serve runner`, `serve controller`, `serve node`와 CLI를 실행합니다. 현재 발행 플랫폼은 `linux/amd64`입니다. 이미지는 UID/GID 10001로 실행하며, WASM은 runner 프로세스 내부에서 실행됩니다.
+동일한 `ghcr.io/lesomnus/wafl` 이미지에서 `serve runner`, `serve controller`, `serve node`, `serve proxy`와 CLI를 실행합니다. 현재 발행 플랫폼은 `linux/amd64`입니다. 이미지는 UID/GID 10001로 실행하며, WASM은 runner 프로세스 내부에서 실행됩니다.
 
 ```sh
 docker pull ghcr.io/lesomnus/wafl:latest
@@ -33,10 +33,9 @@ bind mount의 cache/예약 디렉터리는 UID 10001이 쓸 수 있어야 합니
 Kubernetes에 전체 플랫폼을 설치합니다. 동일 이미지에 Rust runner/CLI와 Go Virtual Kubelet/controller 실행파일이 들어 있습니다. `wafl`이 명령에 맞는 실행파일로 연결합니다.
 
 ```sh
-wafl-kube bootstrap install --image ghcr.io/lesomnus/wafl:sha-COMMIT \
-  --gateway-image ghcr.io/lesomnus/wafl-traefik:sha-COMMIT
+wafl-kube bootstrap install --image ghcr.io/lesomnus/wafl:sha-COMMIT
 ```
 
-controller 2개, runner Pod 2개, Traefik과 RBAC·Service·CRD를 설치합니다. runner Pod 안의 node provider가 가상 Node를 등록합니다. 기본 데이터 디렉터리는 Pod의 `emptyDir`이며 runner 컨테이너 재시작 동안 캐시와 포트 예약을 유지합니다. 물리 Pod를 교체하면 새 IP/Node에서 실행을 배정합니다. 클러스터마다 runner capacity와 requests/limits, cache 용량, gateway 노출 방식을 조정하세요.
+controller 2개, runner Pod 2개, Pingora proxy과 RBAC·Service·CRD를 설치합니다. runner Pod 안의 node provider가 가상 Node를 등록합니다. 기본 데이터 디렉터리는 Pod의 `emptyDir`이며 runner 컨테이너 재시작 동안 캐시와 포트 예약을 유지합니다. 물리 Pod를 교체하면 새 IP/Node에서 실행을 배정합니다. 클러스터마다 runner capacity와 requests/limits, cache 용량, gateway 노출 방식을 조정하세요.
 
-운영 예제의 실제 설치 원본은 [platform.yaml](../kubernetes/install/platform.yaml)입니다. 별도 PostgreSQL은 필요하지 않습니다. 플랫폼 API는 내부 Service로 사용하고 외부 앱 요청은 Traefik으로 받습니다. 관리 API와 앱 트래픽 주소를 구분합니다.
+운영 예제의 실제 설치 원본은 [platform.yaml](../kubernetes/install/platform.yaml)입니다. 별도 PostgreSQL은 필요하지 않습니다. 플랫폼 API는 내부 Service로 사용하고 외부 앱 요청은 Pingora proxy으로 받습니다. 관리 API와 앱 트래픽 주소를 구분합니다.

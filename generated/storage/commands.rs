@@ -160,6 +160,22 @@ async fn dispatch(
                 emit(serde_json::to_value(msg.to_owned_message())?)?;
             }
         }
+        ("wafl.App", "Wake") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#AppWakeRequest,
+                <proto::r#wafl::r#App as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.AppService",
+                    "Wake",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.AppSource", "Get") => {
             let res = call_unary::<
                 _,

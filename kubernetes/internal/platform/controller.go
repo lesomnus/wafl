@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"reflect"
 	"sort"
-	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	"github.com/lesomnus/wafl/kubernetes/gen/wafl/waflconnect"
+	"google.golang.org/protobuf/encoding/protojson"
 	apps "k8s.io/api/apps/v1"
 	core "k8s.io/api/core/v1"
 	discovery "k8s.io/api/discovery/v1"
@@ -26,11 +26,11 @@ import (
 )
 
 type Controller struct {
-	Clients                                                                              *Clients
-	Namespace, Listen, ActivationListen, Control, Activate, Entrypoint, Identity, Assets string
-	Traffic                                                                              *Traffic
-	RunnerTimeout                                                                        time.Duration
-	RunnerParallel                                                                       int
+	Clients                             *Clients
+	Namespace, Listen, Identity, Assets string
+	Traffic                             *Traffic
+	RunnerTimeout                       time.Duration
+	RunnerParallel                      int
 }
 
 func (c *Controller) reconcile(ctx context.Context) error {
@@ -162,8 +162,8 @@ func (c *Controller) endpoints(ctx context.Context, a *unstructured.Unstructured
 		return e
 	}
 	// ClusterIP clients use the same gateway admission as external requests.
-	// HTTP uses its plugin; TCP uses the connection relay on the controller.
-	pods, e := c.Clients.Kube.CoreV1().Pods(c.Namespace).List(ctx, meta.ListOptions{LabelSelector: "app.kubernetes.io/component=traefik,app.kubernetes.io/part-of=wafl"})
+	// The proxy owns both HTTP requests and TCP connections.
+	pods, e := c.Clients.Kube.CoreV1().Pods(c.Namespace).List(ctx, meta.ListOptions{LabelSelector: "app.kubernetes.io/component in (proxy,traefik),app.kubernetes.io/part-of=wafl"})
 	if e != nil {
 		return e
 	}
@@ -218,81 +218,6 @@ func (c *Controller) endpoints(ctx context.Context, a *unstructured.Unstructured
 	}
 	return nil
 }
-func (c *Controller) configuration(ctx context.Context) (map[string]any, error) {
-	apps, e := c.Clients.activeApps(ctx)
-	if e != nil {
-		return nil, e
-	}
-	orderApps(apps.Items)
-	pods, e := c.Clients.Kube.CoreV1().Pods("").List(ctx, meta.ListOptions{LabelSelector: Managed + "=true"})
-	if e != nil {
-		return nil, e
-	}
-	routers, services, middlewares := map[string]any{}, map[string]any{}, map[string]any{}
-	domains := map[string]bool{}
-	ports := map[uint32]bool{}
-	for index := range apps.Items {
-		a := &apps.Items[index]
-		if a.GetDeletionTimestamp() != nil {
-			continue
-		}
-		spec, e := decodeApp(a)
-		if e != nil || !claimRoutes(spec, domains, ports) {
-			continue
-		}
-		if spec.Manifest.Protocol == "tcp" {
-			continue
-		}
-		name := appName(a)
-		hosts := []string{spec.Domain, name, name + "." + a.GetNamespace(), name + "." + a.GetNamespace() + ".svc", name + "." + a.GetNamespace() + ".svc.cluster.local"}
-		rules := []string{}
-		for _, host := range hosts {
-			rules = append(rules, fmt.Sprintf("Host(`%s`)", host))
-		}
-		routers[name] = map[string]any{"rule": strings.Join(rules, " || "), "entryPoints": []string{c.Entrypoint}, "service": name}
-		backends := []any{}
-		for j := range pods.Items {
-			p := &pods.Items[j]
-			if p.Labels[AppUID] != string(a.GetUID()) || !ready(p) {
-				continue
-			}
-			leaf := "wafl-pod-" + string(p.UID)
-			middlewares[leaf] = map[string]any{"plugin": map[string]any{"wafl": map[string]any{"control": c.Control, "activate": c.Activate, "placement": B64(placementID(p)), "intervalMs": 500}}}
-			services[leaf] = map[string]any{"loadBalancer": map[string]any{"servers": []any{map[string]string{"url": endpointURL(p)}}, "passHostHeader": true}, "middlewares": []string{leaf}}
-			backends = append(backends, map[string]any{"name": leaf, "weight": 1})
-		}
-		if len(backends) > 0 {
-			services[name] = map[string]any{"weighted": map[string]any{"services": backends}}
-		} else {
-			servers := []any{}
-			// Fixed replicas can also temporarily have no ready execution during
-			// runner replacement. Queue them through the same bounded activator.
-			if spec.Scaling != nil || spec.Replicas > 0 {
-				url := c.Activate
-				if spec.Manifest.Protocol == "h2c" {
-					url = strings.Replace(url, "http://", "h2c://", 1)
-				}
-				servers = append(servers, map[string]string{"url": url})
-			}
-			services[name] = map[string]any{"loadBalancer": map[string]any{"servers": servers, "passHostHeader": true}}
-		}
-	}
-	if len(routers) == 0 {
-		if tcp := c.tcpConfiguration(); tcp != nil {
-			return map[string]any{"tcp": tcp}, nil
-		}
-		return map[string]any{}, nil
-	}
-	httpConfig := map[string]any{"routers": routers, "services": services}
-	if len(middlewares) > 0 {
-		httpConfig["middlewares"] = middlewares
-	}
-	result := map[string]any{"http": httpConfig}
-	if tcp := c.tcpConfiguration(); tcp != nil {
-		result["tcp"] = tcp
-	}
-	return result, nil
-}
 func (c *Controller) Serve(ctx context.Context) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -300,11 +225,6 @@ func (c *Controller) Serve(ctx context.Context) error {
 		return errors.New("runner query timeout must be nonnegative and parallelism must be between 0 and 128; zero uses the default")
 	}
 	c.Traffic = &Traffic{Clients: c.Clients, Namespace: c.Namespace}
-	closeTCP, err := c.serveTCP(ctx)
-	if err != nil {
-		return err
-	}
-	defer closeTCP()
 	catalog := &Catalog{Clients: c.Clients, Namespace: c.Namespace, Timeout: c.RunnerTimeout, Parallel: c.RunnerParallel}
 	mux := http.NewServeMux()
 	mux.Handle(waflconnect.NewRunnerServiceHandler(&RunnerAPI{Catalog: catalog}))
@@ -322,25 +242,23 @@ func (c *Controller) Serve(ctx context.Context) error {
 		}
 		w.WriteHeader(200)
 	})
-	mux.HandleFunc("GET /traefik", func(w http.ResponseWriter, r *http.Request) {
-		v, e := c.configuration(r.Context())
+	mux.HandleFunc("GET /proxy", func(w http.ResponseWriter, r *http.Request) {
+		v, e := c.routing(r.Context())
 		if e != nil {
 			http.Error(w, "configuration unavailable", 503)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
-		_ = json.NewEncoder(w).Encode(v)
+		b, _ := protojson.Marshal(v)
+		_, _ = w.Write(b)
 	})
 	server := &http.Server{Addr: c.Listen, Handler: mux, ReadHeaderTimeout: 10 * time.Second, Protocols: new(http.Protocols)}
 	server.Protocols.SetHTTP1(true)
 	server.Protocols.SetUnencryptedHTTP2(true)
-	activation := &http.Server{Addr: c.ActivationListen, Handler: http.HandlerFunc(c.activate), ReadHeaderTimeout: 10 * time.Second, Protocols: server.Protocols}
 	errors := make(chan error, 2)
 	go func() { errors <- server.ListenAndServe() }()
-	go func() { errors <- activation.ListenAndServe() }()
 	defer server.Close()
-	defer activation.Close()
 	go leaderelection.RunOrDie(ctx, leaderelection.LeaderElectionConfig{Lock: &resourcelock.LeaseLock{LeaseMeta: meta.ObjectMeta{Name: "wafl-controller", Namespace: c.Namespace}, Client: c.Clients.Kube.CoordinationV1(), LockConfig: resourcelock.ResourceLockConfig{Identity: c.Identity}}, LeaseDuration: 15 * time.Second, RenewDeadline: 10 * time.Second, RetryPeriod: 2 * time.Second, ReleaseOnCancel: true, Callbacks: leaderelection.LeaderCallbacks{
 		OnStartedLeading: func(ctx context.Context) {
 			ticker := time.NewTicker(time.Second)

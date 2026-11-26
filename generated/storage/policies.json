@@ -153,6 +153,13 @@
         "output": ".wafl.Log",
         "policy": null,
         "server_stream": true
+      },
+      "Wake": {
+        "client_stream": false,
+        "input": ".wafl.AppWakeRequest",
+        "output": ".wafl.App",
+        "policy": null,
+        "server_stream": false
       }
     }
   },

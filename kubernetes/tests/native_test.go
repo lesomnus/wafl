@@ -253,7 +253,7 @@ func TestNativePlatform(t *testing.T) {
 	})
 	s.gateway = os.Getenv("WAFL_TEST_GATEWAY")
 	if s.gateway == "" {
-		s.gateway = s.forward("svc/wafl-traefik", 80)
+		s.gateway = s.forward("svc/wafl-proxy", 80)
 	}
 	socket := s.bundle("socket")
 	grpc := s.bundle("grpc")
@@ -285,7 +285,7 @@ func TestNativePlatform(t *testing.T) {
 			t.Fatal(e)
 		}
 		_ = services
-		body := s.command("kubectl", "--kubeconfig", s.kubeconfig, "-n", "wafl-system", "exec", "deployment/wafl-traefik", "--", "wget", "-qO-", "http://"+services.Items[0].Name+"."+s.ns+".svc/")
+		body := s.command("kubectl", "--kubeconfig", s.kubeconfig, "-n", "wafl-system", "exec", "deployment/wafl-assets", "-c", "assets", "--", "wget", "-qO-", "http://"+services.Items[0].Name+"."+s.ns+".svc/")
 		if !strings.HasPrefix(string(body), "new:") {
 			t.Fatalf("ClusterIP route failed: %s", body)
 		}
@@ -299,8 +299,11 @@ func TestNativePlatform(t *testing.T) {
 		if e != nil {
 			t.Fatal(e)
 		}
-		a := s.add("rpc", map[string]any{"manifest": map[string]any{"bundle": grpc, "protocol": "h2c"}, "readiness": map[string]any{"grpc": ""}, "rollout": map[string]any{"surge": int64(1), "unavailable": int64(0), "drainMs": int64(60000)}, "secrets": []any{map[string]any{"env": "GREETING", "secretKeyRef": map[string]any{"name": "greeting", "key": "value"}}}})
-		old := s.ready(a)
+		a := s.add("rpc", map[string]any{"manifest": map[string]any{"bundle": grpc, "protocol": "h2c"}, "scaling": map[string]any{"min": int64(0), "max": int64(1), "idleMs": int64(60000), "waitMs": int64(60000)}, "readiness": map[string]any{"grpc": ""}, "rollout": map[string]any{"surge": int64(1), "unavailable": int64(0), "drainMs": int64(60000)}, "secrets": []any{map[string]any{"env": "GREETING", "secretKeyRef": map[string]any{"name": "greeting", "key": "value"}}}})
+		eventually(t, "gRPC App starts at zero", 30*time.Second, func() bool {
+			d, err := c.Kube.AppsV1().Deployments(s.ns).List(ctx, meta.ListOptions{LabelSelector: platform.AppUID + "=" + string(a.GetUID())})
+			return err == nil && len(d.Items) == 1 && *d.Items[0].Spec.Replicas == 0 && len(s.pods(a)) == 0
+		})
 		var stream *http.Response
 		var writer *io.PipeWriter
 		eventually(t, "gRPC route", 45*time.Second, func() bool {
@@ -313,6 +316,7 @@ func TestNativePlatform(t *testing.T) {
 		})
 		defer stream.Body.Close()
 		defer writer.Close()
+		old := s.ready(a)
 		frame := []byte{0, 0, 0, 0, 4, 'p', 'i', 'n', 'g'}
 		if _, e = writer.Write(frame); e != nil {
 			t.Fatal(e)

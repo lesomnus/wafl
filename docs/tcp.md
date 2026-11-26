@@ -78,19 +78,18 @@ nc 127.0.0.1 10001
 
 `wafl`은 controller API만 사용합니다. `bootstrap dev`는 운영자 도구이며 새 kind 클러스터를 만들 때 공개 포트 10000–10015를 호스트에 연결합니다. `--tcp-port 22000`이면 호스트 22000–22015에 연결하되 App의 포트 선언은 10000–10015를 유지합니다. 기존 kind 클러스터의 포트 매핑은 변경되지 않으므로, 이전 버전에서 만든 개발 클러스터는 새 이름으로 생성해야 합니다.
 
-원격 Docker를 사용하면 출력된 gateway 호스트에 연결합니다. 기존 Kubernetes에서는 Traefik Service의 포트 10000–10015, NodePort 31000–31015를 운영 환경에 맞게 외부에 노출합니다. 공개 범위를 바꾸려면 현재는 설치 파일과 controller의 포트 범위를 함께 변경해야 합니다.
+원격 Docker를 사용하면 출력된 gateway 호스트에 연결합니다. 기존 Kubernetes에서는 proxy Service의 포트 10000–10015, NodePort 31000–31015를 운영 환경에 맞게 외부에 노출합니다. 공개 범위를 바꾸려면 현재는 설치 파일과 proxy의 포트 범위를 함께 변경해야 합니다.
 
 ## 첫 연결, 증감과 업데이트
 
 ```text
 클라이언트 TCP 연결
-  → Traefik의 포트별 TCP 라우터
-  → controller replica의 TCP 중계
+  → wafl proxy의 포트별 TCP 수신
   → runner Pod의 배정된 포트
   → WASM 서버 소켓
 ```
 
-controller는 연결을 수락하면 공개 포트로 App을 찾고 관측 기록을 저장합니다. 실행이 0개이면 Deployment의 replicas를 올리고 준비될 때까지 기다립니다. 여러 controller의 동시 기동 요청은 Kubernetes resourceVersion으로 합칩니다. 서버가 먼저 말하는 프로토콜도 클라이언트 데이터를 기다리지 않고 실행을 시작합니다. 모든 선언 소켓이 listen하고 readiness를 통과해야 새 연결을 받습니다.
+프록시는 공개 포트로 App을 찾고 관측 gate를 등록합니다. 실행이 0개이면 대기 관측을 등록하고 controller에 Wake를 요청한 뒤 준비될 때까지 연결을 유지합니다. 여러 프록시의 동시 기동 요청은 controller가 Kubernetes resourceVersion으로 합칩니다. 서버가 먼저 말하는 프로토콜도 클라이언트 데이터를 기다리지 않고 실행을 시작합니다. 모든 선언 소켓이 listen하고 readiness를 통과해야 새 연결을 받습니다.
 
 한번 연결한 TCP 스트림은 끝날 때까지 같은 인스턴스에 갑니다. 새 연결은 준비된 인스턴스들에 분산합니다. `scaling.target`은 인스턴스당 열린 연결 수이며, HTTP의 요청 동시성과 단위가 다릅니다. 조용히 열려 있는 연결도 활성으로 계산하므로 idle 회수를 막습니다. 모든 연결이 닫힌 뒤 `idleMs`가 지나야 0개로 줄일 수 있습니다. `scaling` 없이 `replicas: 0`을 지정하면 중지 상태이며 새 연결로 기동하지 않습니다.
 
@@ -107,15 +106,15 @@ wafl app patch @echo --file /tmp/tcp-update.yaml
 
 새 실행이 준비되면 기존 실행을 종료 대상으로 바꿉니다. 이후 새 연결은 준비된 실행으로 가고, 기존 연결은 이전 실행에서 끝납니다. 전환 중에는 준비된 두 버전이 잠시 함께 새 연결을 받을 수 있습니다. `drainMs`가 끝나면 기존 WASM을 종료하며, 관측 기록이 연결 종료를 확인한 뒤 모든 endpoint 예약을 회수합니다. 포트 회수 조건은 [직결 계약](direct.md)과 같습니다.
 
-클라이언트 송신 EOF는 upstream의 송신 반쪽만 닫으며 응답 방향을 계속 읽습니다. 양쪽 EOF가 끝나거나 연결 오류·controller 종료가 발생하면 연결 전체를 닫습니다. Traefik의 [TCP terminationDelay](https://doc.traefik.io/traefik/reference/routing-configuration/tcp/serverstransport/)는 `-1ms`로 설정해 기본 100ms 제한이 늦은 응답을 자르지 않게 합니다.
+클라이언트 송신 EOF는 upstream의 송신 반쪽만 닫으며 응답 방향은 계속 읽습니다. 양쪽 EOF가 끝나거나 연결 오류가 발생하면 연결 전체를 닫습니다. 정상 proxy 종료는 drain 유예 시간 동안 기존 연결을 기다리고 종료 상태를 보고합니다.
 
 ## 한도와 운영 범위
 
-- App 전체 준비 대기는 `scaling.waiting`/`waitMs`를 사용합니다. 기본 128개/30초입니다. controller replica당 대기·활성 연결 합계는 최대 1024개입니다. 한도나 기동 시간 초과 시 연결을 닫습니다. 임의 TCP 프로토콜에 HTTP 오류나 별도 에러 바이트를 삽입하지 않습니다.
+- App 전체 준비 대기는 `scaling.waiting`/`waitMs`를 사용합니다. 기본 128개/30초입니다. proxy replica당 HTTP 요청과 대기·활성 TCP 연결 합계는 기본 1024개이며 `--capacity`로 설정합니다. 한도나 기동 시간 초과 시 연결을 닫습니다. 임의 TCP 프로토콜에 HTTP 오류나 별도 에러 바이트를 삽입하지 않습니다.
 - TCP 중계는 양방향 복사와 소켓 backpressure를 사용합니다. 전체 요청을 메모리에 모으거나 payload를 해석하지 않습니다. backend 연결 후 실패한 데이터를 재전송하지 않습니다.
-- HTTP/gRPC는 기존 Traefik plugin과 runner 직결을 사용합니다. 일반 TCP에는 연결 수명 관측을 위해 controller 중계가 추가됩니다. 기존 HTTP 직결 벤치마크 수치를 이 경로의 성능으로 해석하면 안 됩니다.
-- 현재는 연결별 Kubernetes 관측 기록과 약 500ms 간격 보고를 사용합니다. 패킷마다 API를 호출하지는 않지만 연결 생성률과 동시 연결 수에 따라 API 부하가 늘어납니다. 대규모 연결 서비스를 위한 관측 집계 최적화는 후속 범위입니다.
-- TCP를 처리하던 controller나 Traefik이 사라지면 그 프로세스의 기존 연결은 끊깁니다. 다른 replica가 새 연결을 받을 수 있으나 기존 스트림을 옮기지는 않습니다. 정상 controller 종료는 연결을 닫고 관측 종료를 기록합니다. 강제 종료나 API 장애로 종료 확인이 남으면 자동 회수를 보수적으로 멈춥니다. 프로세스·연결 종료를 확인한 뒤 [관측 복구](autoscaling.md)의 `wafl traffic close ... --withdrawn` 절차를 사용합니다.
+- HTTP/gRPC와 TCP 모두 Pingora proxy에서 WASM 소켓으로 직결합니다. 이전 Traefik 벤치마크 수치는 이 구현의 성능 측정이 아닙니다.
+- 준비된 실행은 proxy/placement별 관측 gate에서 연결을 집계하고 약 500ms마다 보고합니다. 실행 기동을 기다리는 연결은 개별 대기 기록을 사용합니다.
+- proxy가 사라지면 해당 연결은 끊깁니다. 다른 replica가 새 연결을 받을 수 있으나 기존 스트림을 옮기지는 않습니다. controller 재시작은 이미 전달 중인 TCP 데이터 경로를 끊지 않습니다. 강제 proxy 종료나 API 장애로 종료 확인이 남으면 자동 회수를 보수적으로 멈춥니다. 프로세스·연결 종료를 확인한 뒤 [관측 복구](autoscaling.md)의 `wafl traffic close ... --withdrawn` 절차를 사용합니다.
 - 기존 runner는 `named-sockets-v1` capability가 없으므로 신규 소켓 App을 배치하지 않습니다. runner와 node provider를 먼저 업데이트합니다. 기존 단일 HTTP 선언은 계속 사용할 수 있습니다.
 
 ## 단독 runner
@@ -134,4 +133,4 @@ wafl --json instance get @echo
 
 ## 검증
 
-`scripts/test.sh`는 동일 게스트 포트의 두 인스턴스·복수 소켓·서버 선행 응답·바이너리 데이터·TCP 반닫힘·모든 소켓의 준비 대기·예약 회수를 실제 WASM으로 검사합니다. `scripts/test-kubernetes.sh`는 별도 kind에 실제 Traefik을 두고 TCP 최초 연결 기동, 공개 포트 두 개, 업데이트 중 기존 연결 유지, 연결 부하에 따른 증감, idle 0개 회수와 재기동, fixed-zero 중지를 검사합니다. TCP FIN 검증은 kubectl port-forward가 아닌 실제 NodePort 경로를 통과합니다.
+`scripts/test.sh`는 동일 게스트 포트의 두 인스턴스·복수 소켓·서버 선행 응답·바이너리 데이터·TCP 반닫힘·모든 소켓의 준비 대기·예약 회수를 실제 WASM으로 검사합니다. `scripts/test-kubernetes.sh`는 별도 kind에 실제 Pingora proxy를 두고 TCP 최초 연결 기동, 공개 포트 두 개, 업데이트 중 기존 연결 유지, 연결 부하에 따른 증감, idle 0개 회수와 재기동, fixed-zero 중지를 검사합니다. TCP FIN 검증은 kubectl port-forward가 아닌 실제 NodePort 경로를 통과합니다.

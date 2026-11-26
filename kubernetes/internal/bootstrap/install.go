@@ -67,7 +67,7 @@ func apply(ctx context.Context, c *platform.Clients, data []byte) error {
 		}
 	}
 }
-func installPlatform(ctx context.Context, o *options, image, gateway string, dev bool) error {
+func installPlatform(ctx context.Context, o *options, image string, dev bool) error {
 	c, e := o.clients()
 	if e != nil {
 		return e
@@ -87,8 +87,17 @@ func installPlatform(ctx context.Context, o *options, image, gateway string, dev
 		return e
 	}
 	manifest := strings.ReplaceAll(string(install.Platform), "ghcr.io/lesomnus/wafl:latest", image)
-	manifest = strings.ReplaceAll(manifest, "ghcr.io/lesomnus/wafl-traefik:latest", gateway)
 	manifest = strings.ReplaceAll(manifest, "wafl-system", o.system)
+	legacy, err := c.Kube.CoreV1().Services(o.system).Get(ctx, "wafl-traefik", meta.GetOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	if err == nil && legacy.Spec.Selector["app.kubernetes.io/part-of"] == "wafl" {
+		manifest = strings.ReplaceAll(manifest, "wafl-proxy", "wafl-traefik")
+		manifest = strings.ReplaceAll(manifest, "component: proxy", "component: traefik")
+		manifest = strings.ReplaceAll(manifest, "- name: proxy", "- name: traefik")
+	}
+
 	if dev {
 		manifest = strings.ReplaceAll(manifest, "args: [serve, controller, --system-namespace, "+o.system+"]", "args: [serve, controller, --system-namespace, "+o.system+", --assets, http://wafl-assets."+o.system+".svc:8090]")
 		manifest = strings.ReplaceAll(manifest, "          image:", "          imagePullPolicy: IfNotPresent\n          image:")
@@ -107,16 +116,15 @@ func installPlatform(ctx context.Context, o *options, image, gateway string, dev
 	return nil
 }
 func installCommand(o *options) *cobra.Command {
-	var image, gateway string
+	var image string
 	cmd := &cobra.Command{Use: "install", Short: "Install WAFL into the selected Kubernetes cluster", RunE: func(cmd *cobra.Command, _ []string) error {
-		return installPlatform(cmd.Context(), o, image, gateway, false)
+		return installPlatform(cmd.Context(), o, image, false)
 	}}
 	cmd.Flags().StringVar(&image, "image", "ghcr.io/lesomnus/wafl:latest", "WAFL runner/controller image")
-	cmd.Flags().StringVar(&gateway, "gateway-image", "ghcr.io/lesomnus/wafl-traefik:latest", "Traefik image containing the WAFL plugin")
 	return cmd
 }
 func devCommand(o *options) *cobra.Command {
-	var cluster, image, gateway string
+	var cluster, image string
 	var port, controlPort, tcpPort int
 	var load bool
 	cmd := &cobra.Command{Use: "dev [app.yaml]", Short: "Create/reuse a local kind cluster and install the complete WAFL platform", Args: cobra.MaximumNArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
@@ -191,11 +199,11 @@ func devCommand(o *options) *cobra.Command {
 		o.kubeconfig = kubeconfig
 		o.context = "kind-" + cluster
 		if load {
-			if e = run(ctx, "kind", "load", "docker-image", "--name", cluster, image, gateway); e != nil {
+			if e = run(ctx, "kind", "load", "docker-image", "--name", cluster, image); e != nil {
 				return e
 			}
 		}
-		if e = installPlatform(ctx, o, image, gateway, true); e != nil {
+		if e = installPlatform(ctx, o, image, true); e != nil {
 			return e
 		}
 		c, e := o.clients()
@@ -203,7 +211,11 @@ func devCommand(o *options) *cobra.Command {
 			return e
 		}
 		if load {
-			images := map[string]string{"wafl-controller": image, "wafl-runner": image, "wafl-assets": image, "wafl-traefik": gateway}
+			proxy := "wafl-proxy"
+			if _, err := c.Kube.AppsV1().Deployments(o.system).Get(ctx, "wafl-traefik", meta.GetOptions{}); err == nil {
+				proxy = "wafl-traefik"
+			}
+			images := map[string]string{"wafl-controller": image, "wafl-runner": image, "wafl-assets": image, proxy: image}
 			for name, tag := range images {
 				identity, e := exec.CommandContext(ctx, "docker", "image", "inspect", "--format", "{{.Id}}", tag).Output()
 				if e != nil {
@@ -298,7 +310,6 @@ func devCommand(o *options) *cobra.Command {
 	f.IntVar(&port, "port", 8080, "Local gateway port (chosen when creating the cluster)")
 	f.IntVar(&tcpPort, "tcp-port", 10000, "First of 16 local TCP ports (chosen when creating the cluster)")
 	f.StringVar(&image, "image", "ghcr.io/lesomnus/wafl:latest", "WAFL image")
-	f.StringVar(&gateway, "gateway-image", "ghcr.io/lesomnus/wafl-traefik:latest", "Gateway image")
 	f.BoolVar(&load, "load", false, "Load both images from the local Docker daemon")
 	return cmd
 }

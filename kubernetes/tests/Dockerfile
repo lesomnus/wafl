@@ -1,5 +1,5 @@
 FROM debian:trixie-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libgcc-s1 \
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libgcc-s1 wget \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --uid 10001 --create-home wafl \
     && mkdir -p /var/lib/wafl/cache /var/lib/wafl/endpoints \

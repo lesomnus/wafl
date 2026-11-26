@@ -5,7 +5,6 @@ cd "$(dirname "$0")/.."
 # current Kubernetes context. Build hosts may use a remote Docker daemon.
 cluster=${WAFL_TEST_CLUSTER:-wafl-test}
 image=${WAFL_TEST_IMAGE:-wafl:kubernetes-test}
-gateway=${WAFL_TEST_GATEWAY_IMAGE:-wafl-traefik:kubernetes-test}
 baseline=${WAFL_TEST_BASELINE_IMAGE:-wafl:kubernetes-baseline-2e463666}
 export WAFL_TEST_BASELINE_IMAGE="$baseline"
 export WAFL_TEST_CLUSTER="$cluster"
@@ -28,8 +27,7 @@ if [ -z "${WAFL_TEST_KUBECONFIG:-}" ]; then
   # Dockerfile, whose Debian build/runtime versions match each other.
   cp kubernetes/tests/Dockerfile "$stage/Dockerfile"
   docker build -t "$image" "$stage"
-  docker build -f Dockerfile.traefik -t "$gateway" .
-  "$target/debug/wafl-kube" bootstrap dev --name "$cluster" --image "$image" --gateway-image "$gateway" --load --port "${WAFL_TEST_PORT:-18080}" --control-port "${WAFL_TEST_CONTROL_PORT:-18082}" --tcp-port "$WAFL_TEST_TCP_PORT"
+  "$target/debug/wafl-kube" bootstrap dev --name "$cluster" --image "$image" --load --port "${WAFL_TEST_PORT:-18080}" --control-port "${WAFL_TEST_CONTROL_PORT:-18082}" --tcp-port "$WAFL_TEST_TCP_PORT"
   # A custom WAFL_TEST_BASELINE_IMAGE must already exist in the Docker daemon.
   if [ "$baseline" = wafl:kubernetes-baseline-2e463666 ]; then
     # Published predecessor 2e4636662980411a9d229bff32f5b8ed9d3cffdb.

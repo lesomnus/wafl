@@ -15,26 +15,23 @@ flowchart LR
   P --> S[Kubernetes scheduler]
   S --> V[runner별 Virtual Kubelet]
   V --> R[한 runner의 여러 WASM Instance]
-  T[Traefik + WAFL plugin] --> R
-  T --> A[첫 요청 activator]
-  A --> R
-  C -->|동적 경로| T
+  T[Pingora 기반 wafl proxy] --> R
+  T -->|기동·관측 RPC| C
+  C -->|경로 snapshot| T
 ```
 
 controller는 App에서 Deployment를 생성하고 Secret을 불변 snapshot으로 변환합니다. Kubernetes scheduler가 가상 Node를 선택하고 ReplicaSet이 실행 개수를 유지합니다. Virtual Kubelet provider는 생성된 Instance RPC로 runner를 제어하고 readiness와 종료 상태를 Pod status로 보고합니다. 앱마다 Linux 컨테이너를 새로 띄우지 않습니다.
 
-controller는 여러 replica로 실행할 수 있습니다. Kubernetes Lease 소유자만 배포·증감·회수를 조정하고 모든 replica가 App/Traffic RPC, Runner·Instance·Reservation 집계, 로그 중계, Traefik 설정과 activator 요청을 처리합니다. API 변경은 resourceVersion으로 충돌을 확인합니다. 조정 leader가 바뀌어도 App·Deployment·관측 기록·실행 receipt는 Kubernetes에 남습니다.
+controller는 여러 replica로 실행할 수 있습니다. Kubernetes Lease 소유자만 배포·증감·회수를 조정하고 모든 replica가 App/Traffic RPC, Runner·Instance·Reservation 집계, 로그 중계, 프록시 경로 snapshot과 기동 요청을 처리합니다. API 변경은 resourceVersion으로 충돌을 확인합니다. 조정 leader가 바뀌어도 App·Deployment·관측 기록·실행 receipt는 Kubernetes에 남습니다.
 
 | 구성요소 | 기본 주소 / 명령 |
 | --- | --- |
-| controller | `wafl serve controller`, `:8082`의 `/health`, `/traefik`, App/Traffic 및 Instance/Runner/Reservation RPC |
-| activator | 같은 프로세스의 `:8083`, 앱 HTTP/gRPC 요청만 처리 |
-| TCP 중계 | 같은 controller 프로세스의 `:10000`–`:10015`, TCP 연결 기동·관측·중계 |
+| controller | `wafl serve controller`, `:8082`의 `/health`, `/proxy`, App/Traffic 및 Instance/Runner/Reservation RPC |
 | node provider | `wafl serve node --node NAME --runner http://RUNNER:8081` |
 | runner | `wafl serve runner`, 생성된 Instance/Runner/Reservation RPC |
-| gateway | 플러그인이 포함된 Traefik, `Host` 규칙과 guest IP:port 사용 |
+| proxy | `wafl serve proxy`, HTTP/gRPC `:8080`, 일반 TCP `:10000`–`:10015`, readiness `:8084` |
 
-controller의 `--control`, `--activate`에는 gateway에서 접근할 수 있는 내부 주소를 사용합니다. 설치 파일은 Kubernetes Service 주소를 설정합니다. App Service도 Traefik을 통하므로 내부 호출과 외부 호출이 같은 수신·drain 계약을 따릅니다. HTTP/gRPC는 준비된 앱의 요청마다 Kubernetes API를 호출하지 않습니다. [일반 TCP](tcp.md)는 별도 공개 포트로 들어와 같은 controller 프로세스의 연결 중계를 통과하며 연결별 관측을 Kubernetes에 저장합니다. 따라서 TCP에서는 controller도 지속적인 데이터 경로에 포함됩니다.
+프록시의 `--controller`에 controller API 주소를 지정합니다. App Service도 같은 프록시를 통하므로 내부·외부 호출이 같은 수신·drain 계약을 따릅니다. HTTP/gRPC와 일반 TCP 모두 준비된 WASM 소켓으로 직접 전달하며, 첫 요청도 프록시가 기동을 기다렸다가 직접 전달합니다. controller는 앱 데이터를 중계하지 않습니다. 자세한 설정과 전환 절차는 [프록시 문서](proxy.md)에 있습니다.
 
 가상 Node와 논리 Pod는 WAFL의 제한된 실행 계약입니다. 일반 kubelet의 Linux 컨테이너·exec·CSI·Pod별 CNI를 구현하지 않습니다. 상세 지원 범위와 장애 후 예약 회수는 [플랫폼 계약](kubernetes-native.md)에 있습니다.
 

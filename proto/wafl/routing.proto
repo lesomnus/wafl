@@ -1,0 +1,29 @@
+edition = "2023";
+package wafl;
+option go_package = "github.com/lesomnus/wafl/proto/wafl";
+option features.field_presence = IMPLICIT;
+
+// GET /proxy returns this complete protobuf-JSON snapshot. This is derived
+// routing configuration, not a stored resource. Version 1 requires Traffic
+// registration before forwarding and acknowledged closure before port reuse.
+// Snapshots contain no application environment values or bundle credentials.
+message Routing {
+  uint32 version = 1;
+  repeated Route routes = 2;
+}
+message Route {
+  bytes app = 1;
+  string tenant = 2;
+  repeated string hosts = 3;
+  // Zero for HTTP; otherwise the public TCP listening port.
+  uint32 port = 4;
+  string protocol = 5;
+  bool suspended = 6;
+  uint32 waiting = 7;
+  uint64 wait_ms = 8;
+  repeated RouteTarget targets = 9;
+}
+message RouteTarget {
+  bytes placement = 1;
+  string address = 2;
+}

@@ -12,7 +12,7 @@ Kubernetes가 복제본 유지와 rolling update를 담당하고, WAFL이 WASM �
 
 `wafl app`·`wafl traffic`은 controller API를 호출하고, `wafl instance`·`wafl runner`·`wafl reservation`은 controller의 집계 API 또는 개별 runner API를 호출합니다. 앱 사용자에게 Kubernetes 접근 권한을 요구하지 않습니다. 설치 전에 controller가 존재할 수 없으므로 최초 클러스터 설치는 별도 운영자 도구가 맡습니다. [API 계약](controller-api.md)을 참고하세요.
 
-앱 코드는 기존 언어 도구로 실행하고 디버깅합니다. WASM 번들만 확인하려면 단독 runner를 사용합니다. 전체 플랫폼을 로컬에서 검증할 때는 Docker와 kind를 설치하고 `wafl-kube bootstrap dev`를 실행합니다. 이 명령은 전용 kind 클러스터를 만들거나 재사용하고 controller·runner·Traefik을 설치합니다. 클러스터는 명령 종료 뒤에도 유지됩니다.
+앱 코드는 기존 언어 도구로 실행하고 디버깅합니다. WASM 번들만 확인하려면 단독 runner를 사용합니다. 전체 플랫폼을 로컬에서 검증할 때는 Docker와 kind를 설치하고 `wafl-kube bootstrap dev`를 실행합니다. 이 명령은 전용 kind 클러스터를 만들거나 재사용하고 controller·runner·Pingora proxy을 설치합니다. 클러스터는 명령 종료 뒤에도 유지됩니다.
 
 ```sh
 bash scripts/build.sh
@@ -79,7 +79,7 @@ readiness를 생략하면 TCP listen을 확인합니다. HTTP path 또는 gRPC H
 
 삭제되는 Pod는 새 요청을 받지 않고 기존 요청·스트림을 마무리합니다. 종료 유예 시간이 지나면 runner의 `Halt`가 실행을 종료하지만 **주소 예약은 유지**합니다. 모든 gateway observer가 닫혔고 활성 요청이 0임을 확인한 뒤 `Release`와 `Erase`를 수행합니다. 누락된 heartbeat는 연결 종료의 증거로 사용하지 않습니다. 관측이 유실되면 Pod finalizer 또는 실행 receipt가 남을 수 있으며, 해당 gateway와 연결이 실제로 종료됐음을 확인한 뒤 `wafl traffic close ID --withdrawn`으로 회수합니다.
 
-Traefik은 준비된 guest socket으로 직접 요청을 전달합니다. App용 ClusterIP Service도 Traefik을 통해 같은 관측 경로를 사용합니다. 정상 실행 중인 앱에 대한 요청마다 Kubernetes API를 호출하지 않습니다. guest 주소로 직접 요청하면 이 drain 계약에 포함되지 않으므로 플랫폼 앱 트래픽은 gateway 또는 App Service를 사용해야 합니다.
+Pingora proxy은 준비된 guest socket으로 직접 요청을 전달합니다. App용 ClusterIP Service도 Pingora proxy을 통해 같은 관측 경로를 사용합니다. 정상 실행 중인 앱에 대한 요청마다 Kubernetes API를 호출하지 않습니다. guest 주소로 직접 요청하면 이 drain 계약에 포함되지 않으므로 플랫폼 앱 트래픽은 gateway 또는 App Service를 사용해야 합니다.
 
 ## 지원하는 Pod 계약
 
@@ -111,10 +111,10 @@ kubectl -n demo get pods -w
 runner를 늘리는 작업은 `kubectl -n wafl-system scale deployment/wafl-runner --replicas=3`입니다. runner Pod의 종료 hook은 먼저 가상 Node를 cordon하고 실행들을 drain합니다. 예제 runner Pod의 종료 유예는 60초이므로 더 긴 앱 스트림을 정상 완료시키려면 Pod 유예와 hook 대기 시간도 함께 조정해야 합니다. 강제 종료나 host 장애 시 진행 중이던 요청 자체를 재실행하지는 않습니다.
 
 runner 이미지 교체는 앱 복제본이 2개 이상이어도 모든 실행의 재기동이 겹칠 수 있습니다. runner Pod의 readiness는 앱의 readiness와 다릅니다.
-준비된 실행이 일시적으로 없으면 고정 복제본 App도 activator에서 새 실행을 기다립니다. 기본 대기 한도는 30초이며 gRPC deadline이나 클라이언트 취소가 먼저 발생하면 대기를 끝냅니다.
+준비된 실행이 일시적으로 없으면 고정 복제본 App도 프록시에서 새 실행을 기다립니다. 기본 대기 한도는 30초이며 gRPC deadline이나 클라이언트 취소가 먼저 발생하면 대기를 끝냅니다.
 이는 짧은 응답 시간을 보장하는 업데이트가 아닙니다. `replicas: 0`으로 중지한 고정 복제본 App은 요청으로 기동하지 않습니다.
 
-`wafl-kube bootstrap dev --load --image LOCAL_TAG --gateway-image GATEWAY_TAG`는 로컬 Docker 이미지 두 개를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
+`wafl-kube bootstrap dev --load --image LOCAL_TAG`는 모든 역할이 포함된 로컬 Docker 이미지 하나를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
 
 ## 이전 버전에서 전환
 
@@ -131,7 +131,7 @@ Docker·kind·Rust·Go·kubectl이 있는 환경에서 다음 명령으로 전�
 bash scripts/test-kubernetes.sh
 ```
 
-[기본 통합 테스트](../kubernetes/tests/native_test.go)는 실제 controller·Virtual Kubelet provider·Rust runner·WASM·Traefik을 사용합니다.
+[기본 통합 테스트](../kubernetes/tests/native_test.go)는 실제 controller·Virtual Kubelet provider·Rust runner·WASM·Pingora proxy을 사용합니다.
 readiness 실패 시 기존 실행 유지, Secret 교체 중 gRPC 스트림 보존, 첫 요청 기동·부하 확장·유휴 회수, runner 장애 복구,
 provider 재시작과 controller 리더 교체를 검사합니다.
 

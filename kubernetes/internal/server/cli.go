@@ -32,22 +32,12 @@ func Command() *cobra.Command {
 		}
 		controller.Clients = c
 		controller.Namespace = o.system
-		if !cmd.Flags().Changed("control") {
-			controller.Control = fmt.Sprintf("http://wafl-controller.%s.svc:8082", o.system)
-		}
-		if !cmd.Flags().Changed("activate") {
-			controller.Activate = fmt.Sprintf("http://wafl-controller.%s.svc:8083", o.system)
-		}
 		hostname, _ := os.Hostname()
 		controller.Identity = fmt.Sprintf("%s-%d", hostname, os.Getpid())
 		return controller.Serve(cmd.Context())
 	}}
 	f := control.Flags()
-	f.StringVar(&controller.Listen, "listen", "0.0.0.0:8082", "Controller management API and Traefik configuration address")
-	f.StringVar(&controller.ActivationListen, "activation-listen", "0.0.0.0:8083", "HTTP/gRPC activation address")
-	f.StringVar(&controller.Control, "control", "", "Controller origin reachable by Traefik")
-	f.StringVar(&controller.Activate, "activate", "", "Activator origin reachable by Traefik")
-	f.StringVar(&controller.Entrypoint, "entrypoint", "web", "Traefik entrypoint")
+	f.StringVar(&controller.Listen, "listen", "0.0.0.0:8082", "Controller management API and proxy routing address")
 	f.StringVar(&controller.Assets, "assets", "", "Optional shared asset store origin for file uploads")
 	f.DurationVar(&controller.RunnerTimeout, "runner-timeout", 3*time.Second, "Deadline for each runner during catalog queries")
 	f.IntVar(&controller.RunnerParallel, "runner-parallel", 16, "Maximum concurrent runner catalog queries")

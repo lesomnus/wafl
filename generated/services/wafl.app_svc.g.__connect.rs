@@ -34,6 +34,10 @@ pub type OwnedAppListRequestView = ::buffa::view::OwnedView<
 pub type OwnedAppListResponseView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::AppListResponseView<'static>,
 >;
+///Shorthand for `OwnedView<AppWakeRequestView<'static>>`.
+pub type OwnedAppWakeRequestView = ::buffa::view::OwnedView<
+    crate::proto::wafl::__buffa::view::AppWakeRequestView<'static>,
+>;
 ///Shorthand for `OwnedView<AppTailRequestView<'static>>`.
 pub type OwnedAppTailRequestView = ::buffa::view::OwnedView<
     crate::proto::wafl::__buffa::view::AppTailRequestView<'static>,
@@ -149,6 +153,15 @@ pub const APP_SERVICE_ERASE_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::serve
 /// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
 pub const APP_SERVICE_LIST_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
         "/wafl.AppService/List",
+        ::connectrpc::StreamType::Unary,
+    )
+    .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
+/// Static [`Spec`](::connectrpc::Spec) for the server-side `Wake` RPC.
+///
+/// The dispatcher surfaces this on
+/// [`RequestContext::spec`](::connectrpc::RequestContext::spec).
+pub const APP_SERVICE_WAKE_SPEC: ::connectrpc::Spec = ::connectrpc::Spec::server(
+        "/wafl.AppService/Wake",
         ::connectrpc::StreamType::Unary,
     )
     .with_idempotency_level(::connectrpc::IdempotencyLevel::Unknown);
@@ -322,6 +335,26 @@ pub trait AppService: Send + Sync + 'static {
             impl ::connectrpc::Encodable<
                 crate::proto::wafl::AppListResponse,
             > + Send + use<'a, Self>,
+        >,
+    > + Send;
+    /// Request at least one execution for an autoscaling App. Idempotent across
+    /// controllers; fixed-zero Apps remain suspended. Does not wait for readiness
+    /// or carry application bytes. Proxies retain the request/connection locally.
+    ///
+    /// `'a` lets the response body borrow from `&self` (e.g. server-resident state).
+    ///
+    /// `request` is borrowed from the request body and is valid for the
+    /// duration of the call; message fields are read directly on it
+    /// (zero-copy). The response cannot borrow from `request` — use
+    /// `.to_owned_message()` (or copy the specific fields) for anything
+    /// returned, stored, or moved into `tokio::spawn`.
+    fn wake<'a>(
+        &'a self,
+        ctx: ::connectrpc::RequestContext,
+        request: ::connectrpc::ServiceRequest<'_, crate::proto::wafl::AppWakeRequest>,
+    ) -> impl ::std::future::Future<
+        Output = ::connectrpc::ServiceResult<
+            impl ::connectrpc::Encodable<crate::proto::wafl::App> + Send + use<'a, Self>,
         >,
     > + Send;
     /// Stream one execution through the controller; no runner network access or
@@ -532,6 +565,33 @@ impl<S: AppService> AppServiceExt for S {
                 },
             )
             .with_spec(APP_SERVICE_LIST_SPEC)
+            .route_view(
+                APP_SERVICE_SERVICE_NAME,
+                "Wake",
+                {
+                    let svc = ::std::sync::Arc::clone(&self);
+                    ::connectrpc::view_handler_fn(move |
+                        ctx,
+                        req: ::buffa::view::OwnedView<
+                            crate::proto::wafl::__buffa::view::AppWakeRequestView<
+                                'static,
+                            >,
+                        >,
+                        format|
+                    {
+                        let svc = ::std::sync::Arc::clone(&svc);
+                        async move {
+                            let sreq = ::connectrpc::ServiceRequest::<
+                                crate::proto::wafl::AppWakeRequest,
+                            >::from_parts(req.reborrow(), req.bytes());
+                            svc.wake(ctx, sreq)
+                                .await?
+                                .encode::<crate::proto::wafl::App>(format)
+                        }
+                    })
+                },
+            )
+            .with_spec(APP_SERVICE_WAKE_SPEC)
             .route_view_server_stream::<
                 _,
                 _,
@@ -648,6 +708,12 @@ impl<T: AppService> ::connectrpc::Dispatcher for AppServiceServer<T> {
                 Some(
                     ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
                         .with_spec(APP_SERVICE_LIST_SPEC),
+                )
+            }
+            "Wake" => {
+                Some(
+                    ::connectrpc::dispatcher::codegen::MethodDescriptor::unary(false)
+                        .with_spec(APP_SERVICE_WAKE_SPEC),
                 )
             }
             "Tail" => {
@@ -767,6 +833,21 @@ impl<T: AppService> ::connectrpc::Dispatcher for AppServiceServer<T> {
                     svc.list(ctx, req)
                         .await?
                         .encode::<crate::proto::wafl::AppListResponse>(format)
+                })
+            }
+            "Wake" => {
+                let svc = ::std::sync::Arc::clone(&self.inner);
+                Box::pin(async move {
+                    let body = ::connectrpc::dispatcher::codegen::request_proto_bytes::<
+                        crate::proto::wafl::AppWakeRequest,
+                    >(request.encoded()?, format)?;
+                    let req: crate::proto::wafl::__buffa::view::AppWakeRequestView<'_> = ::connectrpc::dispatcher::codegen::decode_borrowed_request_view(
+                        &body,
+                    )?;
+                    let req = ::connectrpc::ServiceRequest::<
+                        crate::proto::wafl::AppWakeRequest,
+                    >::from_parts(&req, &body);
+                    svc.wake(ctx, req).await?.encode::<crate::proto::wafl::App>(format)
                 })
             }
             _ => ::connectrpc::dispatcher::codegen::unimplemented_unary(path),
@@ -1129,6 +1210,40 @@ where
                 &self.config,
                 APP_SERVICE_SERVICE_NAME,
                 "List",
+                request,
+                options,
+            )
+            .await
+    }
+    /// Call the Wake RPC. Sends a request to /wafl.AppService/Wake.
+    pub async fn wake(
+        &self,
+        request: crate::proto::wafl::AppWakeRequest,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<crate::proto::wafl::__buffa::view::AppView<'static>>,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        self.wake_with_options(request, ::connectrpc::client::CallOptions::default())
+            .await
+    }
+    /// Call the Wake RPC with explicit per-call options. Options override [`ClientConfig`](::connectrpc::client::ClientConfig) defaults.
+    pub async fn wake_with_options(
+        &self,
+        request: crate::proto::wafl::AppWakeRequest,
+        options: ::connectrpc::client::CallOptions,
+    ) -> Result<
+        ::connectrpc::client::UnaryResponse<
+            ::buffa::view::OwnedView<crate::proto::wafl::__buffa::view::AppView<'static>>,
+        >,
+        ::connectrpc::ConnectError,
+    > {
+        ::connectrpc::client::call_unary(
+                &self.transport,
+                &self.config,
+                APP_SERVICE_SERVICE_NAME,
+                "Wake",
                 request,
                 options,
             )

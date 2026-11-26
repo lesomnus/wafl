@@ -13,7 +13,9 @@ import (
 	"testing"
 	"time"
 
+	wf "github.com/lesomnus/wafl/kubernetes/gen/wafl"
 	"github.com/lesomnus/wafl/kubernetes/internal/platform"
+	"google.golang.org/protobuf/encoding/protojson"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -98,7 +100,7 @@ func (s *suite) tcp(t *testing.T) {
 		})
 		// No client bytes precede this greeting: server-first protocols must also
 		// trigger activation. Real published NodePorts avoid port-forward's stream
-		// abstraction, so FIN travels through the actual Traefik TCP path.
+		// abstraction, so FIN travels through the actual Pingora TCP path.
 		old, err := tcpConnect(address(0), "old:8080\n")
 		if err != nil {
 			t.Fatal(err)
@@ -123,6 +125,24 @@ func (s *suite) tcp(t *testing.T) {
 		eventually(t, "old TCP execution drains", 45*time.Second, func() bool {
 			p, err := s.c.Kube.CoreV1().Pods(s.ns).Get(s.ctx, oldPod.Name, meta.GetOptions{})
 			return err == nil && p.DeletionTimestamp != nil
+		})
+		// Deletion requests route withdrawal; it is not an acknowledgement from
+		// every proxy. Wait for its closed gate while the original connection
+		// stays active, then require all new connections to use the replacement.
+		eventually(t, "proxy acknowledged TCP withdrawal without dropping the stream", 10*time.Second, func() bool {
+			records, err := s.c.Kube.CoreV1().ConfigMaps("wafl-system").List(s.ctx, meta.ListOptions{LabelSelector: platform.Kind + "=traffic," + platform.PodUID + "=" + string(oldPod.UID)})
+			if err != nil || len(records.Items) == 0 {
+				return false
+			}
+			active := uint32(0)
+			for _, record := range records.Items {
+				var observation wf.Traffic
+				if protojson.Unmarshal([]byte(record.Data["value"]), &observation) != nil || !observation.Closed {
+					return false
+				}
+				active += observation.Active
+			}
+			return active == 1
 		})
 		current, err := tcpConnect(address(0), "new:8080\n")
 		if err != nil {

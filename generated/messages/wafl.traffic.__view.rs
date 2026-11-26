@@ -2,6 +2,9 @@
 // source: wafl/traffic.proto
 
 /// One observer's admission gate for a placement, or one cold-start request.
+/// Add supplies exactly one of placement or app. App-only Add registers one
+/// waiting request (active=started=1, activation=true); Report closes it once
+/// admitted through a placement observer, cancelled, or timed out.
 /// Register before forwarding. closed is irreversible. Missing heartbeats NEVER
 /// prove that a stream ended or authorize endpoint reuse.
 #[derive(Clone, Debug, Default)]

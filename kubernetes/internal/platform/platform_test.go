@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	"connectrpc.com/connect"
 	wf "github.com/lesomnus/wafl/kubernetes/gen/wafl"
@@ -122,17 +121,7 @@ func TestHTTPReadinessAndGRPCDeadline(t *testing.T) {
 	if e := probe(context.Background(), p, strings.TrimPrefix(server.URL, "http://")); e == nil {
 		t.Fatal("failed readiness admitted")
 	}
-	for input, want := range map[string]time.Duration{"10m": 10 * time.Millisecond, "1S": time.Second, "99999999H": time.Duration(1<<63 - 1)} {
-		got, e := grpcTimeout(input)
-		if e != nil || got != want {
-			t.Fatalf("%s: %v %v", input, got, e)
-		}
-	}
-	for _, input := range []string{"", "10", "1x", "123456789S", "-1S"} {
-		if _, e := grpcTimeout(input); e == nil {
-			t.Fatalf("accepted %q", input)
-		}
-	}
+
 }
 func TestObserverRegistrationFencesConcurrentDeletion(t *testing.T) {
 	a, s := fixture()
