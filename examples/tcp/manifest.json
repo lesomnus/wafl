@@ -1,0 +1,7 @@
+{
+  "sockets": [
+    {"name": "echo", "port": 8080, "transport": "tcp"},
+    {"name": "admin", "port": 8081, "transport": "tcp"}
+  ],
+  "env": {"GREETING": "hello", "SECOND_PORT": "8081"}
+}

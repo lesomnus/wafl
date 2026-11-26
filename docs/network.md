@@ -9,7 +9,7 @@
 - 발신 TCP와 이름 조회는 runner 호스트·Pod의 네트워크와 resolver를 사용합니다. runner의 별도 목적지 allowlist는 없습니다. OS·네트워크 정책이 허용하는 목적지에 연결할 수 있습니다.
 - `localhost`와 loopback IP는 runner 호스트·Pod를 뜻합니다. 원격 runner에 제출한 앱에서 개발자 컴퓨터를 가리키지 않으며, 각 WASM 인스턴스의 사설 네트워크도 아닙니다.
 - 선택적인 `bindings`는 선언한 IPv4 loopback 포트를 먼저 변환합니다. 예를 들어 `--binding 5432=10.0.0.20:5432`가 있으면 `127.0.0.1:5432`를 그 DB로 연결합니다. 그 밖의 TCP 목적지는 그대로 사용합니다.
-- 서버의 수신 포트는 계속 가상화합니다. 각 인스턴스는 선언한 IPv4 서버 포트 하나를 사용하며, 추가 listen 포트는 허용하지 않습니다. 클라이언트의 포트 0 bind는 IPv4·IPv6 wildcard/loopback을 보존합니다.
+- 서버의 수신 포트는 계속 가상화합니다. direct 모드에서는 `Manifest.sockets`에 선언한 IPv4 서버 포트들을 사용할 수 있으며, 미선언 listen 포트는 허용하지 않습니다. [TCP 튜토리얼](tcp.md)을 참고하세요. 클라이언트의 포트 0 bind는 IPv4·IPv6 wildcard/loopback을 보존합니다.
 - UDP는 지원하지 않습니다. DNS는 호스트 resolver가 수행하므로 게스트 UDP 지원이 필요하지 않습니다. HTTPS나 DB TLS를 사용하려면 앱의 WASI 호환 TLS 구현과 신뢰할 CA 구성이 필요합니다. `wasi:http` 전용 클라이언트 인터페이스는 제공하지 않습니다.
 
 이 구성은 한 runner의 인스턴스들이 발신 네트워크 범위를 공유합니다. loopback에서 동작하는 runner 관리 API 등도 연결 대상이 될 수 있습니다. [Kubernetes NetworkPolicy](https://kubernetes.io/docs/concepts/services-networking/network-policies/)는 runner Pod 단위로 적용되며 같은 Pod 안의 WASM 인스턴스를 구분하지 않습니다. 서로 다른 네트워크 신뢰 범위가 필요한 앱은 별도 runner Pod에 배치해야 합니다. `bindings`는 접근 제어 기능이 아닙니다.
