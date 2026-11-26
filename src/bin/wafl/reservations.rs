@@ -76,14 +76,14 @@ pub(super) async fn run(action: Command, config: ClientConfig, json: bool) -> Re
                     r#ref: Some(reference(&args.reference)?).into(),
                     ..Default::default()
                 })
-                .await?
-                .into_owned(),
+                .await
+                .map(owned)?,
             json,
         )?,
         Command::List => {
             let mut request = ReservationListRequest::default();
             loop {
-                let page = client.list(request.clone()).await?.into_owned();
+                let page = client.list(request.clone()).await.map(owned)?;
                 for value in &page.items {
                     print(value, json)?;
                 }
@@ -101,8 +101,8 @@ pub(super) async fn run(action: Command, config: ClientConfig, json: bool) -> Re
                     withdrawn: args.withdrawn,
                     ..Default::default()
                 })
-                .await?
-                .into_owned();
+                .await
+                .map(owned)?;
             if json {
                 println!("{}", serde_json::to_string(&result)?);
             } else {

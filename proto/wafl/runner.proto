@@ -5,8 +5,9 @@ import "orm.proto";
 option go_package = "github.com/lesomnus/wafl/proto/wafl";
 option features.field_presence = IMPLICIT;
 
-// Process-local infrastructure resource, intentionally global rather than
-// owned by any one tenant. List discovers the single current process session.
+// Infrastructure process session, global rather than tenant-owned. A runner
+// returns itself; a controller lists its supervised runners. Controller aliases
+// identify virtual nodes, while @self is local to a runner endpoint.
 message Runner {
   option (orm.message) = {rpc: {get: {}}};
   option (payday.entity) = {
@@ -14,7 +15,7 @@ message Runner {
     global: {}
     erase: {hard: {}}
     trail: {off: {why: "Ephemeral process observation; lifecycle metrics are exported separately."}}
-    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}] size: 1 max: 1 filters: 64}
+    list: {order: [{field: {name: "id"}}] by: [{name: "ref"}] size: 100 max: 1000 filters: 64}
   };
   bytes id = 1 [(orm.field) = {type: TYPE_UUID, key: true, default: ""}];
   reserved 2, 3;

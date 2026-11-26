@@ -2,6 +2,8 @@
 
 runner 프로세스가 종료되면 OS가 WASM의 소켓을 닫지만, 공개한 포트의 예약 파일은 남습니다. gateway에 남은 이전 경로가 다른 앱으로 연결되는 것을 막기 위해서입니다. 같은 `direct.directory`·advertise IP·포트 범위로 실행한 runner에서 `ReservationService`로 조회하고, 외부 경로 정리 후 회수할 수 있습니다.
 
+`wafl --endpoint http://127.0.0.1:8082 reservation list`로 controller가 감독하는 runner들의 예약을 모아 볼 수 있습니다. 공유 풀의 중복 관측은 ID로 합치고 실패한 runner는 stderr 경고로 남깁니다. 전체 runner가 실패해도 목록 명령은 빈 결과로 성공하므로 경고를 함께 확인합니다. controller를 통한 `reservation release`는 `--session <현재 수신 Runner ID>`가 필수이며 token·외부 경로 철회 확인·활성 소유자 보호는 그대로 적용합니다. [집계 API](controller-api.md)에 자세한 범위와 오류 계약이 있습니다.
+
 | 상황 | 정리 방법 |
 | --- | --- |
 | WASM만 종료되고 runner는 살아 있음 | 기존 Instance를 `Drain` → 외부 경로·연결 정리 → `InstanceService.Release` |

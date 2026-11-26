@@ -10,7 +10,7 @@ Kubernetes가 복제본 유지와 rolling update를 담당하고, WAFL이 WASM �
 
 ## 로컬 개발과 설치
 
-`wafl app`·`wafl traffic`은 controller API만 호출하고, `wafl instance`·`wafl runner`·`wafl reservation`은 runner API만 호출합니다. 앱 사용자에게 Kubernetes 접근 권한을 요구하지 않습니다. 설치 전에 controller가 존재할 수 없으므로 최초 클러스터 설치는 별도 운영자 도구가 맡습니다. [API 계약](controller-api.md)을 참고하세요.
+`wafl app`·`wafl traffic`은 controller API를 호출하고, `wafl instance`·`wafl runner`·`wafl reservation`은 controller의 집계 API 또는 개별 runner API를 호출합니다. 앱 사용자에게 Kubernetes 접근 권한을 요구하지 않습니다. 설치 전에 controller가 존재할 수 없으므로 최초 클러스터 설치는 별도 운영자 도구가 맡습니다. [API 계약](controller-api.md)을 참고하세요.
 
 앱 코드는 기존 언어 도구로 실행하고 디버깅합니다. WASM 번들만 확인하려면 단독 runner를 사용합니다. 전체 플랫폼을 로컬에서 검증할 때는 Docker와 kind를 설치하고 `wafl-kube bootstrap dev`를 실행합니다. 이 명령은 전용 kind 클러스터를 만들거나 재사용하고 controller·runner·Traefik을 설치합니다. 클러스터는 명령 종료 뒤에도 유지됩니다.
 
@@ -85,7 +85,7 @@ provider는 App에서 생성한 단일 WASM 실행만 지원합니다. Linux ima
 
 가상 Node의 OS/architecture label은 `wasi`/`wasm32`입니다. Linux Node로 표시하지 않으므로 Linux용 kube-proxy 같은 DaemonSet이 배정되지 않습니다. 추가 시스템 DaemonSet도 실제로 지원하는 Node의 OS/architecture를 선택하도록 설정합니다.
 
-논리적인 앱 Pod에는 독립 Pod IP를 할당하지 않습니다. 실제 실행 주소는 runner의 IP와 예약한 포트이며 WAFL이 Endpoint 정보를 관리합니다. 일반 CNI/NetworkPolicy가 앱 Pod마다 격리해 주지는 않습니다. 격리는 runner Pod 및 WASM sandbox 단위입니다. `kubectl logs/exec`의 일반 kubelet API는 제공하지 않으며 로그는 `wafl app logs` 또는 runner의 `wafl instance logs`로 조회합니다.
+논리적인 앱 Pod에는 독립 Pod IP를 할당하지 않습니다. 실제 실행 주소는 runner의 IP와 예약한 포트이며 WAFL이 Endpoint 정보를 관리합니다. 일반 CNI/NetworkPolicy가 앱 Pod마다 격리해 주지는 않습니다. 격리는 runner Pod 및 WASM sandbox 단위입니다. `kubectl logs/exec`의 일반 kubelet API는 제공하지 않으며 로그는 `wafl app logs` 또는 `wafl instance logs`로 조회합니다. 두 명령 모두 controller 주소를 사용할 수 있습니다.
 
 runner Pod가 사라져도 이전 관측자들의 종료 확인 전에는 해당 가상 Node의 주소 소유권을 보존합니다. CNI가 그 IP를 새 Pod에 재사용하면 새 provider는 이전 소유권이 정리될 때까지 실행 배정을 기다립니다. 가상 Node를 임의로 삭제하거나 포트 예약을 비우면 이 보호를 우회합니다.
 
@@ -114,4 +114,4 @@ runner를 늘리는 작업은 `kubectl -n wafl-system scale deployment/wafl-runn
 
 기존 PostgreSQL controller와 새 Kubernetes controller가 같은 runner를 동시에 관리하지 않도록 분리합니다. 기존 플랫폼에서 App YAML·secret 참조를 내보내고 새 클러스터에 등록하여 검증한 뒤 도메인의 게이트웨이를 전환합니다. 기존 요청을 drain한 뒤 이전 controller와 runner를 종료합니다. 기존 App/Placement UUID를 새 Pod의 UID로 재사용하지 않습니다.
 
-기존 controller JSON·`--configure`·PlacementService 관리 API는 새 제어평면에서 제공하지 않습니다. `AppService`는 Kubernetes 저장소를 사용하는 controller API로 제공하며 `wafl app`은 endpoint/tenant만 사용합니다. kubeconfig와 namespace 기반 CLI 명령은 제거했고 설치 명령은 운영자 도구 `wafl-kube bootstrap install/dev`로 분리했습니다. 기존 `wafl instance`, `wafl runner`, `wafl reservation`은 계속 runner endpoint를 사용합니다. App 수정은 `kubectl apply` 또는 `wafl app patch NAME --file patch.yaml`로 수행합니다. 자동 migration이나 기존 PostgreSQL 데이터 삭제는 하지 않습니다.
+기존 controller JSON·`--configure`·PlacementService 관리 API는 새 제어평면에서 제공하지 않습니다. `AppService`는 Kubernetes 저장소를 사용하는 controller API로 제공하며 `wafl app`은 endpoint/tenant만 사용합니다. kubeconfig와 namespace 기반 CLI 명령은 제거했고 설치 명령은 운영자 도구 `wafl-kube bootstrap install/dev`로 분리했습니다. `wafl instance`, `wafl runner`, `wafl reservation`은 같은 RPC로 controller의 집계 범위 또는 개별 runner 범위를 선택합니다. App 수정은 `kubectl apply` 또는 `wafl app patch NAME --file patch.yaml`로 수행합니다. 자동 migration이나 기존 PostgreSQL 데이터 삭제는 하지 않습니다.
