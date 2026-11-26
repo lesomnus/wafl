@@ -9,8 +9,8 @@ use wafl_runner::{
     services::wafl::{InstanceServiceClient, RunnerServiceClient},
 };
 
-#[path = "wafl/apps.rs"]
-mod apps;
+#[path = "wafl/native.rs"]
+mod native;
 #[path = "wafl/reservations.rs"]
 mod reservations;
 
@@ -38,21 +38,14 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
+    /// Install the Kubernetes platform (see `wafl install --help`).
+    Install,
+    /// Create or reuse a local kind platform (see `wafl dev --help`).
+    Dev,
     /// Inspect autoscaling observers and recover an explicitly stopped observer.
-    Traffic {
-        #[command(subcommand)]
-        action: apps::TrafficCommand,
-    },
-    /// Manage controller-owned applications.
-    App {
-        #[command(subcommand)]
-        action: apps::AppCommand,
-    },
-    /// Inspect placements and acknowledge completed gateway withdrawal.
-    Placement {
-        #[command(subcommand)]
-        action: apps::PlacementCommand,
-    },
+    Traffic,
+    /// Manage Kubernetes App resources (see `wafl app --help`).
+    App,
     /// Inspect durable direct-port reservations and reclaim orphan allocations.
     Reservation {
         #[command(subcommand)]
@@ -81,20 +74,18 @@ enum RunnerCommand {
 #[derive(Subcommand)]
 enum Serve {
     Runner(RunnerArgs),
-    Controller(ControllerArgs),
-}
-#[derive(Args)]
-struct ControllerArgs {
-    #[arg(long)]
-    config: PathBuf,
-    #[arg(long)]
-    listen: Option<SocketAddr>,
-    /// Adopt changed deployment settings after stopping old controller replicas.
-    #[arg(long)]
-    configure: bool,
+    Controller,
+    /// Run a Virtual Kubelet provider for one runner.
+    Node,
 }
 #[derive(Args)]
 struct RunnerArgs {
+    /// Advertise direct WASM sockets on this IPv4 address.
+    #[arg(long, env = "WAFL_DIRECT_IP")]
+    direct_ip: Option<std::net::Ipv4Addr>,
+    /// Durable direct-port reservation directory, required with --direct-ip.
+    #[arg(long, requires = "direct_ip")]
+    reservations: Option<PathBuf>,
     /// Shared bundle cache. Default: $XDG_CACHE_HOME/wafl or $HOME/.cache/wafl.
     #[arg(value_name = "DIRECTORY")]
     path: Option<PathBuf>,
@@ -307,31 +298,17 @@ impl Add {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    native::dispatch()?;
     let cli = Cli::parse();
     let action = match cli.command {
         Command::Serve {
-            role: Serve::Controller(args),
-        } => {
-            let mut config = wafl_runner::controller::Config::read(&args.config)?;
-            if let Some(listen) = args.listen {
-                config.listen = listen;
-            }
-            return wafl_runner::controller::serve(config, args.configure).await;
+            role: Serve::Controller | Serve::Node,
         }
-        Command::App { action } => {
-            ensure!(
-                cli.session.is_none() && cli.revision.is_none(),
-                "controller commands use --expect-revision, not runner session/revision flags"
-            );
-            return apps::app(action, client_config(&cli.endpoint, None, None)?, cli.json).await;
-        }
-        Command::Placement { action } => {
-            ensure!(
-                cli.session.is_none() && cli.revision.is_none(),
-                "placement identity includes its immutable runner session"
-            );
-            return apps::placement(action, client_config(&cli.endpoint, None, None)?, cli.json)
-                .await;
+        | Command::App
+        | Command::Traffic
+        | Command::Dev
+        | Command::Install => {
+            anyhow::bail!("platform commands require the wafl-kube companion executable");
         }
         Command::Reservation { action } => {
             return reservations::run(
@@ -357,6 +334,17 @@ async fn main() -> Result<()> {
                     direct: None,
                 },
             };
+            if let Some(ip) = args.direct_ip {
+                config.direct = Some(wafl_runner::config::Direct {
+                    listen: std::net::Ipv4Addr::UNSPECIFIED,
+                    advertise: ip,
+                    directory: args
+                        .reservations
+                        .context("--direct-ip requires --reservations")?,
+                    first: 20000,
+                    last: 29999,
+                });
+            }
             if let Some(path) = args.path.or(args.directory) {
                 config.directory = Some(path);
             }
@@ -398,10 +386,6 @@ async fn main() -> Result<()> {
                     value.accepting
                 );
             }
-            return Ok(());
-        }
-        Command::Traffic { action } => {
-            apps::traffic(action, client_config(&cli.endpoint, None, None)?, cli.json).await?;
             return Ok(());
         }
         Command::Instance { action } => action,

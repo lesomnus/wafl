@@ -17,7 +17,7 @@ struct Io(TcpStream);
 impl AsyncRead for Io {
     fn poll_read(
         mut self: Pin<&mut Self>,
-        _: &mut Context<'_>,
+        cx: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
         match self.0.read(buf.initialize_unfilled()) {
@@ -25,7 +25,10 @@ impl AsyncRead for Io {
                 buf.advance(n);
                 Poll::Ready(Ok(()))
             }
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Poll::Pending,
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                cx.waker().wake_by_ref();
+                Poll::Pending
+            }
             Err(e) => Poll::Ready(Err(e)),
         }
     }
@@ -33,11 +36,14 @@ impl AsyncRead for Io {
 impl AsyncWrite for Io {
     fn poll_write(
         mut self: Pin<&mut Self>,
-        _: &mut Context<'_>,
+        cx: &mut Context<'_>,
         bytes: &[u8],
     ) -> Poll<io::Result<usize>> {
         match self.0.write(bytes) {
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => Poll::Pending,
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => {
+                cx.waker().wake_by_ref();
+                Poll::Pending
+            }
             result => Poll::Ready(result),
         }
     }
@@ -64,8 +70,13 @@ async fn echo(
     request: http::Request<h2::RecvStream>,
     mut response: h2::server::SendResponse<Bytes>,
 ) -> Result<(), h2::Error> {
+    let health = request.uri().path() == "/grpc.health.v1.Health/Check";
     let headers = http::Response::builder()
         .header("content-type", "application/grpc")
+        .header(
+            "echo-version",
+            std::env::var("GREETING").unwrap_or_else(|_| "initial".into()),
+        )
         .header(
             "echo-timeout",
             request
@@ -81,7 +92,12 @@ async fn echo(
     while let Some(bytes) = input.data().await {
         let bytes = bytes?;
         input.flow_control().release_capacity(bytes.len())?;
-        output.send_data(bytes, false)?;
+        if !health {
+            output.send_data(bytes, false)?;
+        }
+    }
+    if health {
+        output.send_data(Bytes::from_static(&[0, 0, 0, 0, 2, 8, 1]), false)?;
     }
     let mut trailers = http::HeaderMap::new();
     trailers.insert("grpc-status", "0".parse().unwrap());
@@ -113,10 +129,20 @@ fn main() -> io::Result<()> {
         std::thread::sleep(Duration::from_millis(200));
     }
     let listener = TcpListener::bind(("0.0.0.0", 8080))?;
-    for stream in listener.incoming() {
-        let stream = stream?;
-        stream.set_nonblocking(true)?;
-        let _ = block_on(serve(stream));
-    }
-    Ok(())
+    listener.set_nonblocking(true)?;
+    let mut connections = FuturesUnordered::new();
+    block_on(std::future::poll_fn(|cx| {
+        loop {
+            match listener.accept() {
+                Ok((stream, _)) => {
+                    stream.set_nonblocking(true)?;
+                    connections.push(Box::pin(serve(stream)));
+                }
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
+                Err(e) => return Poll::Ready(Err(e)),
+            }
+        }
+        while let Poll::Ready(Some(_)) = connections.poll_next_unpin(cx) {}
+        Poll::Pending
+    }))
 }

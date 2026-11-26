@@ -9,18 +9,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     services:
-      postgres:
-        image: postgres:17-alpine
-        env:
-          POSTGRES_PASSWORD: wafl-test
-          POSTGRES_DB: wafl
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d wafl"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
@@ -38,21 +26,10 @@ jobs:
           components: rustfmt, clippy
           targets: wasm32-wasip2
       - uses: Swatinem/rust-cache@v2
-      - run: sudo apt-get update && sudo apt-get install -y libpq-dev
-      - run: bash scripts/install-traefik.sh /tmp/wafl-traefik
-      - name: Create disposable Kubernetes API for App provider tests
-        run: |
-          curl -fsSL --retry 3 -o /tmp/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
-          echo 'aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  /tmp/kind' | sha256sum --check
-          chmod +x /tmp/kind
-          /tmp/kind create cluster --name wafl-test --kubeconfig /tmp/wafl-kubeconfig --wait 90s
       - run: cargo fmt --all -- --check
       - run: bash scripts/test.sh --tests -- --include-ignored
         env:
           WAFL_TEST_DATABASE_URL: redis://localhost:6379/0
-          WAFL_TEST_CONTROLLER_DATABASE_URL: postgresql://postgres:wafl-test@localhost:5432/wafl
-          WAFL_TEST_TRAEFIK: /tmp/wafl-traefik/traefik
-          WAFL_TEST_KUBECONFIG: /tmp/wafl-kubeconfig
       - run: cargo clippy --locked --workspace --all-targets -- -D warnings
       - uses: actions/setup-go@v5
         with:
@@ -60,6 +37,23 @@ jobs:
           cache: false
       - run: go test -race ./...
         working-directory: plugins/traefik
+      - run: go test -race ./...
+        working-directory: kubernetes
+      - name: Install kind
+        run: |
+          curl -fsSL --retry 3 -o /tmp/kind https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64
+          echo 'aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d  /tmp/kind' | sha256sum --check
+          chmod +x /tmp/kind
+          sudo mv /tmp/kind /usr/local/bin/kind
+      - name: Test native Kubernetes platform with real WASM and Traefik
+        run: bash scripts/test-kubernetes.sh
+      - name: Kubernetes diagnostics
+        if: failure()
+        run: |
+          export KUBECONFIG="$HOME/.cache/wafl/dev/wafl-test/kubeconfig"
+          kubectl get nodes,pods,apps.wafl.opt.td -A
+          kubectl -n wafl-system logs -l app.kubernetes.io/component=controller --tail=60
+          kubectl -n wafl-system logs -l app.kubernetes.io/component=runner -c node --tail=60
   generated:
     runs-on: ubuntu-latest
     steps:

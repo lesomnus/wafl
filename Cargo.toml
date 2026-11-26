@@ -37,18 +37,14 @@ http-body = "1"
 http-body-util = "0.1"
 hyper = { version = "1", features = ["client", "http1", "http2", "server"] }
 hyper-util = { version = "0.1", features = ["tokio", "server-auto"] }
-kube = { version = "=5.2.0", default-features = false, features = ["client", "runtime", "rustls-tls", "aws-lc-rs"] }
-k8s-openapi = { version = "=0.29.0", features = ["v1_33"] }
 opentelemetry = { version = "0.32", default-features = false, features = ["metrics"] }
 opentelemetry_sdk = { version = "0.32", default-features = false, features = ["metrics"] }
 opentelemetry-otlp = { version = "0.32", default-features = false, features = ["http-proto", "metrics", "reqwest-blocking-client", "reqwest-rustls"] }
-paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021", features = ["watch-postgres"] }
+paydirt = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021" }
 paydirt-server = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021" }
-paydirt-store = { git = "https://github.com/lesomnus/paydirt", rev = "684502f74a2176ef79a4feeb5d6a9d13c78b2021", features = ["postgres"] }
 reqwest = { version = "0.13", default-features = false, features = ["rustls", "blocking"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde-saphyr = "2.2"
 sha2 = "0.10"
 tar = "0.4"
 tempfile = "3"
@@ -56,13 +52,11 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "net
 uuid = { version = "1", features = ["v4"] }
 wasmtime = { version = "=51.0.0", default-features = false, features = ["anyhow", "async", "component-model", "cranelift", "runtime", "std"] }
 wasmtime-wasi = { version = "=51.0.0", default-features = false, features = ["p2"] }
-cap-std = "4"
 
 [target.'cfg(target_os = "linux")'.dependencies]
 libc = "0.2"
 
 [dev-dependencies]
-tokio-postgres = "0.7"
 h2 = "0.4"
 opentelemetry-proto = { version = "0.32", default-features = false, features = ["gen-tonic-messages", "metrics"] }
 prost = "0.14"
