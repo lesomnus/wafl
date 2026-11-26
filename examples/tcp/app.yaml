@@ -1,0 +1,30 @@
+alias: echo
+manifest:
+  bundle:
+    url: file:./tcp.tar.gz
+  sockets:
+    - name: echo
+      port: 8080
+      transport: tcp
+    - name: admin
+      port: 8081
+      transport: tcp
+  env:
+    GREETING: hello
+    SECOND_PORT: "8081"
+listeners:
+  - socket: echo
+    port: 10000
+  - socket: admin
+    port: 10001
+scaling:
+  min: 0
+  max: 4
+  target: 16
+  waiting: 128
+  waitMs: 30000
+  idleMs: 60000
+rollout:
+  surge: 1
+  unavailable: 0
+  drainMs: 30000

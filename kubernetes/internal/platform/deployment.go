@@ -125,6 +125,14 @@ func deployment(a *unstructured.Unstructured, spec *wf.App, env []core.EnvVar) *
 			Ports: []core.ContainerPort{{Name: "app", ContainerPort: int32(spec.Manifest.Port)}}, ReadinessProbe: readiness(spec),
 			Resources: core.ResourceRequirements{Requests: core.ResourceList{Slots: resource.MustParse("1"), Memory: *resource.NewQuantity(int64(spec.Manifest.MemoryBytes), resource.DecimalSI)}, Limits: core.ResourceList{Slots: resource.MustParse("1"), Memory: *resource.NewQuantity(int64(spec.Manifest.MemoryBytes), resource.DecimalSI)}}}},
 	}}
+	ss, _ := sockets(spec.Manifest)
+	if len(spec.Manifest.Sockets) > 0 || spec.Manifest.Protocol == "tcp" {
+		template.Spec.NodeSelector[Group+"/sockets"] = "tcp-v1"
+	}
+	template.Spec.Containers[0].Ports = nil
+	for _, socket := range ss {
+		template.Spec.Containers[0].Ports = append(template.Spec.Containers[0].Ports, core.ContainerPort{Name: socket.Name, ContainerPort: int32(socket.Port)})
+	}
 	revision := digest(template)
 	template.Annotations[Revision] = revision
 	template.Spec.Containers[0].Image = "wafl.invalid/wasm:" + revision
@@ -175,8 +183,14 @@ func validatePod(p *core.Pod) (*wf.Manifest, error) {
 			return fail()
 		}
 	}
-	if len(c.Ports) != 1 || c.Ports[0].ContainerPort != int32(m.Port) || c.Ports[0].HostPort != 0 {
+	ss, err := sockets(m)
+	if err != nil || len(c.Ports) != len(ss) {
 		return fail()
+	}
+	for i, socket := range ss {
+		if c.Ports[i].ContainerPort != int32(socket.Port) || c.Ports[i].HostPort != 0 || c.Ports[i].Protocol != "" && c.Ports[i].Protocol != core.ProtocolTCP {
+			return fail()
+		}
 	}
 	if c.ReadinessProbe == nil || c.ReadinessProbe.Exec != nil {
 		return fail()

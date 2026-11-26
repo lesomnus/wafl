@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 bundle_example=${2:-hello}
 case "$bundle_example" in
-  hello|redis) ;;
+  hello|redis|tcp) ;;
   *) printf 'unknown example: %s\n' "$bundle_example" >&2; exit 1 ;;
 esac
 cargo build --locked -p "wafl-example-$bundle_example" --target wasm32-wasip2

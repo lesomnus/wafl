@@ -106,6 +106,13 @@ pub struct InstanceAddRequest {
         ::buffa::alloc::string::String,
         ::buffa::alloc::string::String,
     >,
+    /// Field 24: `endpoints`
+    #[serde(
+        rename = "endpoints",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub endpoints: ::buffa::alloc::vec::Vec<Endpoint>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -128,6 +135,7 @@ impl ::core::fmt::Debug for InstanceAddRequest {
             .field("endpoint", &self.endpoint)
             .field("direct", &self.direct)
             .field("secrets", &self.secrets)
+            .field("endpoints", &self.endpoints)
             .finish()
     }
 }
@@ -241,6 +249,14 @@ impl ::buffa::Message for InstanceAddRequest {
                 ::buffa::map_codec::Str,
                 _,
             >(&self.secrets, 2u32);
+        for v in &self.endpoints {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -304,6 +320,10 @@ impl ::buffa::Message for InstanceAddRequest {
             ::buffa::map_codec::Str,
             _,
         >(&self.secrets, 23u32, buf);
+        for v in &self.endpoints {
+            ::buffa::types::put_len_delimited_header(24u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
+        }
         self.__buffa_unknown_fields.write_to(buf);
     }
     fn merge_field(
@@ -446,6 +466,15 @@ impl ::buffa::Message for InstanceAddRequest {
                     _,
                 >(&mut self.secrets, buf, ctx)?;
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.endpoints.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -469,6 +498,7 @@ impl ::buffa::Message for InstanceAddRequest {
         self.endpoint = ::buffa::MessageField::none();
         self.direct = false;
         self.secrets.clear();
+        self.endpoints.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -976,6 +1006,12 @@ pub struct InstanceSelect {
     /// Field 23: `secrets`
     #[serde(rename = "secrets", skip_serializing_if = "::core::option::Option::is_none")]
     pub secrets: ::core::option::Option<bool>,
+    /// Field 24: `endpoints`
+    #[serde(
+        rename = "endpoints",
+        skip_serializing_if = "::core::option::Option::is_none"
+    )]
+    pub endpoints: ::core::option::Option<bool>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -998,6 +1034,7 @@ impl ::core::fmt::Debug for InstanceSelect {
             .field("endpoint", &self.endpoint)
             .field("direct", &self.direct)
             .field("secrets", &self.secrets)
+            .field("endpoints", &self.endpoints)
             .finish()
     }
 }
@@ -1107,6 +1144,13 @@ impl InstanceSelect {
         self.secrets = Some(value);
         self
     }
+    #[must_use = "with_* setters return `self` by value; assign or chain the result"]
+    #[inline]
+    ///Sets [`Self::endpoints`] to `Some(value)`, consuming and returning `self`.
+    pub fn with_endpoints(mut self, value: bool) -> Self {
+        self.endpoints = Some(value);
+        self
+    }
 }
 ::buffa::impl_default_instance!(InstanceSelect);
 impl ::buffa::MessageName for InstanceSelect {
@@ -1176,6 +1220,9 @@ impl ::buffa::Message for InstanceSelect {
         if self.secrets.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.endpoints.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1231,6 +1278,9 @@ impl ::buffa::Message for InstanceSelect {
         }
         if let Some(v) = self.secrets {
             ::buffa::types::put_bool_field(23u32, v, buf);
+        }
+        if let Some(v) = self.endpoints {
+            ::buffa::types::put_bool_field(24u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1382,6 +1432,15 @@ impl ::buffa::Message for InstanceSelect {
                     ::buffa::types::decode_bool(buf)?,
                 );
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.endpoints = ::core::option::Option::Some(
+                    ::buffa::types::decode_bool(buf)?,
+                );
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -1405,6 +1464,7 @@ impl ::buffa::Message for InstanceSelect {
         self.endpoint = ::core::option::Option::None;
         self.direct = ::core::option::Option::None;
         self.secrets = ::core::option::Option::None;
+        self.endpoints = ::core::option::Option::None;
         self.__buffa_unknown_fields.clear();
     }
 }

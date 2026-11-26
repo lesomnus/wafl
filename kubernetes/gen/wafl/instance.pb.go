@@ -101,6 +101,7 @@ type Instance struct {
 	Endpoint      *Endpoint              `protobuf:"bytes,21,opt,name=endpoint" json:"endpoint,omitempty"`
 	Direct        bool                   `protobuf:"varint,22,opt,name=direct" json:"direct,omitempty"`
 	Secrets       map[string]string      `protobuf:"bytes,23,rep,name=secrets" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Endpoints     []*Endpoint            `protobuf:"bytes,24,rep,name=endpoints" json:"endpoints,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -240,10 +241,19 @@ func (x *Instance) GetSecrets() map[string]string {
 	return nil
 }
 
+func (x *Instance) GetEndpoints() []*Endpoint {
+	if x != nil {
+		return x.Endpoints
+	}
+	return nil
+}
+
 type Endpoint struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Address       string                 `protobuf:"bytes,1,opt,name=address" json:"address,omitempty"`
 	Protocol      string                 `protobuf:"bytes,2,opt,name=protocol" json:"protocol,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name" json:"name,omitempty"`
+	Transport     string                 `protobuf:"bytes,4,opt,name=transport" json:"transport,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -292,11 +302,25 @@ func (x *Endpoint) GetProtocol() string {
 	return ""
 }
 
+func (x *Endpoint) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Endpoint) GetTransport() string {
+	if x != nil {
+		return x.Transport
+	}
+	return ""
+}
+
 var File_wafl_instance_proto protoreflect.FileDescriptor
 
 const file_wafl_instance_proto_rawDesc = "" +
 	"\n" +
-	"\x13wafl/instance.proto\x12\x04wafl\x1a\fpayday.proto\x1a\torm.proto\x1a\x13wafl/manifest.proto\x1a\x18wafl/payday/tenant.proto\"\xee\x05\n" +
+	"\x13wafl/instance.proto\x12\x04wafl\x1a\fpayday.proto\x1a\torm.proto\x1a\x13wafl/manifest.proto\x1a\x18wafl/payday/tenant.proto\"\xaa\x06\n" +
 	"\bInstance\x12\x1b\n" +
 	"\x02id\x18\x01 \x01(\fB\v\xea\x82\x16\a\x10@(\x01\x82\x01\x00R\x02id\x12,\n" +
 	"\x06tenant\x18\x02 \x01(\v2\f.wafl.TenantB\x06\xf2\x82\x16\x02@\x01R\x06tenant\x12\x1f\n" +
@@ -315,7 +339,8 @@ const file_wafl_instance_proto_rawDesc = "" +
 	"\bdraining\x18\x14 \x01(\bB\x06\xaa\xc1\x16\x02\x10\x01R\bdraining\x128\n" +
 	"\bendpoint\x18\x15 \x01(\v2\x0e.wafl.EndpointB\f\xea\x82\x16\x02\x10B\xaa\xc1\x16\x02\x10\x01R\bendpoint\x12\x1e\n" +
 	"\x06direct\x18\x16 \x01(\bB\x06\xaa\xc1\x16\x02\x10\x01R\x06direct\x12H\n" +
-	"\asecrets\x18\x17 \x03(\v2\x1b.wafl.Instance.SecretsEntryB\x11\xea\x82\x16\a\x10B@\x01\x82\x01\x00\xaa\xc1\x16\x02\b\x01R\asecrets\x1a:\n" +
+	"\asecrets\x18\x17 \x03(\v2\x1b.wafl.Instance.SecretsEntryB\x11\xea\x82\x16\a\x10B@\x01\x82\x01\x00\xaa\xc1\x16\x02\b\x01R\asecrets\x12:\n" +
+	"\tendpoints\x18\x18 \x03(\v2\x0e.wafl.EndpointB\f\xea\x82\x16\x02\x10B\xaa\xc1\x16\x02\x10\x01R\tendpoints\x1a:\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01:1\xca\xfc\x15\v\x12\t\x82\x01\x00\x8a\x01\x00\x9a\x01\x00\x8a\xbb\x16\x1e\b\a2\x16\n" +
@@ -323,10 +348,12 @@ const file_wafl_instance_proto_rawDesc = "" +
 	"\x04\n" +
 	"\x02id\x1a\x05\n" +
 	"\x03ref d(\xe8\a0@B\x02\n" +
-	"\x00J\x04\b\f\x10\rJ\x04\b\x10\x10\x11R\x06domainR\x04port\"@\n" +
+	"\x00J\x04\b\f\x10\rJ\x04\b\x10\x10\x11R\x06domainR\x04port\"r\n" +
 	"\bEndpoint\x12\x18\n" +
 	"\aaddress\x18\x01 \x01(\tR\aaddress\x12\x1a\n" +
-	"\bprotocol\x18\x02 \x01(\tR\bprotocol*\x93\x01\n" +
+	"\bprotocol\x18\x02 \x01(\tR\bprotocol\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1c\n" +
+	"\ttransport\x18\x04 \x01(\tR\ttransport*\x93\x01\n" +
 	"\x05Phase\x12\x15\n" +
 	"\x11PHASE_UNSPECIFIED\x10\x00\x12\x11\n" +
 	"\rPHASE_STOPPED\x10\x01\x12\x12\n" +
@@ -364,11 +391,12 @@ var file_wafl_instance_proto_depIdxs = []int32{
 	5, // 2: wafl.Instance.manifest:type_name -> wafl.Manifest
 	2, // 3: wafl.Instance.endpoint:type_name -> wafl.Endpoint
 	3, // 4: wafl.Instance.secrets:type_name -> wafl.Instance.SecretsEntry
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	2, // 5: wafl.Instance.endpoints:type_name -> wafl.Endpoint
+	6, // [6:6] is the sub-list for method output_type
+	6, // [6:6] is the sub-list for method input_type
+	6, // [6:6] is the sub-list for extension type_name
+	6, // [6:6] is the sub-list for extension extendee
+	0, // [0:6] is the sub-list for field type_name
 }
 
 func init() { file_wafl_instance_proto_init() }

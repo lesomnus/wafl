@@ -1,14 +1,16 @@
 # Wafl
 
-작은 HTTP/gRPC 앱을 위한 자체 운영 WASM 앱 플랫폼. 전체 구상은 [이슈 #1](https://github.com/lesomnus/wafl/issues/1)에 있습니다.
+작은 HTTP/gRPC·TCP 앱을 위한 자체 운영 WASM 앱 플랫폼. 전체 구상은 [이슈 #1](https://github.com/lesomnus/wafl/issues/1)에 있습니다.
 
-플랫폼은 Kubernetes를 사용하며 `App → Deployment → ReplicaSet → Pod → runner Instance`로 실행합니다. 실제 runner Pod 하나가 가상 Node 하나를 제공하고, runner 프로세스 내부에서 여러 WASM Instance를 실행합니다. 앱은 표준 소켓으로 HTTP/gRPC 서버를 열며 별도 SDK가 필요 없습니다.
+플랫폼은 Kubernetes를 사용하며 `App → Deployment → ReplicaSet → Pod → runner Instance`로 실행합니다. 실제 runner Pod 하나가 가상 Node 하나를 제공하고, runner 프로세스 내부에서 여러 WASM Instance를 실행합니다. 앱은 표준 소켓으로 서버를 열며 별도 SDK가 필요 없습니다.
 
 **[Kubernetes native 시작하기](docs/kubernetes-native.md)**: 운영자는 `wafl-kube bootstrap dev`로 로컬 kind 플랫폼을 만들거나 `wafl-kube bootstrap install`로 기존 클러스터에 설치합니다. 앱 사용자는 controller 주소만 지정해 `wafl app add app.yaml`로 앱을 올립니다. `wafl` 클라이언트는 Kubernetes API와 kubeconfig를 사용하지 않습니다. 준비 상태를 확인한 rolling update, Secret 교체, 첫 요청으로 0개에서 기동하기와 부하에 따른 증감을 지원합니다. 플랫폼 상태는 Kubernetes에 저장합니다.
 
 이미지는 `ghcr.io/lesomnus/wafl:latest`와 관측 플러그인을 포함한 `ghcr.io/lesomnus/wafl-traefik:latest`입니다. [자동 증감](docs/autoscaling.md) · [Secret](docs/secrets.md) · [Controller 구조](docs/controller.md) · [컨테이너](docs/container.md)
 
 단독 runner와 Instance CLI는 Kubernetes 없이 사용할 수 있습니다. `Instance`는 Manifest를 가진 Payday entity이고, paydirt로 생성한 `InstanceService.Add(InstanceAddRequest)`로 만듭니다. Wasmtime으로 WASIp2 소켓 서버를 실행합니다.
+
+**[일반 TCP 튜토리얼](docs/tcp.md)**: 여러 이름 있는 소켓과 공개 포트, 첫 연결 기동, 열린 연결의 부하에 따른 증감과 rolling update를 지원합니다. TCP는 Traefik → controller 연결 중계 → WASM 경로를 사용하고 UDP는 아직 지원하지 않습니다.
 
 **L7 proxy에서 WASM 소켓에 직접 연결**하려면 [직결 튜토리얼](docs/direct.md)의 `direct` 설정을 사용합니다. `Instance.endpoint`로 반환한 IP:port를 Traefik/Envoy backend로 지정하며 runner HTTP 중계는 없습니다. 포트 공유·재시작 예약과 `Drain → 외부 연결 정리 → Release` 계약을 포함합니다. 아래 빠른 시작은 기본 proxy 모드입니다.
 
@@ -57,7 +59,7 @@ runner 설정의 `metrics.endpoint`를 지정하면 실행 상태·활성 lease�
 
 [Keep-alive 비교](docs/benchmarks/2026-11-25-keepalive.md)는 Wasmtime 개별 실행과 runner 직결 양쪽에 Traefik을 두고, 앱의 연결 유지 지원과 클라이언트의 연결 재사용을 독립적으로 비교합니다.
 
-단독 runner의 기본 proxy 모드는 `wafl-instance` 헤더를 사용합니다. Kubernetes 플랫폼은 Traefik이 `Host`로 앱을 선택하고 준비된 WASM 소켓에 직접 전달합니다. gateway의 수신 중단과 스트림 종료를 확인한 뒤 포트를 회수합니다. 관리 CLI는 controller 주소 하나로 runner·Instance·Reservation을 조회할 수 있으며, 연결에 실패한 runner는 경고와 함께 건너뜁니다. [집계 API와 사용 예](docs/controller-api.md)를 참고하세요. runner 관리 API에는 아직 인증이 없습니다. 앱 DB 자동 제공, 번들 credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
+단독 runner의 기본 proxy 모드는 `wafl-instance` 헤더를 사용합니다. HTTP/gRPC Kubernetes 경로는 Traefik이 `Host`로 앱을 선택하고 준비된 WASM 소켓에 직접 전달합니다. gateway의 수신 중단과 스트림 종료를 확인한 뒤 포트를 회수합니다. 관리 CLI는 controller 주소 하나로 runner·Instance·Reservation을 조회할 수 있으며, 연결에 실패한 runner는 경고와 함께 건너뜁니다. [집계 API와 사용 예](docs/controller-api.md)를 참고하세요. runner 관리 API에는 아직 인증이 없습니다. 앱 DB 자동 제공, 번들 credential, ORAS 다운로드와 원격 파일 지연 읽기는 아직 구현하지 않았습니다.
 
 [CLI 튜토리얼](docs/cli.md) · [외부 연결과 DB](docs/network.md) · [RPC와 시나리오](docs/runner.md) · [번들 규격](docs/bundle.md) · [공유 저장소 계약과 원격 읽기 확장](docs/store.md) · [Instance](proto/wafl/instance.proto) · [생성된 RPC](generated/proto/wafl/instance_svc.g.proto)
 

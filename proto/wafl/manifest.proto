@@ -11,9 +11,9 @@ message Manifest {
   string runtime = 1;
   // HTTP(S) or local file tar.gz: main.wasm and optional data/ mounted as /data.
   Asset bundle = 2;
-  // The guest's TCP listening port. Required, 1..65535.
+  // Legacy primary guest port, 1..65535 (CLI/controller default: 8080).
   uint32 port = 3;
-  // "http" (default) or "h2c" for HTTP/2 prior knowledge, including gRPC.
+  // Legacy "http" (default), "h2c" (HTTP/2 including gRPC), or "tcp".
   string protocol = 4;
   // Currently "wasip2"; main.wasm must be a WASI CLI component.
   string abi = 5;
@@ -26,6 +26,21 @@ message Manifest {
   uint32 max_active = 9;
   map<string, string> env = 10;
   repeated Binding bindings = 11;
+  // Named ingress sockets. Omit to use legacy port/protocol. With sockets,
+  // legacy fields may only repeat the first socket. All sockets must listen
+  // before the execution becomes ready. Currently TCP only, at most 16.
+  repeated Socket sockets = 12;
+}
+
+message Socket {
+  // Unique lowercase name, 1..15 letters/digits/hyphens, starting with a letter
+  // and ending with a letter or digit.
+  string name = 1;
+  uint32 port = 2;
+  // "tcp" (default). Other transports are rejected until implemented.
+  string transport = 3;
+  // Empty is an opaque byte stream; "http" and "h2c" enable HTTP routing.
+  string protocol = 4;
 }
 
 message Asset {

@@ -53,13 +53,17 @@ message Instance {
   // Write-only environment values supplied during Add. Kept only in runner
   // memory, separate from the public Manifest. Never returned by lifecycle RPCs.
   map<string, string> secrets = 23 [(orm.field) = {type: TYPE_JSON, immutable: true, default: ""}, (payday.field) = {secret: true}];
+  // Complete direct socket set; endpoint remains the first socket for legacy clients.
+  repeated Endpoint endpoints = 24 [(orm.field) = {type: TYPE_JSON}, (payday.field) = {stamped: true}];
 }
 
 message Endpoint {
   // Routable IPv4 socket address, e.g. 10.244.1.5:20001. Never a wildcard.
   string address = 1;
-  // http or h2c, copied from the manifest.
+  // http, h2c, or tcp for an opaque byte stream.
   string protocol = 2;
+  string name = 3;
+  string transport = 4;
 }
 
 enum Phase {

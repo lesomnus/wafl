@@ -24,7 +24,7 @@ pub struct Manifest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_unset_message_field"
     )]
     pub bundle: ::buffa::MessageField<Asset>,
-    /// The guest's TCP listening port. Required, 1..65535.
+    /// Legacy primary guest port, 1..65535 (CLI/controller default: 8080).
     ///
     /// Field 3: `port`
     #[serde(
@@ -33,7 +33,7 @@ pub struct Manifest {
         skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
     )]
     pub port: u32,
-    /// "http" (default) or "h2c" for HTTP/2 prior knowledge, including gRPC.
+    /// Legacy "http" (default), "h2c" (HTTP/2 including gRPC), or "tcp".
     ///
     /// Field 4: `protocol`
     #[serde(
@@ -104,6 +104,17 @@ pub struct Manifest {
         deserialize_with = "::buffa::json_helpers::null_as_default"
     )]
     pub bindings: ::buffa::alloc::vec::Vec<Binding>,
+    /// Named ingress sockets. Omit to use legacy port/protocol. With sockets,
+    /// legacy fields may only repeat the first socket. All sockets must listen
+    /// before the execution becomes ready. Currently TCP only, at most 16.
+    ///
+    /// Field 12: `sockets`
+    #[serde(
+        rename = "sockets",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_vec",
+        deserialize_with = "::buffa::json_helpers::null_as_default"
+    )]
+    pub sockets: ::buffa::alloc::vec::Vec<Socket>,
     #[serde(skip)]
     #[doc(hidden)]
     pub __buffa_unknown_fields: ::buffa::UnknownFields,
@@ -122,6 +133,7 @@ impl ::core::fmt::Debug for Manifest {
             .field("max_active", &self.max_active)
             .field("env", &self.env)
             .field("bindings", &self.bindings)
+            .field("sockets", &self.sockets)
             .finish()
     }
 }
@@ -196,6 +208,14 @@ impl ::buffa::Message for Manifest {
                 += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        for v in &self.sockets {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -241,6 +261,10 @@ impl ::buffa::Message for Manifest {
         >(&self.env, 10u32, buf);
         for v in &self.bindings {
             ::buffa::types::put_len_delimited_header(11u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
+        }
+        for v in &self.sockets {
+            ::buffa::types::put_len_delimited_header(12u32, __cache.consume_next(), buf);
             v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
@@ -343,6 +367,15 @@ impl ::buffa::Message for Manifest {
                 ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
                 self.bindings.push(elem);
             }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let mut elem = ::core::default::Default::default();
+                ::buffa::Message::merge_length_delimited(&mut elem, buf, ctx)?;
+                self.sockets.push(elem);
+            }
             _ => {
                 self.__buffa_unknown_fields
                     .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
@@ -362,6 +395,7 @@ impl ::buffa::Message for Manifest {
         self.max_active = 0u32;
         self.env.clear();
         self.bindings.clear();
+        self.sockets.clear();
         self.__buffa_unknown_fields.clear();
     }
 }
@@ -392,6 +426,203 @@ pub const __MANIFEST_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::t
     type_url: "type.googleapis.com/wafl.Manifest",
     to_json: ::buffa::type_registry::any_to_json::<Manifest>,
     from_json: ::buffa::type_registry::any_from_json::<Manifest>,
+    is_wkt: false,
+};
+#[derive(Clone, PartialEq, Default)]
+#[derive(::serde::Serialize, ::serde::Deserialize)]
+#[serde(default)]
+pub struct Socket {
+    /// Unique lowercase name, 1..15 letters/digits/hyphens, starting with a letter
+    /// and ending with a letter or digit.
+    ///
+    /// Field 1: `name`
+    #[serde(
+        rename = "name",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub name: ::buffa::alloc::string::String,
+    /// Field 2: `port`
+    #[serde(
+        rename = "port",
+        with = "::buffa::json_helpers::uint32",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_zero_u32"
+    )]
+    pub port: u32,
+    /// "tcp" (default). Other transports are rejected until implemented.
+    ///
+    /// Field 3: `transport`
+    #[serde(
+        rename = "transport",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub transport: ::buffa::alloc::string::String,
+    /// Empty is an opaque byte stream; "http" and "h2c" enable HTTP routing.
+    ///
+    /// Field 4: `protocol`
+    #[serde(
+        rename = "protocol",
+        with = "::buffa::json_helpers::proto_string",
+        skip_serializing_if = "::buffa::json_helpers::skip_if::is_empty_str"
+    )]
+    pub protocol: ::buffa::alloc::string::String,
+    #[serde(skip)]
+    #[doc(hidden)]
+    pub __buffa_unknown_fields: ::buffa::UnknownFields,
+}
+impl ::core::fmt::Debug for Socket {
+    fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+        f.debug_struct("Socket")
+            .field("name", &self.name)
+            .field("port", &self.port)
+            .field("transport", &self.transport)
+            .field("protocol", &self.protocol)
+            .finish()
+    }
+}
+impl Socket {
+    /// Protobuf type URL for this message, for use with `Any::pack` and
+    /// `Any::unpack_if`.
+    ///
+    /// Format: `type.googleapis.com/<fully.qualified.TypeName>`
+    pub const TYPE_URL: &'static str = "type.googleapis.com/wafl.Socket";
+}
+::buffa::impl_default_instance!(Socket);
+impl ::buffa::MessageName for Socket {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "Socket";
+    const FULL_NAME: &'static str = "wafl.Socket";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.Socket";
+}
+impl ::buffa::Message for Socket {
+    /// Returns the total encoded size in bytes.
+    ///
+    /// The result is a `u32`; the protobuf specification requires all
+    /// messages to fit within 2 GiB (2,147,483,647 bytes), so a
+    /// compliant message will never overflow this type.
+    #[allow(clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if !self.name.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
+        }
+        if self.port != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
+        }
+        if !self.transport.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.transport) as u32;
+        }
+        if !self.protocol.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.protocol) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.name, buf);
+        }
+        if self.port != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.port, buf);
+        }
+        if !self.transport.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.transport, buf);
+        }
+        if !self.protocol.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.protocol, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+    fn merge_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        buf: &mut impl ::buffa::bytes::Buf,
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<(), ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::bytes::Buf as _;
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.name, buf)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                self.port = ::buffa::types::decode_uint32(buf)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.transport, buf)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                ::buffa::types::merge_string(&mut self.protocol, buf)?;
+            }
+            _ => {
+                self.__buffa_unknown_fields
+                    .push(::buffa::encoding::decode_unknown_field(tag, buf, ctx)?);
+            }
+        }
+        ::core::result::Result::Ok(())
+    }
+    fn clear(&mut self) {
+        self.name.clear();
+        self.port = 0u32;
+        self.transport.clear();
+        self.protocol.clear();
+        self.__buffa_unknown_fields.clear();
+    }
+}
+impl ::buffa::ExtensionSet for Socket {
+    const PROTO_FQN: &'static str = "wafl.Socket";
+    fn unknown_fields(&self) -> &::buffa::UnknownFields {
+        &self.__buffa_unknown_fields
+    }
+    fn unknown_fields_mut(&mut self) -> &mut ::buffa::UnknownFields {
+        &mut self.__buffa_unknown_fields
+    }
+}
+impl ::buffa::json_helpers::ProtoElemJson for Socket {
+    fn serialize_proto_json<S: ::serde::Serializer>(
+        v: &Self,
+        s: S,
+    ) -> ::core::result::Result<S::Ok, S::Error> {
+        ::serde::Serialize::serialize(v, s)
+    }
+    fn deserialize_proto_json<'de, D: ::serde::Deserializer<'de>>(
+        d: D,
+    ) -> ::core::result::Result<Self, D::Error> {
+        <Self as ::serde::Deserialize>::deserialize(d)
+    }
+}
+#[doc(hidden)]
+pub const __SOCKET_JSON_ANY: ::buffa::type_registry::JsonAnyEntry = ::buffa::type_registry::JsonAnyEntry {
+    type_url: "type.googleapis.com/wafl.Socket",
+    to_json: ::buffa::type_registry::any_to_json::<Socket>,
+    from_json: ::buffa::type_registry::any_from_json::<Socket>,
     is_wkt: false,
 };
 #[derive(Clone, PartialEq, Default)]

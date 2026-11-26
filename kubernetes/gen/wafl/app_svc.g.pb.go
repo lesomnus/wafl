@@ -41,6 +41,7 @@ type AppAddRequest struct {
 	Rollout       *Rollout               `protobuf:"bytes,22,opt,name=rollout" json:"rollout,omitempty"`
 	SecretValues  map[string]string      `protobuf:"bytes,23,rep,name=secret_values,json=secretValues" json:"secret_values,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	Status        *AppStatus             `protobuf:"bytes,24,opt,name=status" json:"status,omitempty"`
+	Listeners     []*Listener            `protobuf:"bytes,25,rep,name=listeners" json:"listeners,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -183,6 +184,13 @@ func (x *AppAddRequest) GetSecretValues() map[string]string {
 func (x *AppAddRequest) GetStatus() *AppStatus {
 	if x != nil {
 		return x.Status
+	}
+	return nil
+}
+
+func (x *AppAddRequest) GetListeners() []*Listener {
+	if x != nil {
+		return x.Listeners
 	}
 	return nil
 }
@@ -355,6 +363,7 @@ type AppSelect struct {
 	Rollout       *bool                  `protobuf:"varint,22,opt,name=rollout" json:"rollout,omitempty"`
 	SecretValues  *bool                  `protobuf:"varint,23,opt,name=secret_values,json=secretValues" json:"secret_values,omitempty"`
 	Status        *bool                  `protobuf:"varint,24,opt,name=status" json:"status,omitempty"`
+	Listeners     *bool                  `protobuf:"varint,25,opt,name=listeners" json:"listeners,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -497,6 +506,13 @@ func (x *AppSelect) GetSecretValues() bool {
 func (x *AppSelect) GetStatus() bool {
 	if x != nil && x.Status != nil {
 		return *x.Status
+	}
+	return false
+}
+
+func (x *AppSelect) GetListeners() bool {
+	if x != nil && x.Listeners != nil {
+		return *x.Listeners
 	}
 	return false
 }
@@ -1029,7 +1045,7 @@ var File_wafl_app_svc_g_proto protoreflect.FileDescriptor
 
 const file_wafl_app_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x14wafl/app_svc.g.proto\x12\x04wafl\x1a\torm.proto\x1a\x11patch/patch.proto\x1a\x0ewafl/app.proto\x1a\x1bwafl/app_source_svc.g.proto\x1a\x19wafl/instance_svc.g.proto\x1a\x0ewafl/log.proto\x1a\x13wafl/manifest.proto\x1a\x1ewafl/payday/tenant_svc.g.proto\x1a\x11wafl/secret.proto\"\x81\x06\n" +
+	"\x14wafl/app_svc.g.proto\x12\x04wafl\x1a\torm.proto\x1a\x11patch/patch.proto\x1a\x0ewafl/app.proto\x1a\x1bwafl/app_source_svc.g.proto\x1a\x19wafl/instance_svc.g.proto\x1a\x0ewafl/log.proto\x1a\x13wafl/manifest.proto\x1a\x1ewafl/payday/tenant_svc.g.proto\x1a\x11wafl/secret.proto\"\xb7\x06\n" +
 	"\rAppAddRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\fB\x06\xea\x82\x16\x02\x10@R\x02id\x12'\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0f.wafl.TenantRefR\x06tenant\x12\x14\n" +
@@ -1047,7 +1063,8 @@ const file_wafl_app_svc_g_proto_rawDesc = "" +
 	"\treadiness\x18\x15 \x01(\v2\v.wafl.ProbeB\x06\xea\x82\x16\x02\x10BR\treadiness\x12/\n" +
 	"\arollout\x18\x16 \x01(\v2\r.wafl.RolloutB\x06\xea\x82\x16\x02\x10BR\arollout\x12R\n" +
 	"\rsecret_values\x18\x17 \x03(\v2%.wafl.AppAddRequest.SecretValuesEntryB\x06\xea\x82\x16\x02\x10BR\fsecretValues\x12/\n" +
-	"\x06status\x18\x18 \x01(\v2\x0f.wafl.AppStatusB\x06\xea\x82\x16\x02\x10BR\x06status\x1a?\n" +
+	"\x06status\x18\x18 \x01(\v2\x0f.wafl.AppStatusB\x06\xea\x82\x16\x02\x10BR\x06status\x124\n" +
+	"\tlisteners\x18\x19 \x03(\v2\x0e.wafl.ListenerB\x06\xea\x82\x16\x02\x10BR\tlisteners\x1a?\n" +
 	"\x11SecretValuesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"X\n" +
@@ -1058,7 +1075,7 @@ const file_wafl_app_svc_g_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\fB\x06\xea\x82\x16\x02\x10@H\x00R\x02id\x12\x16\n" +
 	"\x05alias\x18\x04 \x01(\tH\x00R\x05alias\x12\x18\n" +
 	"\x06domain\x18\b \x01(\tH\x00R\x06domainB\x05\n" +
-	"\x03key\"\xcd\x03\n" +
+	"\x03key\"\xeb\x03\n" +
 	"\tAppSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12*\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x12.wafl.TenantSelectR\x06tenant\x12\x14\n" +
@@ -1076,7 +1093,8 @@ const file_wafl_app_svc_g_proto_rawDesc = "" +
 	"\treadiness\x18\x15 \x01(\bR\treadiness\x12\x18\n" +
 	"\arollout\x18\x16 \x01(\bR\arollout\x12#\n" +
 	"\rsecret_values\x18\x17 \x01(\bR\fsecretValues\x12\x16\n" +
-	"\x06status\x18\x18 \x01(\bR\x06status\"\xd6\x06\n" +
+	"\x06status\x18\x18 \x01(\bR\x06status\x12\x1c\n" +
+	"\tlisteners\x18\x19 \x01(\bR\tlisteners\"\xd6\x06\n" +
 	"\x0fAppPatchRequest\x12\x1e\n" +
 	"\x03ref\x18\x01 \x01(\v2\f.wafl.AppRefR\x03ref\x12\x14\n" +
 	"\x05alias\x18\b \x01(\tR\x05alias\x12\x12\n" +
@@ -1170,12 +1188,13 @@ var file_wafl_app_svc_g_proto_goTypes = []any{
 	(*Probe)(nil),            // 19: wafl.Probe
 	(*Rollout)(nil),          // 20: wafl.Rollout
 	(*AppStatus)(nil),        // 21: wafl.AppStatus
-	(*TenantSelect)(nil),     // 22: wafl.TenantSelect
-	(*AppSourceSelect)(nil),  // 23: wafl.AppSourceSelect
-	(*patchpb.Patch)(nil),    // 24: patch.Patch
-	(*App)(nil),              // 25: wafl.App
-	(*InstanceRef)(nil),      // 26: wafl.InstanceRef
-	(*Log)(nil),              // 27: wafl.Log
+	(*Listener)(nil),         // 22: wafl.Listener
+	(*TenantSelect)(nil),     // 23: wafl.TenantSelect
+	(*AppSourceSelect)(nil),  // 24: wafl.AppSourceSelect
+	(*patchpb.Patch)(nil),    // 25: patch.Patch
+	(*App)(nil),              // 26: wafl.App
+	(*InstanceRef)(nil),      // 27: wafl.InstanceRef
+	(*Log)(nil),              // 28: wafl.Log
 }
 var file_wafl_app_svc_g_proto_depIdxs = []int32{
 	13, // 0: wafl.AppAddRequest.tenant:type_name -> wafl.TenantRef
@@ -1188,45 +1207,46 @@ var file_wafl_app_svc_g_proto_depIdxs = []int32{
 	20, // 7: wafl.AppAddRequest.rollout:type_name -> wafl.Rollout
 	11, // 8: wafl.AppAddRequest.secret_values:type_name -> wafl.AppAddRequest.SecretValuesEntry
 	21, // 9: wafl.AppAddRequest.status:type_name -> wafl.AppStatus
-	2,  // 10: wafl.AppGetRequest.ref:type_name -> wafl.AppRef
-	3,  // 11: wafl.AppGetRequest.select:type_name -> wafl.AppSelect
-	22, // 12: wafl.AppSelect.tenant:type_name -> wafl.TenantSelect
-	23, // 13: wafl.AppSelect.source:type_name -> wafl.AppSourceSelect
-	2,  // 14: wafl.AppPatchRequest.ref:type_name -> wafl.AppRef
-	14, // 15: wafl.AppPatchRequest.manifest:type_name -> wafl.Manifest
-	15, // 16: wafl.AppPatchRequest.scaling:type_name -> wafl.Scaling
-	16, // 17: wafl.AppPatchRequest.state:type_name -> wafl.ScaleState
-	18, // 18: wafl.AppPatchRequest.secrets:type_name -> wafl.Secret
-	19, // 19: wafl.AppPatchRequest.readiness:type_name -> wafl.Probe
-	20, // 20: wafl.AppPatchRequest.rollout:type_name -> wafl.Rollout
-	12, // 21: wafl.AppPatchRequest.secret_values:type_name -> wafl.AppPatchRequest.SecretValuesEntry
-	21, // 22: wafl.AppPatchRequest.status:type_name -> wafl.AppStatus
-	2,  // 23: wafl.AppApplyRequest.ref:type_name -> wafl.AppRef
-	24, // 24: wafl.AppApplyRequest.patch:type_name -> patch.Patch
-	9,  // 25: wafl.AppListRequest.filters:type_name -> wafl.AppFilter
-	25, // 26: wafl.AppListResponse.items:type_name -> wafl.App
-	2,  // 27: wafl.AppFilter.ref:type_name -> wafl.AppRef
-	2,  // 28: wafl.AppTailRequest.ref:type_name -> wafl.AppRef
-	26, // 29: wafl.AppTailRequest.instance:type_name -> wafl.InstanceRef
-	0,  // 30: wafl.AppService.Add:input_type -> wafl.AppAddRequest
-	1,  // 31: wafl.AppService.Get:input_type -> wafl.AppGetRequest
-	4,  // 32: wafl.AppService.Patch:input_type -> wafl.AppPatchRequest
-	5,  // 33: wafl.AppService.Apply:input_type -> wafl.AppApplyRequest
-	2,  // 34: wafl.AppService.Erase:input_type -> wafl.AppRef
-	7,  // 35: wafl.AppService.List:input_type -> wafl.AppListRequest
-	10, // 36: wafl.AppService.Tail:input_type -> wafl.AppTailRequest
-	25, // 37: wafl.AppService.Add:output_type -> wafl.App
-	25, // 38: wafl.AppService.Get:output_type -> wafl.App
-	25, // 39: wafl.AppService.Patch:output_type -> wafl.App
-	25, // 40: wafl.AppService.Apply:output_type -> wafl.App
-	6,  // 41: wafl.AppService.Erase:output_type -> wafl.AppEraseResponse
-	8,  // 42: wafl.AppService.List:output_type -> wafl.AppListResponse
-	27, // 43: wafl.AppService.Tail:output_type -> wafl.Log
-	37, // [37:44] is the sub-list for method output_type
-	30, // [30:37] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	22, // 10: wafl.AppAddRequest.listeners:type_name -> wafl.Listener
+	2,  // 11: wafl.AppGetRequest.ref:type_name -> wafl.AppRef
+	3,  // 12: wafl.AppGetRequest.select:type_name -> wafl.AppSelect
+	23, // 13: wafl.AppSelect.tenant:type_name -> wafl.TenantSelect
+	24, // 14: wafl.AppSelect.source:type_name -> wafl.AppSourceSelect
+	2,  // 15: wafl.AppPatchRequest.ref:type_name -> wafl.AppRef
+	14, // 16: wafl.AppPatchRequest.manifest:type_name -> wafl.Manifest
+	15, // 17: wafl.AppPatchRequest.scaling:type_name -> wafl.Scaling
+	16, // 18: wafl.AppPatchRequest.state:type_name -> wafl.ScaleState
+	18, // 19: wafl.AppPatchRequest.secrets:type_name -> wafl.Secret
+	19, // 20: wafl.AppPatchRequest.readiness:type_name -> wafl.Probe
+	20, // 21: wafl.AppPatchRequest.rollout:type_name -> wafl.Rollout
+	12, // 22: wafl.AppPatchRequest.secret_values:type_name -> wafl.AppPatchRequest.SecretValuesEntry
+	21, // 23: wafl.AppPatchRequest.status:type_name -> wafl.AppStatus
+	2,  // 24: wafl.AppApplyRequest.ref:type_name -> wafl.AppRef
+	25, // 25: wafl.AppApplyRequest.patch:type_name -> patch.Patch
+	9,  // 26: wafl.AppListRequest.filters:type_name -> wafl.AppFilter
+	26, // 27: wafl.AppListResponse.items:type_name -> wafl.App
+	2,  // 28: wafl.AppFilter.ref:type_name -> wafl.AppRef
+	2,  // 29: wafl.AppTailRequest.ref:type_name -> wafl.AppRef
+	27, // 30: wafl.AppTailRequest.instance:type_name -> wafl.InstanceRef
+	0,  // 31: wafl.AppService.Add:input_type -> wafl.AppAddRequest
+	1,  // 32: wafl.AppService.Get:input_type -> wafl.AppGetRequest
+	4,  // 33: wafl.AppService.Patch:input_type -> wafl.AppPatchRequest
+	5,  // 34: wafl.AppService.Apply:input_type -> wafl.AppApplyRequest
+	2,  // 35: wafl.AppService.Erase:input_type -> wafl.AppRef
+	7,  // 36: wafl.AppService.List:input_type -> wafl.AppListRequest
+	10, // 37: wafl.AppService.Tail:input_type -> wafl.AppTailRequest
+	26, // 38: wafl.AppService.Add:output_type -> wafl.App
+	26, // 39: wafl.AppService.Get:output_type -> wafl.App
+	26, // 40: wafl.AppService.Patch:output_type -> wafl.App
+	26, // 41: wafl.AppService.Apply:output_type -> wafl.App
+	6,  // 42: wafl.AppService.Erase:output_type -> wafl.AppEraseResponse
+	8,  // 43: wafl.AppService.List:output_type -> wafl.AppListResponse
+	28, // 44: wafl.AppService.Tail:output_type -> wafl.Log
+	38, // [38:45] is the sub-list for method output_type
+	31, // [31:38] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_wafl_app_svc_g_proto_init() }

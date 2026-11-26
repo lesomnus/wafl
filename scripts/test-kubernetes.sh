@@ -9,9 +9,10 @@ gateway=${WAFL_TEST_GATEWAY_IMAGE:-wafl-traefik:kubernetes-test}
 baseline=${WAFL_TEST_BASELINE_IMAGE:-wafl:kubernetes-baseline-2e463666}
 export WAFL_TEST_BASELINE_IMAGE="$baseline"
 export WAFL_TEST_CLUSTER="$cluster"
+export WAFL_TEST_TCP_PORT="${WAFL_TEST_TCP_PORT:-21000}"
 if [ -z "${WAFL_TEST_KUBECONFIG:-}" ]; then
   bash scripts/build.sh
-  cargo build --locked --target wasm32-wasip2 -p wafl-test-guests
+  cargo build --locked --target wasm32-wasip2 -p wafl-test-guests -p wafl-example-tcp
   target=$(cargo metadata --format-version 1 --no-deps | python3 -c 'import json,sys; print(json.load(sys.stdin)["target_directory"])')
   export WAFL_TEST_GUEST_DIR="$target/wasm32-wasip2/debug"
   export WAFL_TEST_CLI="$target/debug/wafl"
@@ -28,7 +29,7 @@ if [ -z "${WAFL_TEST_KUBECONFIG:-}" ]; then
   cp kubernetes/tests/Dockerfile "$stage/Dockerfile"
   docker build -t "$image" "$stage"
   docker build -f Dockerfile.traefik -t "$gateway" .
-  "$target/debug/wafl-kube" bootstrap dev --name "$cluster" --image "$image" --gateway-image "$gateway" --load --port "${WAFL_TEST_PORT:-18080}" --control-port "${WAFL_TEST_CONTROL_PORT:-18082}"
+  "$target/debug/wafl-kube" bootstrap dev --name "$cluster" --image "$image" --gateway-image "$gateway" --load --port "${WAFL_TEST_PORT:-18080}" --control-port "${WAFL_TEST_CONTROL_PORT:-18082}" --tcp-port "$WAFL_TEST_TCP_PORT"
   # A custom WAFL_TEST_BASELINE_IMAGE must already exist in the Docker daemon.
   if [ "$baseline" = wafl:kubernetes-baseline-2e463666 ]; then
     # Published predecessor 2e4636662980411a9d229bff32f5b8ed9d3cffdb.

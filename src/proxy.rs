@@ -364,6 +364,7 @@ pub(crate) async fn upstream(
             tokio::time::timeout(Duration::from_secs(5), TcpStream::connect(address)).await??;
         stream.set_nodelay(true)?;
         let (response, mut driver) = match protocol {
+            Protocol::Tcp => return Err("raw TCP requires direct mode".into()),
             Protocol::Http => {
                 request
                     .headers_mut()

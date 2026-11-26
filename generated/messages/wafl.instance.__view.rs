@@ -57,6 +57,13 @@ pub struct InstanceView<'a> {
     ///
     /// Field 23: `secrets` (map)
     pub secrets: ::buffa::MapView<'a, &'a str, &'a str>,
+    /// Complete direct socket set; endpoint remains the first socket for legacy clients.
+    ///
+    /// Field 24: `endpoints`
+    pub endpoints: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::EndpointView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
@@ -228,6 +235,21 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                 )?;
                 view.direct = ::buffa::types::decode_bool(&mut cur)?;
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                view.endpoints
+                    .push(
+                        <super::super::__buffa::view::EndpointView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
             23u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -327,6 +349,11 @@ impl<'a> ::buffa::MessageView<'a> for InstanceView<'a> {
                 .iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
+            endpoints: self
+                .endpoints
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -405,6 +432,14 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
             size
                 += 2u32 + ::buffa::encoding::varint_len(entry_size as u64) as u32
                     + entry_size;
+        }
+        for v in &self.endpoints {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
@@ -486,6 +521,10 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceView<'a> {
                 )
                 .encode(buf);
             ::buffa::types::encode_string(v, buf);
+        }
+        for v in &self.endpoints {
+            ::buffa::types::put_len_delimited_header(24u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -589,6 +628,9 @@ impl<'__a> ::serde::Serialize for InstanceView<'__a> {
                 }
             }
             __map.serialize_entry("secrets", &_WM(&self.secrets))?;
+        }
+        if !self.endpoints.is_empty() {
+            __map.serialize_entry("endpoints", &*self.endpoints)?;
         }
         __map.end()
     }
@@ -776,6 +818,15 @@ impl InstanceOwnedView {
     pub fn secrets(&self) -> &::buffa::MapView<'_, &'_ str, &'_ str> {
         &self.0.reborrow().secrets
     }
+    /// Complete direct socket set; endpoint remains the first socket for legacy clients.
+    ///
+    /// Field 24: `endpoints`
+    #[must_use]
+    pub fn endpoints(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::EndpointView<'_>> {
+        &self.0.reborrow().endpoints
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<InstanceView<'static>>>
 for InstanceOwnedView {
@@ -813,10 +864,14 @@ pub struct EndpointView<'a> {
     ///
     /// Field 1: `address`
     pub address: &'a str,
-    /// http or h2c, copied from the manifest.
+    /// http, h2c, or tcp for an opaque byte stream.
     ///
     /// Field 2: `protocol`
     pub protocol: &'a str,
+    /// Field 3: `name`
+    pub name: &'a str,
+    /// Field 4: `transport`
+    pub transport: &'a str,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for EndpointView<'a> {
@@ -860,6 +915,20 @@ impl<'a> ::buffa::MessageView<'a> for EndpointView<'a> {
                 )?;
                 view.protocol = ::buffa::types::borrow_str(&mut cur)?;
             }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.name = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.transport = ::buffa::types::borrow_str(&mut cur)?;
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -884,6 +953,8 @@ impl<'a> ::buffa::MessageView<'a> for EndpointView<'a> {
         ::core::result::Result::Ok(super::super::Endpoint {
             address: self.address.to_string(),
             protocol: self.protocol.to_string(),
+            name: self.name.to_string(),
+            transport: self.transport.to_string(),
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -901,6 +972,12 @@ impl<'a> ::buffa::ViewEncode<'a> for EndpointView<'a> {
         if !self.protocol.is_empty() {
             size += 1u32 + ::buffa::types::string_encoded_len(&self.protocol) as u32;
         }
+        if !self.name.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
+        }
+        if !self.transport.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.transport) as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -917,6 +994,12 @@ impl<'a> ::buffa::ViewEncode<'a> for EndpointView<'a> {
         }
         if !self.protocol.is_empty() {
             ::buffa::types::put_string_field(2u32, &self.protocol, buf);
+        }
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.name, buf);
+        }
+        if !self.transport.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.transport, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -944,6 +1027,12 @@ impl<'__a> ::serde::Serialize for EndpointView<'__a> {
         }
         if !::buffa::json_helpers::skip_if::is_empty_str(self.protocol) {
             __map.serialize_entry("protocol", self.protocol)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.name) {
+            __map.serialize_entry("name", self.name)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.transport) {
+            __map.serialize_entry("transport", self.transport)?;
         }
         __map.end()
     }
@@ -1039,12 +1128,22 @@ impl EndpointOwnedView {
     pub fn address(&self) -> &'_ str {
         self.0.reborrow().address
     }
-    /// http or h2c, copied from the manifest.
+    /// http, h2c, or tcp for an opaque byte stream.
     ///
     /// Field 2: `protocol`
     #[must_use]
     pub fn protocol(&self) -> &'_ str {
         self.0.reborrow().protocol
+    }
+    /// Field 3: `name`
+    #[must_use]
+    pub fn name(&self) -> &'_ str {
+        self.0.reborrow().name
+    }
+    /// Field 4: `transport`
+    #[must_use]
+    pub fn transport(&self) -> &'_ str {
+        self.0.reborrow().transport
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<EndpointView<'static>>>

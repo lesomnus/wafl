@@ -49,6 +49,7 @@ message AppAddRequest {
   Rollout rollout = 22 [(orm.field) = {type: TYPE_JSON}];
   map<string, string> secret_values = 23 [(orm.field) = {type: TYPE_JSON}];
   AppStatus status = 24 [(orm.field) = {type: TYPE_JSON}];
+  repeated Listener listeners = 25 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message AppGetRequest {
@@ -81,6 +82,7 @@ message AppSelect {
   bool rollout = 22;
   bool secret_values = 23;
   bool status = 24;
+  bool listeners = 25;
 }
 
 message AppPatchRequest {

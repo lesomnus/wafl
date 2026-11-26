@@ -39,6 +39,11 @@ pub struct InstanceAddRequestView<'a> {
     pub direct: bool,
     /// Field 23: `secrets` (map)
     pub secrets: ::buffa::MapView<'a, &'a str, &'a str>,
+    /// Field 24: `endpoints`
+    pub endpoints: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::EndpointView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for InstanceAddRequestView<'a> {
@@ -210,6 +215,21 @@ impl<'a> ::buffa::MessageView<'a> for InstanceAddRequestView<'a> {
                 )?;
                 view.direct = ::buffa::types::decode_bool(&mut cur)?;
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                view.endpoints
+                    .push(
+                        <super::super::__buffa::view::EndpointView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
             23u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -309,6 +329,11 @@ impl<'a> ::buffa::MessageView<'a> for InstanceAddRequestView<'a> {
                 .iter()
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
+            endpoints: self
+                .endpoints
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -387,6 +412,14 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceAddRequestView<'a> {
             size
                 += 2u32 + ::buffa::encoding::varint_len(entry_size as u64) as u32
                     + entry_size;
+        }
+        for v in &self.endpoints {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
         }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
@@ -468,6 +501,10 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceAddRequestView<'a> {
                 )
                 .encode(buf);
             ::buffa::types::encode_string(v, buf);
+        }
+        for v in &self.endpoints {
+            ::buffa::types::put_len_delimited_header(24u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -571,6 +608,9 @@ impl<'__a> ::serde::Serialize for InstanceAddRequestView<'__a> {
                 }
             }
             __map.serialize_entry("secrets", &_WM(&self.secrets))?;
+        }
+        if !self.endpoints.is_empty() {
+            __map.serialize_entry("endpoints", &*self.endpoints)?;
         }
         __map.end()
     }
@@ -745,6 +785,13 @@ impl InstanceAddRequestOwnedView {
     #[must_use]
     pub fn secrets(&self) -> &::buffa::MapView<'_, &'_ str, &'_ str> {
         &self.0.reborrow().secrets
+    }
+    /// Field 24: `endpoints`
+    #[must_use]
+    pub fn endpoints(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::EndpointView<'_>> {
+        &self.0.reborrow().endpoints
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<InstanceAddRequestView<'static>>>
@@ -1440,6 +1487,8 @@ pub struct InstanceSelectView<'a> {
     pub direct: ::core::option::Option<bool>,
     /// Field 23: `secrets`
     pub secrets: ::core::option::Option<bool>,
+    /// Field 24: `endpoints`
+    pub endpoints: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for InstanceSelectView<'a> {
@@ -1588,6 +1637,13 @@ impl<'a> ::buffa::MessageView<'a> for InstanceSelectView<'a> {
                 )?;
                 view.secrets = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            24u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.endpoints = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1632,6 +1688,7 @@ impl<'a> ::buffa::MessageView<'a> for InstanceSelectView<'a> {
             endpoint: self.endpoint,
             direct: self.direct,
             secrets: self.secrets,
+            endpoints: self.endpoints,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1693,6 +1750,9 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceSelectView<'a> {
         if self.secrets.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.endpoints.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1749,6 +1809,9 @@ impl<'a> ::buffa::ViewEncode<'a> for InstanceSelectView<'a> {
         }
         if let Some(v) = self.secrets {
             ::buffa::types::put_bool_field(23u32, v, buf);
+        }
+        if let Some(v) = self.endpoints {
+            ::buffa::types::put_bool_field(24u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1817,6 +1880,9 @@ impl<'__a> ::serde::Serialize for InstanceSelectView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.secrets {
             __map.serialize_entry("secrets", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.endpoints {
+            __map.serialize_entry("endpoints", &__v)?;
         }
         __map.end()
     }
@@ -1985,6 +2051,11 @@ impl InstanceSelectOwnedView {
     #[must_use]
     pub fn secrets(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().secrets
+    }
+    /// Field 24: `endpoints`
+    #[must_use]
+    pub fn endpoints(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().endpoints
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<InstanceSelectView<'static>>>

@@ -157,7 +157,7 @@ struct Add {
     /// Guest listening port; defaults to 8080 without a base manifest.
     #[arg(long)]
     port: Option<u32>,
-    #[arg(long, value_parser = ["http", "h2c"])]
+    #[arg(long, value_parser = ["http", "h2c", "tcp"])]
     protocol: Option<String>,
     #[arg(long)]
     idle_ms: Option<u64>,

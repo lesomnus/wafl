@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -116,10 +117,13 @@ func installCommand(o *options) *cobra.Command {
 }
 func devCommand(o *options) *cobra.Command {
 	var cluster, image, gateway string
-	var port, controlPort int
+	var port, controlPort, tcpPort int
 	var load bool
 	cmd := &cobra.Command{Use: "dev [app.yaml]", Short: "Create/reuse a local kind cluster and install the complete WAFL platform", Args: cobra.MaximumNArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
+		if tcpPort < 1 || tcpPort > 65520 || port >= tcpPort && port < tcpPort+16 || controlPort >= tcpPort && controlPort < tcpPort+16 {
+			return errors.New("TCP base port must expose 16 valid ports without overlapping HTTP/control ports")
+		}
 		gatewayHost, bindHost := "127.0.0.1", "127.0.0.1"
 		if dockerURL, e := url.Parse(os.Getenv("DOCKER_HOST")); e == nil && dockerURL.Scheme == "tcp" && dockerURL.Hostname() != "localhost" && dockerURL.Hostname() != "127.0.0.1" && dockerURL.Hostname() != "::1" {
 			gatewayHost = dockerURL.Hostname()
@@ -153,6 +157,9 @@ func devCommand(o *options) *cobra.Command {
 		}
 		if !found {
 			data := fmt.Sprintf("kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnetworking:\n  apiServerAddress: %s\nnodes:\n- role: control-plane\n  extraPortMappings:\n  - containerPort: 30080\n    hostPort: %d\n    listenAddress: %s\n    protocol: TCP\n  - containerPort: 30082\n    hostPort: %d\n    listenAddress: %s\n    protocol: TCP\n", bindHost, port, bindHost, controlPort, bindHost)
+			for n := 0; n < 16; n++ {
+				data += fmt.Sprintf("  - containerPort: %d\n    hostPort: %d\n    listenAddress: %s\n    protocol: TCP\n", 31000+n, tcpPort+n, bindHost)
+			}
 			if e = os.WriteFile(config, []byte(data), 0600); e != nil {
 				return e
 			}
@@ -289,6 +296,7 @@ func devCommand(o *options) *cobra.Command {
 	f.StringVar(&cluster, "name", "wafl", "Dedicated kind cluster name")
 	f.IntVar(&controlPort, "control-port", 8082, "Local controller API port (chosen when creating the cluster)")
 	f.IntVar(&port, "port", 8080, "Local gateway port (chosen when creating the cluster)")
+	f.IntVar(&tcpPort, "tcp-port", 10000, "First of 16 local TCP ports (chosen when creating the cluster)")
 	f.StringVar(&image, "image", "ghcr.io/lesomnus/wafl:latest", "WAFL image")
 	f.StringVar(&gateway, "gateway-image", "ghcr.io/lesomnus/wafl-traefik:latest", "Gateway image")
 	f.BoolVar(&load, "load", false, "Load both images from the local Docker daemon")

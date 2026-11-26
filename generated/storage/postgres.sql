@@ -29,7 +29,8 @@ CREATE TABLE "pd_wafl__App" (
   "f21" TEXT,
   "f22" TEXT,
   "f23" TEXT NOT NULL,
-  "f24" TEXT
+  "f24" TEXT,
+  "f25" TEXT NOT NULL
 );
 CREATE TABLE "pd_wafl__AppSource" (
   "f1" BYTEA NOT NULL PRIMARY KEY,
@@ -108,7 +109,8 @@ CREATE TABLE "pd_wafl__Instance" (
   "f20" BOOLEAN NOT NULL,
   "f21" TEXT,
   "f22" BOOLEAN NOT NULL,
-  "f23" TEXT NOT NULL
+  "f23" TEXT NOT NULL,
+  "f24" TEXT NOT NULL
 );
 CREATE TABLE "pd_wafl__Outbox" (
   "f1" BYTEA NOT NULL PRIMARY KEY,

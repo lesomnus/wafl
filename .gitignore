@@ -1,3 +1,4 @@
 /target/
 *.sqlite3*
 /examples/local/*.tar.gz
+/examples/tcp/*.tar.gz

@@ -1,6 +1,6 @@
 # Kubernetes native WAFL
 
-WAFL 플랫폼은 Kubernetes를 필수로 사용합니다. 앱은 일반 HTTP/gRPC 서버이며 별도 SDK가 필요 없습니다. 단독 `wafl serve runner`와 `wafl instance` 명령은 Kubernetes와 `wafl-kube` 없이 계속 사용할 수 있습니다.
+WAFL 플랫폼은 Kubernetes를 필수로 사용합니다. 앱은 일반 HTTP/gRPC·TCP 서버이며 별도 SDK가 필요 없습니다. 단독 `wafl serve runner`와 `wafl instance` 명령은 Kubernetes와 `wafl-kube` 없이 계속 사용할 수 있습니다.
 
 ## 책임과 실행 단위
 
@@ -32,6 +32,8 @@ wafl-kube bootstrap --context production install
 # 운영자가 제공한 controller 관리 API 주소로 연결합니다.
 wafl --endpoint https://control.example.com --tenant demo app add app.yaml
 ```
+
+[일반 TCP 튜토리얼](tcp.md)은 `domain` 대신 공개 포트를 사용하는 App, 복수 소켓과 TCP 연결 단위 증감을 설명합니다.
 
 ## App 예제
 

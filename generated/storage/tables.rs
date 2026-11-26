@@ -65,6 +65,8 @@
         f23 -> Text,
         /// wafl.App.status
         f24 -> Nullable<Text>,
+        /// wafl.App.listeners
+        f25 -> Text,
     }
 }
 ::diesel::table! {
@@ -229,6 +231,8 @@
         f22 -> Bool,
         /// wafl.Instance.secrets
         f23 -> Text,
+        /// wafl.Instance.endpoints
+        f24 -> Text,
     }
 }
 ::diesel::table! {

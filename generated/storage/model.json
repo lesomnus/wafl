@@ -243,6 +243,14 @@
           "number": 24,
           "kind": "JSON",
           "nullable": true
+        },
+        {
+          "name": "listeners",
+          "json": "listeners",
+          "number": 25,
+          "kind": "JSON",
+          "collection": "list",
+          "immutable": true
         }
       ],
       "indexes": []
@@ -837,6 +845,13 @@
           "collection": "map",
           "immutable": true,
           "default": ""
+        },
+        {
+          "name": "endpoints",
+          "json": "endpoints",
+          "number": 24,
+          "kind": "JSON",
+          "collection": "list"
         }
       ],
       "indexes": []

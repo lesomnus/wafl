@@ -1,5 +1,7 @@
 # 첫 요청 기동과 부하 증감
 
+[일반 TCP App](tcp.md)도 같은 증감 정책을 사용합니다. TCP의 `target`·`active`·`started`·`busyMs`는 요청 대신 연결 동시성·연결 시작·누적 연결 시간이며, 조용한 열린 연결도 활성입니다. 아래 HTTP 응답 코드와 plugin 경로는 HTTP/gRPC에 해당합니다.
+
 먼저 [Kubernetes native 튜토리얼](kubernetes-native.md)로 플랫폼을 설치합니다. 로컬 전체 플랫폼은 `wafl-kube bootstrap dev`, 기존 클러스터는 `wafl-kube bootstrap install`을 사용합니다.
 
 ```yaml

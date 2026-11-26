@@ -2967,6 +2967,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "wafl-example-tcp"
+version = "0.1.0"
+
+[[package]]
 name = "wafl-runner"
 version = "0.1.0"
 dependencies = [

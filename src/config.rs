@@ -266,6 +266,7 @@ impl Config {
 pub enum Protocol {
     Http,
     H2c,
+    Tcp,
 }
 
 #[derive(Clone, Debug)]
@@ -286,6 +287,7 @@ pub struct Spec {
     pub url: reqwest::Url,
     pub port: u16,
     pub protocol: Protocol,
+    pub sockets: Vec<crate::proto::wafl::Socket>,
     pub idle_ms: u64,
     pub startup_ms: u64,
     pub memory_bytes: usize,
@@ -304,9 +306,10 @@ impl Spec {
             || req.draining
             || req.endpoint.as_option().is_some()
             || req.direct
+            || !req.endpoints.is_empty()
         {
             return Err(invalid(
-                "phase, generation, active, error, session, revision, draining, endpoint and direct are server-set",
+                "phase, generation, active, error, session, revision, draining, endpoint, endpoints and direct are server-set",
             ));
         }
         let id = match req.id {
@@ -345,6 +348,47 @@ impl Spec {
         if manifest.abi.is_empty() {
             manifest.abi = "wasip2".into();
         }
+        let mut sockets = manifest.sockets.clone();
+        if !sockets.is_empty() {
+            let mut names = BTreeSet::new();
+            let mut ports = BTreeSet::new();
+            if sockets.len() > 16 {
+                return Err(invalid("at most 16 sockets are supported"));
+            }
+            for socket in &mut sockets {
+                if socket.transport.is_empty() {
+                    socket.transport = "tcp".into();
+                }
+                if !valid_alias(&socket.name)
+                    || socket.name.ends_with('-')
+                    || socket.name.len() > 15
+                    || !names.insert(socket.name.clone())
+                    || socket.port == 0
+                    || socket.port > 65535
+                    || !ports.insert(socket.port)
+                    || socket.transport != "tcp"
+                    || !matches!(socket.protocol.as_str(), "" | "http" | "h2c")
+                {
+                    return Err(invalid(
+                        "sockets require unique names and ports, TCP transport, and empty/http/h2c protocol",
+                    ));
+                }
+            }
+            let first = &sockets[0];
+            let protocol = if first.protocol.is_empty() {
+                "tcp"
+            } else {
+                &first.protocol
+            };
+            if manifest.port != 0 && manifest.port != first.port
+                || !manifest.protocol.is_empty() && manifest.protocol != protocol
+            {
+                return Err(invalid("legacy port/protocol must match the first socket"));
+            }
+            manifest.port = first.port;
+            manifest.protocol = protocol.into();
+            manifest.sockets = sockets.clone();
+        }
         if manifest.protocol.is_empty() {
             manifest.protocol = "http".into();
         }
@@ -354,12 +398,26 @@ impl Spec {
         let protocol = match manifest.protocol.as_str() {
             "http" => Protocol::Http,
             "h2c" => Protocol::H2c,
-            _ => return Err(invalid("protocol must be http or h2c")),
+            "tcp" => Protocol::Tcp,
+            _ => return Err(invalid("protocol must be http, h2c or tcp")),
         };
         let port = u16::try_from(manifest.port)
             .ok()
             .filter(|p| *p != 0)
             .ok_or_else(|| invalid("manifest.port must be 1..65535"))?;
+        if sockets.is_empty() {
+            sockets.push(crate::proto::wafl::Socket {
+                name: "app".into(),
+                port: port.into(),
+                transport: "tcp".into(),
+                protocol: if matches!(protocol, Protocol::Tcp) {
+                    String::new()
+                } else {
+                    manifest.protocol.clone()
+                },
+                ..Default::default()
+            });
+        }
         let url = match &manifest.bundle.kind {
             Some(asset::Kind::Url(url)) => {
                 reqwest::Url::parse(url).map_err(|_| invalid("invalid bundle URL"))?
@@ -421,7 +479,7 @@ impl Spec {
         for value in &manifest.bindings {
             let binding_port = u16::try_from(value.port)
                 .ok()
-                .filter(|p| *p != 0 && *p != port)
+                .filter(|p| *p != 0 && !sockets.iter().any(|s| s.port == u32::from(*p)))
                 .ok_or_else(|| invalid("invalid binding port"))?;
             let target: SocketAddr = value
                 .target
@@ -449,6 +507,7 @@ impl Spec {
             name: req.name,
             port,
             protocol,
+            sockets,
             url,
             bindings,
             idle_ms: manifest.idle_ms,

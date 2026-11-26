@@ -37,7 +37,7 @@ import (
 // No Kubernetes object or API credential crosses this client-facing boundary.
 type AppAPI struct{ Clients *Clients }
 
-var appReadOnly = patch.MustNewReadOnly((&wf.App{}).ProtoReflect().Descriptor(), "id", "tenant", "alias", "domain", "revision", "state", "source", "status")
+var appReadOnly = patch.MustNewReadOnly((&wf.App{}).ProtoReflect().Descriptor(), "id", "tenant", "alias", "domain", "revision", "state", "source", "status", "listeners")
 var secretEnv = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]{0,127}$`)
 
 func invalidApp(message string) error {
@@ -190,7 +190,7 @@ func appSpec(v *wf.App) (map[string]any, error) {
 	}
 	for key := range out {
 		switch key {
-		case "name", "domain", "manifest", "replicas", "scaling", "secrets", "readiness", "rollout":
+		case "name", "domain", "manifest", "replicas", "scaling", "secrets", "readiness", "rollout", "listeners":
 		default:
 			delete(out, key)
 		}

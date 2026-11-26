@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -42,17 +43,19 @@ func (c *Controller) reconcile(ctx context.Context) error {
 	}
 	orderApps(list.Items)
 	domains := map[string]bool{}
+	ports := map[uint32]bool{}
 	for index := range list.Items {
 		a := &list.Items[index]
 		if a.GetDeletionTimestamp() != nil {
 			continue
 		}
-		domain, _, _ := unstructured.NestedString(a.Object, "spec", "domain")
+		spec, err := decodeApp(a)
 		var d *apps.Deployment
-		if domains[domain] {
-			e = errors.New("domain is already assigned to another App")
+		if err != nil {
+			e = err
+		} else if !claimRoutes(spec, domains, ports) {
+			e = errors.New("domain or TCP listener is already assigned to another App")
 		} else {
-			domains[domain] = true
 			d, _, e = c.Clients.reconcileDeployment(ctx, a)
 		}
 		if e != nil {
@@ -123,12 +126,43 @@ func (c *Controller) status(ctx context.Context, a *unstructured.Unstructured, d
 }
 func (c *Controller) endpoints(ctx context.Context, a *unstructured.Unstructured, d *apps.Deployment) error {
 	service := &core.Service{ObjectMeta: meta.ObjectMeta{Name: d.Name, Namespace: a.GetNamespace(), Labels: map[string]string{Managed: "true", AppUID: string(a.GetUID())}, OwnerReferences: []meta.OwnerReference{owner(a)}}, Spec: core.ServiceSpec{Ports: []core.ServicePort{{Name: "app", Port: 80, TargetPort: intstr.FromInt(80)}}}}
-	_, e := c.Clients.Kube.CoreV1().Services(a.GetNamespace()).Create(ctx, service, meta.CreateOptions{})
-	if e != nil && !apierrors.IsAlreadyExists(e) {
+	spec, err := decodeApp(a)
+	if err != nil {
+		return err
+	}
+	if len(spec.Listeners) > 0 {
+		service.Spec.Ports = nil
+		ss, _ := sockets(spec.Manifest)
+		for _, listener := range spec.Listeners {
+			for _, socket := range ss {
+				if socket.Name == listener.Socket {
+					service.Spec.Ports = append(service.Spec.Ports, core.ServicePort{Name: socket.Name, Port: int32(socket.Port), TargetPort: intstr.FromInt32(int32(listener.Port))})
+				}
+			}
+		}
+	}
+	services := c.Clients.Kube.CoreV1().Services(a.GetNamespace())
+	_, e := services.Create(ctx, service, meta.CreateOptions{})
+	if apierrors.IsAlreadyExists(e) {
+		old, err := services.Get(ctx, service.Name, meta.GetOptions{})
+		if err != nil {
+			return err
+		}
+		for i := range service.Spec.Ports {
+			service.Spec.Ports[i].Protocol = core.ProtocolTCP
+		}
+		if !reflect.DeepEqual(old.Spec.Ports, service.Spec.Ports) {
+			old.Spec.Ports = service.Spec.Ports
+			_, e = services.Update(ctx, old, meta.UpdateOptions{})
+		} else {
+			e = nil
+		}
+	}
+	if e != nil {
 		return e
 	}
 	// ClusterIP clients use the same gateway admission as external requests.
-	// Warm requests therefore never make a Kubernetes API call per request.
+	// HTTP uses its plugin; TCP uses the connection relay on the controller.
 	pods, e := c.Clients.Kube.CoreV1().Pods(c.Namespace).List(ctx, meta.ListOptions{LabelSelector: "app.kubernetes.io/component=traefik,app.kubernetes.io/part-of=wafl"})
 	if e != nil {
 		return e
@@ -153,15 +187,19 @@ func (c *Controller) endpoints(ctx context.Context, a *unstructured.Unstructured
 		name := d.Name + "-" + digest(string(p.UID))[:12]
 		wanted[name] = true
 		slice := &discovery.EndpointSlice{ObjectMeta: meta.ObjectMeta{Name: name, Namespace: a.GetNamespace(), Labels: map[string]string{discovery.LabelServiceName: d.Name, discovery.LabelManagedBy: Group, AppUID: string(a.GetUID())}, OwnerReferences: []meta.OwnerReference{owner(a)}}, AddressType: discovery.AddressTypeIPv4, Ports: []discovery.EndpointPort{{Name: Ptr("app"), Port: Ptr(int32(number)), Protocol: Ptr(core.ProtocolTCP)}}, Endpoints: []discovery.Endpoint{{Addresses: []string{host}, Conditions: discovery.EndpointConditions{Ready: Ptr(true)}, TargetRef: &core.ObjectReference{Kind: "Pod", Namespace: p.Namespace, Name: p.Name, UID: p.UID}}}}
+		if len(spec.Listeners) > 0 {
+			slice.Ports = nil
+			for _, listener := range spec.Listeners {
+				slice.Ports = append(slice.Ports, discovery.EndpointPort{Name: Ptr(listener.Socket), Port: Ptr(int32(listener.Port)), Protocol: Ptr(core.ProtocolTCP)})
+			}
+		}
 		api := c.Clients.Kube.DiscoveryV1().EndpointSlices(a.GetNamespace())
 		old, e := api.Get(ctx, name, meta.GetOptions{})
 		if apierrors.IsNotFound(e) {
 			_, e = api.Create(ctx, slice, meta.CreateOptions{})
 		} else if e == nil {
 			slice.ResourceVersion = old.ResourceVersion
-			b, _ := json.Marshal(old.Endpoints)
-			v, _ := json.Marshal(slice.Endpoints)
-			if string(b) != string(v) {
+			if !reflect.DeepEqual(old.Endpoints, slice.Endpoints) || !reflect.DeepEqual(old.Ports, slice.Ports) {
 				_, e = api.Update(ctx, slice, meta.UpdateOptions{})
 			}
 		}
@@ -192,16 +230,19 @@ func (c *Controller) configuration(ctx context.Context) (map[string]any, error) 
 	}
 	routers, services, middlewares := map[string]any{}, map[string]any{}, map[string]any{}
 	domains := map[string]bool{}
+	ports := map[uint32]bool{}
 	for index := range apps.Items {
 		a := &apps.Items[index]
 		if a.GetDeletionTimestamp() != nil {
 			continue
 		}
 		spec, e := decodeApp(a)
-		if e != nil || domains[spec.Domain] {
+		if e != nil || !claimRoutes(spec, domains, ports) {
 			continue
 		}
-		domains[spec.Domain] = true
+		if spec.Manifest.Protocol == "tcp" {
+			continue
+		}
 		name := appName(a)
 		hosts := []string{spec.Domain, name, name + "." + a.GetNamespace(), name + "." + a.GetNamespace() + ".svc", name + "." + a.GetNamespace() + ".svc.cluster.local"}
 		rules := []string{}
@@ -237,19 +278,33 @@ func (c *Controller) configuration(ctx context.Context) (map[string]any, error) 
 		}
 	}
 	if len(routers) == 0 {
+		if tcp := c.tcpConfiguration(); tcp != nil {
+			return map[string]any{"tcp": tcp}, nil
+		}
 		return map[string]any{}, nil
 	}
 	httpConfig := map[string]any{"routers": routers, "services": services}
 	if len(middlewares) > 0 {
 		httpConfig["middlewares"] = middlewares
 	}
-	return map[string]any{"http": httpConfig}, nil
+	result := map[string]any{"http": httpConfig}
+	if tcp := c.tcpConfiguration(); tcp != nil {
+		result["tcp"] = tcp
+	}
+	return result, nil
 }
 func (c *Controller) Serve(ctx context.Context) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	if c.RunnerTimeout < 0 || c.RunnerParallel < 0 || c.RunnerParallel > 128 {
 		return errors.New("runner query timeout must be nonnegative and parallelism must be between 0 and 128; zero uses the default")
 	}
 	c.Traffic = &Traffic{Clients: c.Clients, Namespace: c.Namespace}
+	closeTCP, err := c.serveTCP(ctx)
+	if err != nil {
+		return err
+	}
+	defer closeTCP()
 	catalog := &Catalog{Clients: c.Clients, Namespace: c.Namespace, Timeout: c.RunnerTimeout, Parallel: c.RunnerParallel}
 	mux := http.NewServeMux()
 	mux.Handle(waflconnect.NewRunnerServiceHandler(&RunnerAPI{Catalog: catalog}))

@@ -153,6 +153,12 @@ func decodeApp(a *unstructured.Unstructured) (*wf.App, error) {
 	if spec.Manifest == nil || spec.Manifest.Bundle == nil || spec.Manifest.Bundle.GetUrl() == "" {
 		return nil, errors.New("manifest.bundle.url is required")
 	}
+	if _, err := sockets(spec.Manifest); err != nil {
+		return nil, err
+	}
+	if err := validateListeners(&spec); err != nil {
+		return nil, err
+	}
 	if spec.Manifest.Port == 0 {
 		spec.Manifest.Port = 8080
 	}

@@ -62,6 +62,7 @@ message InstanceAddRequest {
   Endpoint endpoint = 21 [(orm.field) = {type: TYPE_JSON}];
   bool direct = 22 [features.field_presence = IMPLICIT];
   map<string, string> secrets = 23 [(orm.field) = {type: TYPE_JSON}];
+  repeated Endpoint endpoints = 24 [(orm.field) = {type: TYPE_JSON}];
 }
 
 message InstanceGetRequest {
@@ -92,6 +93,7 @@ message InstanceSelect {
   bool endpoint = 21;
   bool direct = 22;
   bool secrets = 23;
+  bool endpoints = 24;
 }
 
 message InstanceEraseResponse {

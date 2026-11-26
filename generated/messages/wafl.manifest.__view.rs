@@ -13,11 +13,11 @@ pub struct ManifestView<'a> {
     ///
     /// Field 2: `bundle`
     pub bundle: ::buffa::MessageFieldView<super::super::__buffa::view::AssetView<'a>>,
-    /// The guest's TCP listening port. Required, 1..65535.
+    /// Legacy primary guest port, 1..65535 (CLI/controller default: 8080).
     ///
     /// Field 3: `port`
     pub port: u32,
-    /// "http" (default) or "h2c" for HTTP/2 prior knowledge, including gRPC.
+    /// Legacy "http" (default), "h2c" (HTTP/2 including gRPC), or "tcp".
     ///
     /// Field 4: `protocol`
     pub protocol: &'a str,
@@ -44,6 +44,12 @@ pub struct ManifestView<'a> {
         'a,
         super::super::__buffa::view::BindingView<'a>,
     >,
+    /// Named ingress sockets. Omit to use legacy port/protocol. With sockets,
+    /// legacy fields may only repeat the first socket. All sockets must listen
+    /// before the execution becomes ready. Currently TCP only, at most 16.
+    ///
+    /// Field 12: `sockets`
+    pub sockets: ::buffa::RepeatedView<'a, super::super::__buffa::view::SocketView<'a>>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for ManifestView<'a> {
@@ -165,6 +171,21 @@ impl<'a> ::buffa::MessageView<'a> for ManifestView<'a> {
                         )?,
                     );
             }
+            12u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                view.sockets
+                    .push(
+                        <super::super::__buffa::view::SocketView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
             10u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -246,6 +267,11 @@ impl<'a> ::buffa::MessageView<'a> for ManifestView<'a> {
                 .iter()
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            sockets: self
+                .sockets
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -298,6 +324,14 @@ impl<'a> ::buffa::ViewEncode<'a> for ManifestView<'a> {
                     + entry_size;
         }
         for v in &self.bindings {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 1u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        for v in &self.sockets {
             let __slot = __cache.reserve();
             let inner_size = v.compute_size(__cache);
             __cache.set(__slot, inner_size);
@@ -368,6 +402,10 @@ impl<'a> ::buffa::ViewEncode<'a> for ManifestView<'a> {
         }
         for v in &self.bindings {
             ::buffa::types::put_len_delimited_header(11u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
+        }
+        for v in &self.sockets {
+            ::buffa::types::put_len_delimited_header(12u32, __cache.consume_next(), buf);
             v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
@@ -457,6 +495,9 @@ impl<'__a> ::serde::Serialize for ManifestView<'__a> {
         }
         if !self.bindings.is_empty() {
             __map.serialize_entry("bindings", &*self.bindings)?;
+        }
+        if !self.sockets.is_empty() {
+            __map.serialize_entry("sockets", &*self.sockets)?;
         }
         __map.end()
     }
@@ -561,14 +602,14 @@ impl ManifestOwnedView {
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::AssetView<'_>> {
         &self.0.reborrow().bundle
     }
-    /// The guest's TCP listening port. Required, 1..65535.
+    /// Legacy primary guest port, 1..65535 (CLI/controller default: 8080).
     ///
     /// Field 3: `port`
     #[must_use]
     pub fn port(&self) -> u32 {
         self.0.reborrow().port
     }
-    /// "http" (default) or "h2c" for HTTP/2 prior knowledge, including gRPC.
+    /// Legacy "http" (default), "h2c" (HTTP/2 including gRPC), or "tcp".
     ///
     /// Field 4: `protocol`
     #[must_use]
@@ -618,6 +659,17 @@ impl ManifestOwnedView {
     ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::BindingView<'_>> {
         &self.0.reborrow().bindings
     }
+    /// Named ingress sockets. Omit to use legacy port/protocol. With sockets,
+    /// legacy fields may only repeat the first socket. All sockets must listen
+    /// before the execution becomes ready. Currently TCP only, at most 16.
+    ///
+    /// Field 12: `sockets`
+    #[must_use]
+    pub fn sockets(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::SocketView<'_>> {
+        &self.0.reborrow().sockets
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<ManifestView<'static>>>
 for ManifestOwnedView {
@@ -642,6 +694,327 @@ impl ::buffa::HasMessageView for super::super::Manifest {
     type ViewHandle = ManifestOwnedView;
 }
 impl ::serde::Serialize for ManifestOwnedView {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        ::serde::Serialize::serialize(&self.0, __s)
+    }
+}
+#[derive(Clone, Debug, Default)]
+pub struct SocketView<'a> {
+    /// Unique lowercase name, 1..15 letters/digits/hyphens, starting with a letter
+    /// and ending with a letter or digit.
+    ///
+    /// Field 1: `name`
+    pub name: &'a str,
+    /// Field 2: `port`
+    pub port: u32,
+    /// "tcp" (default). Other transports are rejected until implemented.
+    ///
+    /// Field 3: `transport`
+    pub transport: &'a str,
+    /// Empty is an opaque byte stream; "http" and "h2c" enable HTTP routing.
+    ///
+    /// Field 4: `protocol`
+    pub protocol: &'a str,
+    pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
+}
+impl<'a> ::buffa::MessageView<'a> for SocketView<'a> {
+    type Owned = super::super::Socket;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.name = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.port = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            3u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.transport = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            4u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.protocol = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                let span_len = before_tag.len() - cur.len();
+                view.__buffa_unknown_fields.push_record(before_tag, span_len, ctx)?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Socket, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::Socket, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::Socket {
+            name: self.name.to_string(),
+            port: self.port,
+            transport: self.transport.to_string(),
+            protocol: self.protocol.to_string(),
+            __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for SocketView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if !self.name.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.name) as u32;
+        }
+        if self.port != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
+        }
+        if !self.transport.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.transport) as u32;
+        }
+        if !self.protocol.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.protocol) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.name.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.name, buf);
+        }
+        if self.port != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.port, buf);
+        }
+        if !self.transport.is_empty() {
+            ::buffa::types::put_string_field(3u32, &self.transport, buf);
+        }
+        if !self.protocol.is_empty() {
+            ::buffa::types::put_string_field(4u32, &self.protocol, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+}
+/// Serializes this view as protobuf JSON.
+///
+/// Implicit-presence fields with default values are omitted, `required`
+/// fields are always emitted, explicit-presence (`optional`) fields are
+/// emitted only when set, bytes fields are base64-encoded, and enum
+/// values are their proto name strings.
+///
+/// This impl uses `serialize_map(None)` because the number of emitted
+/// fields depends on default-omission rules; serializers that require
+/// known map lengths (e.g. `bincode`) will return a runtime error.
+/// Use the owned message type for those formats.
+impl<'__a> ::serde::Serialize for SocketView<'__a> {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        use ::serde::ser::SerializeMap as _;
+        let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.name) {
+            __map.serialize_entry("name", self.name)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.port) {
+            __map
+                .serialize_entry("port", &::buffa::json_helpers::ProtoJson(&self.port))?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.transport) {
+            __map.serialize_entry("transport", self.transport)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.protocol) {
+            __map.serialize_entry("protocol", self.protocol)?;
+        }
+        __map.end()
+    }
+}
+impl<'a> ::buffa::MessageName for SocketView<'a> {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "Socket";
+    const FULL_NAME: &'static str = "wafl.Socket";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.Socket";
+}
+::buffa::impl_default_view_instance!(SocketView);
+::buffa::impl_view_reborrow!(SocketView);
+/** Self-contained, `'static` owned view of a `Socket` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`SocketView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`SocketView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct SocketOwnedView(::buffa::OwnedView<SocketView<'static>>);
+impl SocketOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(SocketOwnedView(::buffa::OwnedView::decode(bytes)?))
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            SocketOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::Socket,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(SocketOwnedView(::buffa::OwnedView::from_owned(msg)?))
+    }
+    /// Borrow the full [`SocketView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &SocketView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if re-materializing preserved unknown fields
+    /// fails (e.g. the unknown-field limit is exceeded).
+    pub fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Socket, ::buffa::DecodeError> {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Unique lowercase name, 1..15 letters/digits/hyphens, starting with a letter
+    /// and ending with a letter or digit.
+    ///
+    /// Field 1: `name`
+    #[must_use]
+    pub fn name(&self) -> &'_ str {
+        self.0.reborrow().name
+    }
+    /// Field 2: `port`
+    #[must_use]
+    pub fn port(&self) -> u32 {
+        self.0.reborrow().port
+    }
+    /// "tcp" (default). Other transports are rejected until implemented.
+    ///
+    /// Field 3: `transport`
+    #[must_use]
+    pub fn transport(&self) -> &'_ str {
+        self.0.reborrow().transport
+    }
+    /// Empty is an opaque byte stream; "http" and "h2c" enable HTTP routing.
+    ///
+    /// Field 4: `protocol`
+    #[must_use]
+    pub fn protocol(&self) -> &'_ str {
+        self.0.reborrow().protocol
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<SocketView<'static>>> for SocketOwnedView {
+    fn from(inner: ::buffa::OwnedView<SocketView<'static>>) -> Self {
+        SocketOwnedView(inner)
+    }
+}
+impl ::core::convert::From<SocketOwnedView> for ::buffa::OwnedView<SocketView<'static>> {
+    fn from(wrapper: SocketOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<SocketView<'static>>>
+for SocketOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<SocketView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::Socket {
+    type View<'a> = SocketView<'a>;
+    type ViewHandle = SocketOwnedView;
+}
+impl ::serde::Serialize for SocketOwnedView {
     fn serialize<__S: ::serde::Serializer>(
         &self,
         __s: __S,

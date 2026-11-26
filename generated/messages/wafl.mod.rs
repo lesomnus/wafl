@@ -121,6 +121,7 @@ pub mod __buffa {
     /// Register this package's `Any` type entries and extension entries.
     pub fn register_types(reg: &mut ::buffa::type_registry::TypeRegistry) {
         reg.register_json_any(super::__MANIFEST_JSON_ANY);
+        reg.register_json_any(super::__SOCKET_JSON_ANY);
         reg.register_json_any(super::__ASSET_JSON_ANY);
         reg.register_json_any(super::__BINDING_JSON_ANY);
         reg.register_json_any(super::__TENANT_JSON_ANY);
@@ -128,6 +129,7 @@ pub mod __buffa {
         reg.register_json_any(super::__SECRET_JSON_ANY);
         reg.register_json_any(super::__SECRET_KEY_REF_JSON_ANY);
         reg.register_json_any(super::__APP_JSON_ANY);
+        reg.register_json_any(super::__LISTENER_JSON_ANY);
         reg.register_json_any(super::__APP_STATUS_JSON_ANY);
         reg.register_json_any(super::__PROBE_JSON_ANY);
         reg.register_json_any(super::__ROLLOUT_JSON_ANY);
@@ -262,6 +264,10 @@ pub use self::__buffa::view::ManifestView;
 #[doc(inline)]
 pub use self::__buffa::view::ManifestOwnedView;
 #[doc(inline)]
+pub use self::__buffa::view::SocketView;
+#[doc(inline)]
+pub use self::__buffa::view::SocketOwnedView;
+#[doc(inline)]
 pub use self::__buffa::view::AssetView;
 #[doc(inline)]
 pub use self::__buffa::view::AssetOwnedView;
@@ -289,6 +295,10 @@ pub use self::__buffa::view::SecretKeyRefOwnedView;
 pub use self::__buffa::view::AppView;
 #[doc(inline)]
 pub use self::__buffa::view::AppOwnedView;
+#[doc(inline)]
+pub use self::__buffa::view::ListenerView;
+#[doc(inline)]
+pub use self::__buffa::view::ListenerOwnedView;
 #[doc(inline)]
 pub use self::__buffa::view::AppStatusView;
 #[doc(inline)]

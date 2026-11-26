@@ -29,11 +29,12 @@ controller는 여러 replica로 실행할 수 있습니다. Kubernetes Lease 소
 | --- | --- |
 | controller | `wafl serve controller`, `:8082`의 `/health`, `/traefik`, App/Traffic 및 Instance/Runner/Reservation RPC |
 | activator | 같은 프로세스의 `:8083`, 앱 HTTP/gRPC 요청만 처리 |
+| TCP 중계 | 같은 controller 프로세스의 `:10000`–`:10015`, TCP 연결 기동·관측·중계 |
 | node provider | `wafl serve node --node NAME --runner http://RUNNER:8081` |
 | runner | `wafl serve runner`, 생성된 Instance/Runner/Reservation RPC |
 | gateway | 플러그인이 포함된 Traefik, `Host` 규칙과 guest IP:port 사용 |
 
-controller의 `--control`, `--activate`에는 gateway에서 접근할 수 있는 내부 주소를 사용합니다. 설치 파일은 Kubernetes Service 주소를 설정합니다. App Service도 Traefik을 통하므로 내부 호출과 외부 호출이 같은 수신·drain 계약을 따릅니다. 준비된 앱의 요청마다 Kubernetes API를 호출하지는 않습니다.
+controller의 `--control`, `--activate`에는 gateway에서 접근할 수 있는 내부 주소를 사용합니다. 설치 파일은 Kubernetes Service 주소를 설정합니다. App Service도 Traefik을 통하므로 내부 호출과 외부 호출이 같은 수신·drain 계약을 따릅니다. HTTP/gRPC는 준비된 앱의 요청마다 Kubernetes API를 호출하지 않습니다. [일반 TCP](tcp.md)는 별도 공개 포트로 들어와 같은 controller 프로세스의 연결 중계를 통과하며 연결별 관측을 Kubernetes에 저장합니다. 따라서 TCP에서는 controller도 지속적인 데이터 경로에 포함됩니다.
 
 가상 Node와 논리 Pod는 WAFL의 제한된 실행 계약입니다. 일반 kubelet의 Linux 컨테이너·exec·CSI·Pod별 CNI를 구현하지 않습니다. 상세 지원 범위와 장애 후 예약 회수는 [플랫폼 계약](kubernetes-native.md)에 있습니다.
 

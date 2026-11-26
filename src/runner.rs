@@ -61,6 +61,7 @@ impl Pending {
             // Running becomes observable only when Add commits the route.
             value.phase = Phase::Starting.into();
             value.endpoint = Default::default();
+            value.endpoints.clear();
             value
         } else {
             self.value.clone()
@@ -101,7 +102,7 @@ struct State {
     address: Option<SocketAddr>,
     activity: Instant,
     task: Option<JoinHandle<()>>,
-    claim: Option<Arc<Claim>>,
+    claims: Vec<Arc<Claim>>,
     releasing: bool,
 }
 
@@ -137,8 +138,8 @@ impl Drop for Addition {
                         }
                         // Pending snapshots never publish endpoints. Once its
                         // guest is gone an uncommitted Add can reclaim the slot.
-                        let claim = execution.state.lock().unwrap().claim.clone();
-                        if let Some(claim) = claim {
+                        let claims = execution.state.lock().unwrap().claims.clone();
+                        for claim in claims {
                             let _ = claim.release().await;
                         }
                     });
@@ -273,6 +274,13 @@ impl Runner {
                 committed: false,
             }
         };
+        if !self.direct()
+            && (spec.sockets.len() != 1 || matches!(spec.protocol, crate::config::Protocol::Tcp))
+        {
+            return Err(ConnectError::invalid_argument(
+                "raw TCP and multiple sockets require direct runner mode",
+            ));
+        }
         let create = async {
             let bundle = self
                 .0
@@ -320,7 +328,7 @@ impl Runner {
                     address: None,
                     activity: Instant::now(),
                     task: None,
-                    claim: None,
+                    claims: Vec::new(),
                     releasing: false,
                 }),
             });
@@ -594,6 +602,7 @@ impl Runner {
             .map(String::from)
             .into_iter()
             .chain(self.direct().then(|| "reservation-recovery-v1".to_owned()))
+            .chain(self.direct().then(|| "named-sockets-v1".to_owned()))
             .collect(),
             capacity: Some(crate::proto::wafl::Capacity {
                 instances: limits.instances as u64,
@@ -648,6 +657,22 @@ impl Drop for Registry {
 impl Execution {
     pub fn snapshot(&self) -> Instance {
         let state = self.state.lock().unwrap();
+        let endpoints: Vec<Endpoint> = state
+            .claims
+            .iter()
+            .zip(&self.spec.sockets)
+            .map(|(claim, socket)| Endpoint {
+                address: claim.address.to_string(),
+                name: socket.name.clone(),
+                transport: socket.transport.clone(),
+                protocol: if socket.protocol.is_empty() {
+                    "tcp".into()
+                } else {
+                    socket.protocol.clone()
+                },
+                ..Default::default()
+            })
+            .collect();
         Instance {
             id: self.spec.id.to_vec(),
             tenant: Some(Tenant {
@@ -661,15 +686,8 @@ impl Execution {
             generation: state.generation,
             active: state.active,
             direct: self.runtime.direct.is_some(),
-            endpoint: state
-                .claim
-                .as_ref()
-                .map(|claim| Endpoint {
-                    address: claim.address.to_string(),
-                    protocol: self.spec.manifest.protocol.clone(),
-                    ..Default::default()
-                })
-                .into(),
+            endpoint: endpoints.first().cloned().into(),
+            endpoints,
             error: state.error.clone(),
             session: self.session.to_vec(),
             revision: state.revision,
@@ -710,7 +728,8 @@ impl Execution {
             }
             if self.runtime.direct.is_some()
                 && (state.releasing
-                    || (state.claim.is_some() && (state.draining || state.phase != Phase::Running)))
+                    || (!state.claims.is_empty()
+                        && (state.draining || state.phase != Phase::Running)))
             {
                 return Err(ConnectError::failed_precondition(
                     "withdraw the previous direct endpoint and Release before restarting",
@@ -818,10 +837,10 @@ impl Execution {
             if state.generation != generation || state.phase != Phase::Starting {
                 return Ok(());
             }
-            if let Some(claim) = &ready.claim {
+            for claim in &ready.claims {
                 claim.publish();
             }
-            state.claim = ready.claim;
+            state.claims = ready.claims;
             state.address = Some(ready.address);
             state.phase = Phase::Running;
             state.activity = Instant::now();
@@ -873,7 +892,7 @@ impl Execution {
     ) -> Result<Option<JoinHandle<()>>, ConnectError> {
         let mut state = self.state.lock().unwrap();
         self.check(&state, condition)?;
-        if !force && (state.claim.is_some() || state.releasing) {
+        if !force && (!state.claims.is_empty() || state.releasing) {
             return Err(ConnectError::failed_precondition(
                 "Drain and Release the direct endpoint before Erase",
             ));
@@ -921,7 +940,7 @@ impl Execution {
             if idle && self.runtime.direct.is_some() {
                 return Ok(());
             }
-            if !force && (state.claim.is_some() || state.releasing) {
+            if !force && (!state.claims.is_empty() || state.releasing) {
                 return Err(ConnectError::failed_precondition(
                     "direct endpoints require Drain then Release after gateway drain",
                 ));
@@ -1125,7 +1144,7 @@ impl Execution {
                 "Release requires direct mode, generation, wafl-session and wafl-revision",
             ));
         }
-        let (task, claim) = {
+        let (task, claims) = {
             let mut state = self.state.lock().unwrap();
             self.check(&state, condition)?;
             if state.retired {
@@ -1143,14 +1162,15 @@ impl Execution {
                     "Drain and finish management waiters before Release",
                 ));
             }
-            let Some(claim) = state.claim.clone() else {
+            if state.claims.is_empty() {
                 return Ok(());
-            };
+            }
+            let claims = state.claims.clone();
             state.releasing = true;
             state.phase = Phase::Stopping;
             state.address = None;
             self.revise(&mut state);
-            (state.task.take(), claim)
+            (state.task.take(), claims)
         };
         self.changed.send_replace(());
         let app = self.clone();
@@ -1161,14 +1181,16 @@ impl Execution {
                 task.abort();
                 let _ = task.await;
             }
-            let result = claim
-                .release()
-                .await
-                .map_err(|e| ConnectError::internal(format!("release endpoint: {e:#}")));
+            let mut result = Ok(());
+            for claim in claims {
+                if let Err(e) = claim.release().await {
+                    result = Err(ConnectError::internal(format!("release endpoint: {e:#}")));
+                }
+            }
             let mut state = app.state.lock().unwrap();
             if state.generation == generation {
                 if result.is_ok() {
-                    state.claim = None;
+                    state.claims.clear();
                 }
                 state.releasing = false;
                 state.phase = Phase::Stopped;

@@ -7,7 +7,7 @@
 제어평면  → runner 관리 API → 실행·조회·Drain·Release
 ```
 
-`direct`를 생략한 기본 proxy 모드는 기존 `wafl-instance` 라우팅·요청 계측·유휴 재기동을 유지합니다. 아래 기능은 runner의 직결 계약입니다. 고정 replica의 자동 배치와 Traefik 설정 배포는 [Controller 튜토리얼](controller.md)에서 사용합니다. 부하 기반 확장과 scale-to-zero 뒤 첫 요청을 받는 activator는 [제어평면 #10](https://github.com/lesomnus/wafl/issues/10)의 후속 범위입니다.
+`direct`를 생략한 기본 proxy 모드는 기존 `wafl-instance` 라우팅·요청 계측·유휴 재기동을 유지합니다. 아래 기능은 runner의 직결 계약입니다. 자동 배치와 Traefik 설정 배포는 [Controller 튜토리얼](controller.md), 첫 요청 기동과 부하 증감은 [자동 증감](autoscaling.md)을 참고하세요. 일반 TCP 앱의 플랫폼 경로와 복수 소켓은 [TCP 튜토리얼](tcp.md)에 있습니다.
 
 ## 로컬에서 두 인스턴스 실행
 
@@ -34,7 +34,7 @@ wafl instance logs -f @one
 
 포트는 예시입니다. 실제 반환값을 사용합니다. 두 게스트는 모두 가상 포트 8080을 사용하지만 실제 주소는 다릅니다. Host/authority나 `wafl-instance` 헤더로 runner가 대상을 다시 선택하지 않습니다. 도메인 선택·TLS 종료는 앞단 L7의 역할입니다.
 
-`Instance.endpoint`는 `{address, protocol}`이며 `protocol`은 Manifest의 `http` 또는 `h2c`입니다. `direct: true`, `phase: PHASE_RUNNING`, `draining: false`, endpoint 존재를 모두 확인한 뒤 경로에 추가합니다. 준비 중에는 endpoint를 공개하지 않습니다. 실패·draining 상태에는 **철회할 주소를 알 수 있도록 endpoint가 남으므로**, 필드 존재만 보고 트래픽을 보내면 안 됩니다. 준비 완료는 TCP listen 기준이며 앱 health check는 별도로 수행합니다.
+`Instance.endpoints`는 `{name, address, transport, protocol}` 목록이며 `protocol`은 `http`, `h2c` 또는 일반 스트림인 `tcp`입니다. 기존 `Instance.endpoint`는 첫 소켓을 가리킵니다. 모든 선언 소켓이 listen해야 준비 완료로 처리합니다. `direct: true`, `phase: PHASE_RUNNING`, `draining: false`, endpoint 존재를 모두 확인한 뒤 경로에 추가합니다. 준비 중에는 endpoint를 공개하지 않습니다. 실패·draining 상태에는 **철회할 주소를 알 수 있도록 endpoint가 남으므로**, 필드 존재만 보고 트래픽을 보내면 안 됩니다. 준비 완료는 TCP listen 기준이며 앱 health check는 별도로 수행합니다.
 
 endpoint의 식별자는 `(session, id, generation)`입니다. IP:port는 안정적인 인스턴스 ID가 아니며 Release 뒤 다른 실행에 재사용할 수 있습니다.
 

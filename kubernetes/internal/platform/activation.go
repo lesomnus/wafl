@@ -94,7 +94,7 @@ func (c *Controller) activate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	a, spec, e := c.app(r.Context(), r.Host)
-	if e != nil {
+	if e != nil || spec.Manifest.Protocol == "tcp" {
 		activationError(w, r, 404, "App unavailable")
 		return
 	}

@@ -233,7 +233,7 @@ func (p *Provider) annotate(ctx context.Context, pod *core.Pod, i *wf.Instance) 
 		if v.Annotations == nil {
 			v.Annotations = map[string]string{}
 		}
-		a := map[string]string{Instance: UUID(i.Id), Session: UUID(i.Session), Endpoint: i.GetEndpoint().GetAddress(), Runner: p.Runner.URL, Execution: strconv.FormatUint(i.Generation, 10)}
+		a := map[string]string{Instance: UUID(i.Id), Session: UUID(i.Session), Endpoint: i.GetEndpoint().GetAddress(), Endpoints: endpointMap(i), Runner: p.Runner.URL, Execution: strconv.FormatUint(i.Generation, 10)}
 		if physical := os.Getenv("POD_NAME"); physical != "" {
 			a[RunnerPod] = p.Namespace + "/" + physical
 		}
@@ -331,19 +331,24 @@ func (p *Provider) cleanup(ctx context.Context, pod *core.Pod, session []byte, d
 			return false, e
 		}
 		client := waflconnect.NewReservationServiceClient(http.DefaultClient, p.Runner.URL, connect.WithProtoJSON())
-		list, e := client.List(ctx, connect.NewRequest(&wf.ReservationListRequest{}))
-		if e != nil {
-			return false, e
-		}
-		for _, claim := range list.Msg.Items {
-			if UUID(claim.Instance) == UUID(podID(pod)) && UUID(claim.Session) == UUID(session) {
-				_, e = client.Release(ctx, request(&wf.ReservationReleaseRequest{Ref: &wf.ReservationRef{Key: &wf.ReservationRef_Id{Id: claim.Id}}, Token: claim.Token, Withdrawn: true}, r.Id, 0))
-				if e != nil {
-					return false, e
+		for after := ""; ; {
+			list, e := client.List(ctx, request(&wf.ReservationListRequest{After: after}, r.Id, 0))
+			if e != nil {
+				return false, e
+			}
+			for _, claim := range list.Msg.Items {
+				if UUID(claim.Instance) == UUID(podID(pod)) && UUID(claim.Session) == UUID(session) {
+					_, e = client.Release(ctx, request(&wf.ReservationReleaseRequest{Ref: &wf.ReservationRef{Key: &wf.ReservationRef_Id{Id: claim.Id}}, Token: claim.Token, Withdrawn: true}, r.Id, 0))
+					if e != nil {
+						return false, e
+					}
 				}
 			}
+			if list.Msg.Next == "" {
+				return true, nil
+			}
+			after = list.Msg.Next
 		}
-		return true, nil
 	}
 	if e = p.Runner.Seal(ctx, podID(pod), session); e != nil {
 		return false, e
@@ -469,6 +474,11 @@ func (p *Provider) run(original *core.Pod) {
 			cancel()
 			continue
 		}
+		if (len(m.Sockets) > 0 || m.Protocol == "tcp") && !slices.Contains(r.Capabilities, "named-sockets-v1") {
+			p.publish(pod, core.PodPending, "UnsupportedSockets", false, nil, int32(failures))
+			cancel()
+			continue
+		}
 		i, e := p.Runner.Get(step, id)
 		if connect.CodeOf(e) == connect.CodeNotFound && time.Now().After(nextStart) {
 			values, err := p.secretValues(step, pod)
@@ -534,7 +544,7 @@ func (p *Provider) run(original *core.Pod) {
 				continue
 			}
 			nextProbe = time.Now().Add(time.Duration(max(1, pod.Spec.Containers[0].ReadinessProbe.PeriodSeconds)) * time.Second)
-			if e = probe(step, pod, i.GetEndpoint().GetAddress()); e == nil {
+			if e = probeInstance(step, pod, i); e == nil {
 				successes++
 				bad = 0
 				if successes >= pod.Spec.Containers[0].ReadinessProbe.SuccessThreshold {
@@ -551,6 +561,7 @@ func (p *Provider) run(original *core.Pod) {
 				}
 			}
 			pod.Annotations[Endpoint] = i.GetEndpoint().GetAddress()
+			pod.Annotations[Endpoints] = endpointMap(i)
 			reason := "Ready"
 			if !healthy {
 				reason = "ReadinessFailed"
@@ -592,6 +603,9 @@ func (p *Provider) Serve(ctx context.Context) error {
 	r, e := p.Runner.Status(ctx)
 	if e != nil {
 		return e
+	}
+	if slices.Contains(r.Capabilities, "named-sockets-v1") {
+		p.node.Labels[Group+"/sockets"] = "tcp-v1"
 	}
 	p.node.Status.Capacity = core.ResourceList{core.ResourcePods: *resource.NewQuantity(int64(r.Capacity.Instances), resource.DecimalSI), Slots: *resource.NewQuantity(int64(r.Capacity.Running), resource.DecimalSI), Memory: *resource.NewQuantity(int64(r.Capacity.MemoryBytes), resource.DecimalSI)}
 	p.node.Status.Allocatable = p.node.Status.Capacity.DeepCopy()
