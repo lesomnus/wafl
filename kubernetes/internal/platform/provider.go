@@ -331,19 +331,24 @@ func (p *Provider) cleanup(ctx context.Context, pod *core.Pod, session []byte, d
 			return false, e
 		}
 		client := waflconnect.NewReservationServiceClient(http.DefaultClient, p.Runner.URL, connect.WithProtoJSON())
-		list, e := client.List(ctx, connect.NewRequest(&wf.ReservationListRequest{}))
-		if e != nil {
-			return false, e
-		}
-		for _, claim := range list.Msg.Items {
-			if UUID(claim.Instance) == UUID(podID(pod)) && UUID(claim.Session) == UUID(session) {
-				_, e = client.Release(ctx, request(&wf.ReservationReleaseRequest{Ref: &wf.ReservationRef{Key: &wf.ReservationRef_Id{Id: claim.Id}}, Token: claim.Token, Withdrawn: true}, r.Id, 0))
-				if e != nil {
-					return false, e
+		for after := ""; ; {
+			list, e := client.List(ctx, request(&wf.ReservationListRequest{After: after}, r.Id, 0))
+			if e != nil {
+				return false, e
+			}
+			for _, claim := range list.Msg.Items {
+				if UUID(claim.Instance) == UUID(podID(pod)) && UUID(claim.Session) == UUID(session) {
+					_, e = client.Release(ctx, request(&wf.ReservationReleaseRequest{Ref: &wf.ReservationRef{Key: &wf.ReservationRef_Id{Id: claim.Id}}, Token: claim.Token, Withdrawn: true}, r.Id, 0))
+					if e != nil {
+						return false, e
+					}
 				}
 			}
+			if list.Msg.Next == "" {
+				return true, nil
+			}
+			after = list.Msg.Next
 		}
-		return true, nil
 	}
 	if e = p.Runner.Seal(ctx, podID(pod), session); e != nil {
 		return false, e
