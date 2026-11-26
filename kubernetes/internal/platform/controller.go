@@ -244,7 +244,15 @@ func (c *Controller) Serve(ctx context.Context) error {
 	c.Traffic = &Traffic{Clients: c.Clients, Namespace: c.Namespace}
 	mux := http.NewServeMux()
 	mux.Handle(waflconnect.NewTrafficServiceHandler(c.Traffic))
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200) })
+	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+		check, cancel := context.WithTimeout(r.Context(), time.Second)
+		defer cancel()
+		if _, e := c.Clients.Kube.CoordinationV1().Leases(c.Namespace).Get(check, "wafl-controller", meta.GetOptions{}); e != nil {
+			http.Error(w, "Kubernetes control state unavailable", 503)
+			return
+		}
+		w.WriteHeader(200)
+	})
 	mux.HandleFunc("GET /traefik", func(w http.ResponseWriter, r *http.Request) {
 		v, e := c.configuration(r.Context())
 		if e != nil {

@@ -241,6 +241,27 @@ func devCommand(o *options) *cobra.Command {
 				}
 			}
 			if complete {
+				nodes, e := c.Kube.CoreV1().Nodes().List(ctx, meta.ListOptions{LabelSelector: platform.Runtime + "=wasmtime"})
+				ready := int32(0)
+				if e == nil {
+					for _, node := range nodes.Items {
+						if node.Spec.Unschedulable {
+							continue
+						}
+						for _, condition := range node.Status.Conditions {
+							if condition.Type == "Ready" && condition.Status == "True" {
+								ready++
+							}
+						}
+					}
+				}
+				for _, deployment := range d.Items {
+					if deployment.Name == "wafl-runner" && ready < *deployment.Spec.Replicas {
+						complete = false
+					}
+				}
+			}
+			if complete {
 				break
 			}
 			if time.Now().After(deadline) {

@@ -116,7 +116,7 @@ spec:
           ports:
             - {name: control, containerPort: 8082}
             - {name: activation, containerPort: 8083}
-          readinessProbe: {httpGet: {path: /health, port: control}, periodSeconds: 2}
+          readinessProbe: {httpGet: {path: /health, port: control}, periodSeconds: 2, timeoutSeconds: 2}
           resources:
             requests: {cpu: 50m, memory: 128Mi}
             limits: {memory: 512Mi}

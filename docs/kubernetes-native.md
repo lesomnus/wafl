@@ -80,6 +80,8 @@ Traefik은 준비된 guest socket으로 직접 요청을 전달합니다. App용
 
 provider는 App에서 생성한 단일 WASM 실행만 지원합니다. Linux image, exec, sidecar/init container, PVC/CSI, host namespace, Linux securityContext, CPU limit은 지원하지 않습니다. Pod template에 이러한 설정을 넣으면 실행을 거절합니다. 번들은 기존 WAFL tar.gz 규격을 사용하며 내부 image 문자열은 provider가 식별하는 불변 실행 참조입니다.
 
+가상 Node의 OS/architecture label은 `wasi`/`wasm32`입니다. Linux Node로 표시하지 않으므로 Linux용 kube-proxy 같은 DaemonSet이 배정되지 않습니다. 추가 시스템 DaemonSet도 실제로 지원하는 Node의 OS/architecture를 선택하도록 설정합니다.
+
 논리적인 앱 Pod에는 독립 Pod IP를 할당하지 않습니다. 실제 실행 주소는 runner의 IP와 예약한 포트이며 WAFL이 Endpoint 정보를 관리합니다. 일반 CNI/NetworkPolicy가 앱 Pod마다 격리해 주지는 않습니다. 격리는 runner Pod 및 WASM sandbox 단위입니다. `kubectl logs/exec`의 일반 kubelet API는 제공하지 않으며 로그는 `wafl app logs` 또는 runner의 `wafl instance logs`로 조회합니다.
 
 runner Pod가 사라져도 이전 관측자들의 종료 확인 전에는 해당 가상 Node의 주소 소유권을 보존합니다. CNI가 그 IP를 새 Pod에 재사용하면 새 provider는 이전 소유권이 정리될 때까지 실행 배정을 기다립니다. 가상 Node를 임의로 삭제하거나 포트 예약을 비우면 이 보호를 우회합니다.

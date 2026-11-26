@@ -143,7 +143,7 @@ func validatePod(p *core.Pod) (*wf.Manifest, error) {
 	fail := func() (*wf.Manifest, error) {
 		return nil, errors.New("unsupported WAFL Pod profile; create an App instead")
 	}
-	if !managed(p) || p.Annotations[Revision] == "" || len(p.Spec.Containers) != 1 || len(p.Spec.InitContainers) > 0 || len(p.Spec.EphemeralContainers) > 0 || len(p.Spec.Volumes) > 0 || p.Spec.HostNetwork || p.Spec.HostPID || p.Spec.HostIPC || p.Spec.SecurityContext != nil && !reflect.DeepEqual(*p.Spec.SecurityContext, core.PodSecurityContext{}) || p.Spec.RuntimeClassName != nil {
+	if !managed(p) || p.Annotations[Revision] == "" || len(p.Spec.Containers) != 1 || len(p.Spec.InitContainers) > 0 || len(p.Spec.EphemeralContainers) > 0 || len(p.Spec.Volumes) > 0 || p.Spec.HostNetwork || p.Spec.HostPID || p.Spec.HostIPC || p.Spec.SecurityContext != nil && !reflect.DeepEqual(*p.Spec.SecurityContext, core.PodSecurityContext{}) || p.Spec.RuntimeClassName != nil || len(p.Spec.ReadinessGates) > 0 {
 		return fail()
 	}
 	c := p.Spec.Containers[0]

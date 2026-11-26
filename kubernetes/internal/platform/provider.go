@@ -131,7 +131,18 @@ func (p *Provider) UpdatePod(ctx context.Context, pod *core.Pod) error { return 
 func (p *Provider) DeletePod(ctx context.Context, pod *core.Pod) error {
 	// The durable receipt also lets a replacement provider finish cleanup after
 	// a force deletion or an agent restart. The worker observes deletion directly.
-	return p.CreatePod(ctx, pod)
+	_, e := p.receipt(ctx, pod)
+	if apierrors.IsNotFound(e) {
+		if _, validation := validatePod(pod); validation != nil {
+			return p.finish(ctx, pod)
+		}
+		return p.CreatePod(ctx, pod)
+	}
+	if e != nil {
+		return e
+	}
+	p.launch(pod)
+	return nil
 }
 func (p *Provider) publish(pod *core.Pod, phase core.PodPhase, reason string, healthy bool, instance *wf.Instance, restarts int32) {
 	p.mu.Lock()
@@ -154,6 +165,14 @@ func (p *Provider) publish(pod *core.Pod, phase core.PodPhase, reason string, he
 		}
 	}
 	next.Status.Conditions = []core.PodCondition{condition, {Type: core.PodInitialized, Status: core.ConditionTrue, LastTransitionTime: *next.Status.StartTime}}
+	containers := condition
+	containers.Type = core.ContainersReady
+	next.Status.Conditions = append(next.Status.Conditions, containers)
+	for _, c := range pod.Status.Conditions {
+		if c.Type != core.PodReady && c.Type != core.PodInitialized && c.Type != core.ContainersReady {
+			next.Status.Conditions = append(next.Status.Conditions, c)
+		}
+	}
 	cs := core.ContainerStatus{Name: "app", Image: pod.Spec.Containers[0].Image, ImageID: pod.Spec.Containers[0].Image, Ready: healthy, RestartCount: restarts, Started: Ptr(phase == core.PodRunning)}
 	if instance != nil {
 		cs.ContainerID = "wasm://" + UUID(instance.Id) + "/" + strconv.FormatUint(instance.Generation, 10)
@@ -201,8 +220,9 @@ func (p *Provider) session(ctx context.Context, pod *core.Pod, r *wf.Runner) ([]
 	})
 	return session, err
 }
-func (p *Provider) annotate(ctx context.Context, pod *core.Pod, i *wf.Instance) error {
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+func (p *Provider) annotate(ctx context.Context, pod *core.Pod, i *wf.Instance) (*core.Pod, error) {
+	var result *core.Pod
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		v, e := p.Clients.Kube.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, meta.GetOptions{})
 		if e != nil {
 			return e
@@ -229,11 +249,13 @@ func (p *Provider) annotate(ctx context.Context, pod *core.Pod, i *wf.Instance) 
 			changed = true
 		}
 		if !changed {
+			result = v
 			return nil
 		}
-		_, e = p.Clients.Kube.CoreV1().Pods(pod.Namespace).Update(ctx, v, meta.UpdateOptions{})
+		result, e = p.Clients.Kube.CoreV1().Pods(pod.Namespace).Update(ctx, v, meta.UpdateOptions{})
 		return e
 	})
+	return result, err
 }
 func (p *Provider) secretValues(ctx context.Context, pod *core.Pod) (map[string]string, error) {
 	out := map[string]string{}
@@ -440,14 +462,15 @@ func (p *Provider) run(original *core.Pod) {
 			cancel()
 			continue
 		}
+		m, validation := validatePod(pod)
+		if validation != nil {
+			p.publish(pod, core.PodFailed, "UnsupportedPod", false, nil, int32(failures))
+			_ = p.Clients.Kube.CoreV1().Pods(pod.Namespace).Delete(step, pod.Name, meta.DeleteOptions{Preconditions: &meta.Preconditions{UID: Ptr(pod.UID)}})
+			cancel()
+			continue
+		}
 		i, e := p.Runner.Get(step, id)
 		if connect.CodeOf(e) == connect.CodeNotFound && time.Now().After(nextStart) {
-			m, err := validatePod(pod)
-			if err != nil {
-				p.publish(pod, core.PodPending, "UnsupportedPod", false, nil, int32(failures))
-				cancel()
-				continue
-			}
 			values, err := p.secretValues(step, pod)
 			if err != nil {
 				p.publish(pod, core.PodPending, "CreateContainerConfigError", false, nil, int32(failures))
@@ -500,10 +523,12 @@ func (p *Provider) run(original *core.Pod) {
 			continue
 		}
 		if i.Phase == wf.Phase_PHASE_RUNNING && !i.Draining {
-			if e = p.annotate(step, pod, i); e != nil {
+			annotated, e := p.annotate(step, pod, i)
+			if e != nil {
 				cancel()
 				continue
 			}
+			pod = annotated
 			if time.Now().Before(nextProbe) {
 				cancel()
 				continue
@@ -554,7 +579,7 @@ func (p *Provider) Serve(ctx context.Context) error {
 		case <-time.After(time.Second):
 		}
 	}
-	p.node = &core.Node{ObjectMeta: meta.ObjectMeta{Name: p.Name, Labels: map[string]string{Runtime: "wasmtime", "kubernetes.io/os": "linux", "kubernetes.io/arch": "wasm32", "node.kubernetes.io/exclude-from-external-load-balancers": "true"}, Annotations: map[string]string{Runner: p.Runner.URL}}, Spec: core.NodeSpec{Taints: []core.Taint{{Key: Runtime, Value: "wasmtime", Effect: core.TaintEffectNoSchedule}}}, Status: core.NodeStatus{Conditions: []core.NodeCondition{{Type: core.NodeReady, Status: core.ConditionTrue, Reason: "RunnerReady", LastHeartbeatTime: meta.Now(), LastTransitionTime: meta.Now()}}, NodeInfo: core.NodeSystemInfo{OperatingSystem: "linux", Architecture: "wasm32", KubeletVersion: "v1.37.1"}}}
+	p.node = &core.Node{ObjectMeta: meta.ObjectMeta{Name: p.Name, Labels: map[string]string{Runtime: "wasmtime", "kubernetes.io/os": "wasi", "kubernetes.io/arch": "wasm32", "node.kubernetes.io/exclude-from-external-load-balancers": "true"}, Annotations: map[string]string{Runner: p.Runner.URL}}, Spec: core.NodeSpec{Taints: []core.Taint{{Key: Runtime, Value: "wasmtime", Effect: core.TaintEffectNoSchedule}}}, Status: core.NodeStatus{Conditions: []core.NodeCondition{{Type: core.NodeReady, Status: core.ConditionTrue, Reason: "RunnerReady", LastHeartbeatTime: meta.Now(), LastTransitionTime: meta.Now()}}, NodeInfo: core.NodeSystemInfo{OperatingSystem: "wasi", Architecture: "wasm32", KubeletVersion: "v1.37.1"}}}
 	if physical := os.Getenv("POD_NAME"); physical != "" {
 		pod, e := p.Clients.Kube.CoreV1().Pods(p.Namespace).Get(ctx, physical, meta.GetOptions{})
 		if e != nil {
