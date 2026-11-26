@@ -262,7 +262,6 @@ func TestNativePlatform(t *testing.T) {
 		s.t = t
 		a := s.add("web", map[string]any{"manifest": map[string]any{"bundle": socket, "env": map[string]any{"GREETING": "old"}}, "readiness": map[string]any{"http": "/ready"}})
 		old := s.ready(a)
-		s.catalog(old)
 		s.response("web", "old:")
 		s.patch("web", map[string]any{"manifest": map[string]any{"env": map[string]any{"GREETING": "new", "READY": "false"}}})
 		eventually(t, "unready replacement exists", 30*time.Second, func() bool { return len(s.pods(a)) >= 2 })
@@ -528,6 +527,7 @@ func TestNativePlatform(t *testing.T) {
 				t.Fatal("App API response is missing App or exposes a secret")
 			}
 		}
+		s.catalog(old)
 		if e = os.WriteFile(secret, []byte("rotated-secret"), 0600); e != nil {
 			t.Fatal(e)
 		}
