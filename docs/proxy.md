@@ -44,11 +44,3 @@ HTTP/1 keep-alive와 HTTP/2 연결 풀을 사용합니다. 풀이 다른 실행 
 snapshot을 5초 이상 갱신하지 못하면 신규 요청·연결을 거절합니다. 이미 전달 중인 스트림은 계속 처리합니다. readiness 주소도 이때 503을 반환합니다. 정상 종료는 신규 수신을 차단하고 기존 작업을 기다립니다. `--drain-seconds`가 지나면 남은 HTTP/gRPC 스트림과 TCP 연결을 종료하고 관측 종료를 보고할 시간을 둡니다. Pod의 `terminationGracePeriodSeconds`는 이 시간보다 5초 이상 길게 설정합니다. 강제 종료 또는 API 장애로 보고가 남으면 기존의 `wafl traffic close ID --withdrawn` 복구 계약을 사용합니다. heartbeat 만료를 포트 재사용 증거로 사용하지 않습니다.
 
 프록시를 여러 replica로 배포할 수 있습니다. 각 replica는 자기 연결과 관측 gate를 소유하며 controller는 관측을 합산합니다. 열린 TCP 연결을 다른 프록시로 이동하지는 않습니다.
-
-## Traefik 설치에서 전환
-
-새 설치는 `wafl-proxy` Deployment/Service를 만듭니다. 기존 bootstrap 설치를 갱신할 때는 공개 주소와 immutable selector를 유지하기 위해 `wafl-traefik` 이름의 Deployment/Service를 유지하고 실행 이미지를 `wafl serve proxy`로 교체합니다. 이름이 남아도 실행되는 프록시는 Pingora입니다. controller와 proxy를 같은 버전으로 갱신하고 proxy readiness 및 앱 요청을 확인합니다. 서로 다른 버전이 공존하는 전환 구간의 cold-start 무중단은 보장하지 않습니다.
-
-수동 설치는 새 [platform.yaml](../kubernetes/install/platform.yaml)을 기준으로 프록시 workload와 Service selector를 옮깁니다. 새 Service와 기존 Service가 같은 NodePort를 동시에 예약할 수 없으므로 기존 공개 Service를 유지해 새 프록시로 전환하는 방식을 권장합니다.
-
-`--gateway-image`, controller의 `--control`, `--activate`, `--activation-listen`, `--entrypoint`와 `/traefik` 설정 endpoint는 제거했습니다. controller는 앱 데이터용 8083/TCP 포트를 열지 않습니다. 이전 벤치마크는 당시 Traefik 구성을 측정한 기록이며 Pingora 성능 수치가 아닙니다.

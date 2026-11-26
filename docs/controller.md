@@ -31,7 +31,7 @@ controller는 여러 replica로 실행할 수 있습니다. Kubernetes Lease 소
 | runner | `wafl serve runner`, 생성된 Instance/Runner/Reservation RPC |
 | proxy | `wafl serve proxy`, HTTP/gRPC `:8080`, 일반 TCP `:10000`–`:10015`, readiness `:8084` |
 
-프록시의 `--controller`에 controller API 주소를 지정합니다. App Service도 같은 프록시를 통하므로 내부·외부 호출이 같은 수신·drain 계약을 따릅니다. HTTP/gRPC와 일반 TCP 모두 준비된 WASM 소켓으로 직접 전달하며, 첫 요청도 프록시가 기동을 기다렸다가 직접 전달합니다. controller는 앱 데이터를 중계하지 않습니다. 자세한 설정과 전환 절차는 [프록시 문서](proxy.md)에 있습니다.
+프록시의 `--controller`에 controller API 주소를 지정합니다. App Service도 같은 프록시를 통하므로 내부·외부 호출이 같은 수신·drain 계약을 따릅니다. HTTP/gRPC와 일반 TCP 모두 준비된 WASM 소켓으로 직접 전달하며, 첫 요청도 프록시가 기동을 기다렸다가 직접 전달합니다. controller는 앱 데이터를 중계하지 않습니다. 자세한 설정은 [프록시 문서](proxy.md)에 있습니다.
 
 가상 Node와 논리 Pod는 WAFL의 제한된 실행 계약입니다. 일반 kubelet의 Linux 컨테이너·exec·CSI·Pod별 CNI를 구현하지 않습니다. 상세 지원 범위와 장애 후 예약 회수는 [플랫폼 계약](kubernetes-native.md)에 있습니다.
 
