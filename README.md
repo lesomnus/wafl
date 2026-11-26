@@ -10,7 +10,7 @@
 
 단독 runner와 Instance CLI는 Kubernetes 없이 사용할 수 있습니다. `Instance`는 Manifest를 가진 Payday entity이고, paydirt로 생성한 `InstanceService.Add(InstanceAddRequest)`로 만듭니다. Wasmtime으로 WASIp2 소켓 서버를 실행합니다.
 
-**[일반 TCP 튜토리얼](docs/tcp.md)**: 여러 이름 있는 소켓과 공개 포트, 첫 연결 기동, 열린 연결의 부하에 따른 증감과 rolling update를 지원합니다. TCP는 Traefik → controller 연결 중계 → WASM 경로를 사용하고 UDP는 아직 지원하지 않습니다.
+**[일반 TCP 튜토리얼](docs/tcp.md)**: 여러 이름 있는 소켓과 공개 포트, 첫 연결 기동, 열린 연결의 부하에 따른 증감과 rolling update를 지원합니다. TCP는 Pingora proxy → WASM 소켓 경로를 사용하고 UDP는 아직 지원하지 않습니다.
 
 **L7 proxy에서 WASM 소켓에 직접 연결**하려면 [직결 튜토리얼](docs/direct.md)의 `direct` 설정을 사용합니다. `Instance.endpoint`로 반환한 IP:port를 Traefik/Envoy backend로 지정하며 runner HTTP 중계는 없습니다. 포트 공유·재시작 예약과 `Drain → 외부 연결 정리 → Release` 계약을 포함합니다. 아래 빠른 시작은 기본 proxy 모드입니다.
 

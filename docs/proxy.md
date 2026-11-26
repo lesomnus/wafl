@@ -41,7 +41,7 @@ HTTP/1 keep-alive와 HTTP/2 연결 풀을 사용합니다. 풀이 다른 실행 
 
 프록시는 실행별 활성 요청·연결 수, 시작 횟수, 누적 처리 시간을 약 500ms마다 보고합니다. 경로에서 빠진 실행은 신규 수신을 차단하고 기존 스트림이 끝난 후 `closed=true, active=0`을 보고합니다. controller/provider는 이 확인을 받은 뒤 예약을 회수합니다.
 
-snapshot을 5초 이상 갱신하지 못하면 신규 요청·연결을 거절합니다. 이미 전달 중인 스트림은 계속 처리합니다. readiness 주소도 이때 503을 반환합니다. 정상 종료는 신규 수신을 차단하고 기존 작업과 종료 보고를 기다립니다. 강제 종료 또는 API 장애로 보고가 남으면 기존의 `wafl traffic close ID --withdrawn` 복구 계약을 사용합니다. heartbeat 만료를 포트 재사용 증거로 사용하지 않습니다.
+snapshot을 5초 이상 갱신하지 못하면 신규 요청·연결을 거절합니다. 이미 전달 중인 스트림은 계속 처리합니다. readiness 주소도 이때 503을 반환합니다. 정상 종료는 신규 수신을 차단하고 기존 작업을 기다립니다. `--drain-seconds`가 지나면 남은 HTTP/gRPC 스트림과 TCP 연결을 종료하고 관측 종료를 보고할 시간을 둡니다. Pod의 `terminationGracePeriodSeconds`는 이 시간보다 5초 이상 길게 설정합니다. 강제 종료 또는 API 장애로 보고가 남으면 기존의 `wafl traffic close ID --withdrawn` 복구 계약을 사용합니다. heartbeat 만료를 포트 재사용 증거로 사용하지 않습니다.
 
 프록시를 여러 replica로 배포할 수 있습니다. 각 replica는 자기 연결과 관측 gate를 소유하며 controller는 관측을 합산합니다. 열린 TCP 연결을 다른 프록시로 이동하지는 않습니다.
 
