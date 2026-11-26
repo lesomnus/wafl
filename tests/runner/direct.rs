@@ -113,6 +113,137 @@ async fn release(runner: &Runner, instance: &Instance) -> Instance {
     execution.snapshot()
 }
 
+fn tcp_app(name: &str) -> TestApp {
+    let mut value = app(name, "wafl-example-tcp");
+    value.idle_ms = 0;
+    value.sockets = [8080, 8081]
+        .into_iter()
+        .enumerate()
+        .map(|(i, port)| Socket {
+            name: format!("socket-{i}"),
+            port,
+            ..Default::default()
+        })
+        .collect();
+    value
+}
+
+async fn add_tcp(
+    runner: &Runner,
+    root: &std::path::Path,
+    value: &TestApp,
+) -> Result<Instance, connectrpc::ConnectError> {
+    let path = root.join(format!("{}.tar.gz", value.name));
+    std::fs::write(&path, value.bundle()).unwrap();
+    runner
+        .add(value.request(reqwest::Url::from_file_path(path).unwrap().to_string()))
+        .await
+}
+
+async fn tcp_greeting(address: &str, expected: &str) -> TcpStream {
+    let mut socket = TcpStream::connect(address).await.unwrap();
+    let mut greeting = vec![0; expected.len()];
+    tokio::time::timeout(Duration::from_secs(10), socket.read_exact(&mut greeting))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(greeting, expected.as_bytes());
+    socket
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn tcp_multiple_sockets_preserve_guest_ports_binary_data_and_half_close() {
+    let root = tempfile::tempdir().unwrap();
+    let runner = Runner::new(&direct_config(root.path(), 4, false))
+        .await
+        .unwrap();
+    let a = add_tcp(&runner, root.path(), &tcp_app("tcp-a"))
+        .await
+        .unwrap();
+    let b = add_tcp(&runner, root.path(), &tcp_app("tcp-b"))
+        .await
+        .unwrap();
+    let mut addresses = std::collections::BTreeSet::new();
+    for (instance, name) in [(&a, "tcp-a"), (&b, "tcp-b")] {
+        assert_eq!(instance.endpoints.len(), 2);
+        assert_eq!(instance.endpoint.address, instance.endpoints[0].address);
+        for (index, endpoint) in instance.endpoints.iter().enumerate() {
+            assert_eq!(endpoint.name, format!("socket-{index}"));
+            assert_eq!(endpoint.transport, "tcp");
+            assert!(addresses.insert(endpoint.address.clone()));
+            let mut client =
+                tcp_greeting(&endpoint.address, &format!("{name}:{}\n", 8080 + index)).await;
+            let input: Vec<u8> = (0..65_536).map(|n| n as u8).collect();
+            client.write_all(&input).await.unwrap();
+            client.shutdown().await.unwrap();
+            let mut output = Vec::new();
+            tokio::time::timeout(Duration::from_secs(10), client.read_to_end(&mut output))
+                .await
+                .unwrap()
+                .unwrap();
+            assert_eq!(output, [input.as_slice(), b"done\n"].concat());
+        }
+    }
+    for instance in [&a, &b] {
+        let stopped = release(&runner, instance).await;
+        assert!(stopped.endpoints.is_empty());
+        for endpoint in &instance.endpoints {
+            assert!(TcpStream::connect(&endpoint.address).await.is_err());
+        }
+    }
+    // Every reservation must be reusable after acknowledged release.
+    let c = add_tcp(&runner, root.path(), &tcp_app("tcp-c"))
+        .await
+        .unwrap();
+    let d = add_tcp(&runner, root.path(), &tcp_app("tcp-d"))
+        .await
+        .unwrap();
+    release(&runner, &c).await;
+    release(&runner, &d).await;
+    runner.shutdown().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn tcp_readiness_waits_for_every_listener_and_frees_unpublished_claims() {
+    let root = tempfile::tempdir().unwrap();
+    let runner = Runner::new(&direct_config(root.path(), 2, false))
+        .await
+        .unwrap();
+    let mut partial = tcp_app("partial");
+    partial.startup_ms = 300;
+    partial.env.insert("SECOND_PORT".into(), "0".into());
+    assert!(add_tcp(&runner, root.path(), &partial).await.is_err());
+    let good = add_tcp(&runner, root.path(), &tcp_app("complete"))
+        .await
+        .unwrap();
+    assert_eq!(good.endpoints.len(), 2);
+    release(&runner, &good).await;
+    runner.shutdown().await;
+}
+
+#[tokio::test]
+async fn tcp_rejects_unsupported_contracts_before_loading_bundle() {
+    let root = tempfile::tempdir().unwrap();
+    let runner = Runner::new(&direct_config(root.path(), 2, false))
+        .await
+        .unwrap();
+    let original = tcp_app("invalid");
+    for mode in ["udp", "duplicate-name", "duplicate-port", "legacy"] {
+        let mut req = original.request("http://127.0.0.1:1/unreachable.tar.gz".into());
+        let manifest = req.manifest.get_or_insert_default();
+        match mode {
+            "udp" => manifest.sockets[0].transport = "udp".into(),
+            "duplicate-name" => manifest.sockets[1].name = manifest.sockets[0].name.clone(),
+            "duplicate-port" => manifest.sockets[1].port = manifest.sockets[0].port,
+            "legacy" => manifest.port = 9090,
+            _ => unreachable!(),
+        }
+        let error = runner.add(req).await.unwrap_err();
+        assert_eq!(error.code, connectrpc::ErrorCode::InvalidArgument);
+    }
+    runner.shutdown().await;
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
 async fn direct_sockets_accept_nonloopback_without_routing_headers_and_do_not_reap() {
     let root = tempfile::tempdir().unwrap();

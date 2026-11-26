@@ -47,18 +47,19 @@ struct State {
     port: u16,
     bindings: HashMap<u16, SocketAddr>,
     remotes: HashMap<u32, SocketAddr>,
-    listener: Option<u32>,
-    address: Option<SocketAddr>,
+    ports: Vec<u16>,
+    listeners: HashMap<u32, u16>,
+    addresses: HashMap<u16, SocketAddr>,
     ready: Option<oneshot::Sender<Ready>>,
     direct: Option<Arc<Ports>>,
-    claim: Option<Arc<Claim>>,
+    claims: HashMap<u16, Arc<Claim>>,
     instance: [u8; 16],
     generation: u64,
 }
 
 pub(crate) struct Ready {
     pub address: SocketAddr,
-    pub claim: Option<Arc<Claim>>,
+    pub claims: Vec<Arc<Claim>>,
 }
 
 impl WasiView for State {
@@ -100,7 +101,7 @@ impl Runtime {
                 state.sockets().drop(Resource::new_own(rep))?;
                 // The declared listener is the instance's lifetime boundary. Retiring
                 // it must also retire the route, even if the guest keeps computing.
-                if state.listener == Some(rep) {
+                if state.listeners.contains_key(&rep) {
                     return Err(wasmtime::Error::msg("guest closed ingress listener"));
                 }
                 Ok(())
@@ -117,19 +118,21 @@ impl Runtime {
                 Box::new(async move {
                     let guest: SocketAddr = guest.into();
                     let state = cx.data_mut();
-                    // Only one declared listener. Port zero is allowed for explicit
+                    // One listener per declared port. Port zero is allowed for explicit
                     // client-side binds but may never become an ingress listener.
                     if !(guest.ip().is_loopback() || guest.ip().is_unspecified())
-                        || (guest.port() != state.port && guest.port() != 0)
-                        || (guest.port() == state.port && !guest.is_ipv4())
+                        || (!state.ports.contains(&guest.port()) && guest.port() != 0)
+                        || (state.ports.contains(&guest.port()) && !guest.is_ipv4())
                     {
                         return Ok((Err(ErrorCode::AccessDenied),));
                     }
-                    if guest.port() == state.port && state.listener.is_some() {
+                    if state.ports.contains(&guest.port())
+                        && state.listeners.values().any(|p| *p == guest.port())
+                    {
                         return Ok((Err(ErrorCode::AddressInUse),));
                     }
                     let rep = socket.rep();
-                    if guest.port() == state.port
+                    if state.ports.contains(&guest.port())
                         && let Some(pool) = state.direct.clone()
                     {
                         // Reserve durably before bind. Never probe and close an
@@ -149,8 +152,8 @@ impl Runtime {
                                 .await
                             {
                                 Ok(()) => {
-                                    state.listener = Some(rep);
-                                    state.claim = Some(claim);
+                                    state.listeners.insert(rep, guest.port());
+                                    state.claims.insert(guest.port(), claim);
                                     return Ok((Ok(()),));
                                 }
                                 Err(error) => {
@@ -171,7 +174,7 @@ impl Runtime {
                     }
                     // Keep client binds in their original address family and do
                     // not force wildcard clients onto the host loopback route.
-                    let host = if guest.port() == state.port {
+                    let host = if state.ports.contains(&guest.port()) {
                         SocketAddr::from((Ipv4Addr::LOCALHOST, 0))
                     } else {
                         guest
@@ -180,8 +183,8 @@ impl Runtime {
                         .sockets()
                         .start_bind(socket, network, host.into())
                         .await;
-                    if result.is_ok() && guest.port() == state.port {
-                        state.listener = Some(rep);
+                    if result.is_ok() && state.ports.contains(&guest.port()) {
+                        state.listeners.insert(rep, guest.port());
                     }
                     socket_result(result)
                 })
@@ -192,7 +195,7 @@ impl Runtime {
             |mut cx: StoreContextMut<'_, State>, (socket,): (Resource<TcpSocket>,)| {
                 Box::new(async move {
                     let state = cx.data_mut();
-                    if state.listener != Some(socket.rep()) {
+                    if !state.listeners.contains_key(&socket.rep()) {
                         return Ok((Err(ErrorCode::AccessDenied),));
                     }
                     socket_result(state.sockets().start_listen(socket).await)
@@ -211,11 +214,18 @@ impl Runtime {
                         Ok(a) => SocketAddr::from(a),
                         Err(e) => return socket_result(Err(e)),
                     };
-                    state.address = Some(address);
-                    if let Some(ready) = state.ready.take() {
+                    let port = state.listeners[&rep];
+                    state.addresses.insert(port, address);
+                    if state.addresses.len() == state.ports.len()
+                        && let Some(ready) = state.ready.take()
+                    {
                         let _ = ready.send(Ready {
-                            address,
-                            claim: state.claim.clone(),
+                            address: state.addresses[&state.port],
+                            claims: state
+                                .ports
+                                .iter()
+                                .filter_map(|p| state.claims.get(p).cloned())
+                                .collect(),
                         });
                     }
                 }
@@ -226,17 +236,18 @@ impl Runtime {
             "[method]tcp-socket.local-address",
             |mut cx: StoreContextMut<'_, State>, (socket,): (Resource<TcpSocket>,)| {
                 let state = cx.data_mut();
-                let listener = state.listener == Some(socket.rep());
+                let listener = state.listeners.get(&socket.rep()).copied();
                 let result = state.sockets().local_address(socket).map(|address| {
                     let mut address: SocketAddr = address.into();
-                    if listener
-                        || Some(address) == state.address
-                        || state
-                            .claim
-                            .as_ref()
-                            .is_some_and(|c| c.bind.port() == address.port())
-                    {
-                        address.set_port(state.port);
+                    let port = listener.or_else(|| {
+                        state
+                            .addresses
+                            .iter()
+                            .find(|(_, host)| host.port() == address.port())
+                            .map(|(port, _)| *port)
+                    });
+                    if let Some(port) = port {
+                        address.set_port(port);
                     }
                     IpSocketAddress::from(address)
                 });
@@ -371,11 +382,12 @@ impl Runtime {
             port: app.port,
             bindings,
             remotes: HashMap::new(),
-            listener: None,
-            address: None,
+            ports: app.sockets.iter().map(|s| s.port as u16).collect(),
+            listeners: HashMap::new(),
+            addresses: HashMap::new(),
             ready: Some(ready),
             direct: self.direct.clone(),
-            claim: None,
+            claims: HashMap::new(),
             instance: app.id,
             generation,
         };

@@ -39,6 +39,7 @@ type InstanceAddRequest struct {
 	Endpoint      *Endpoint              `protobuf:"bytes,21,opt,name=endpoint" json:"endpoint,omitempty"`
 	Direct        bool                   `protobuf:"varint,22,opt,name=direct" json:"direct,omitempty"`
 	Secrets       map[string]string      `protobuf:"bytes,23,rep,name=secrets" json:"secrets,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Endpoints     []*Endpoint            `protobuf:"bytes,24,rep,name=endpoints" json:"endpoints,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -174,6 +175,13 @@ func (x *InstanceAddRequest) GetDirect() bool {
 func (x *InstanceAddRequest) GetSecrets() map[string]string {
 	if x != nil {
 		return x.Secrets
+	}
+	return nil
+}
+
+func (x *InstanceAddRequest) GetEndpoints() []*Endpoint {
+	if x != nil {
+		return x.Endpoints
 	}
 	return nil
 }
@@ -329,6 +337,7 @@ type InstanceSelect struct {
 	Endpoint      *bool                  `protobuf:"varint,21,opt,name=endpoint" json:"endpoint,omitempty"`
 	Direct        *bool                  `protobuf:"varint,22,opt,name=direct" json:"direct,omitempty"`
 	Secrets       *bool                  `protobuf:"varint,23,opt,name=secrets" json:"secrets,omitempty"`
+	Endpoints     *bool                  `protobuf:"varint,24,opt,name=endpoints" json:"endpoints,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -464,6 +473,13 @@ func (x *InstanceSelect) GetDirect() bool {
 func (x *InstanceSelect) GetSecrets() bool {
 	if x != nil && x.Secrets != nil {
 		return *x.Secrets
+	}
+	return false
+}
+
+func (x *InstanceSelect) GetEndpoints() bool {
+	if x != nil && x.Endpoints != nil {
+		return *x.Endpoints
 	}
 	return false
 }
@@ -1036,7 +1052,7 @@ var File_wafl_instance_svc_g_proto protoreflect.FileDescriptor
 
 const file_wafl_instance_svc_g_proto_rawDesc = "" +
 	"\n" +
-	"\x19wafl/instance_svc.g.proto\x12\x04wafl\x1a\torm.proto\x1a\x13wafl/instance.proto\x1a\x0ewafl/log.proto\x1a\x13wafl/manifest.proto\x1a\x1ewafl/payday/tenant_svc.g.proto\"\x8c\x05\n" +
+	"\x19wafl/instance_svc.g.proto\x12\x04wafl\x1a\torm.proto\x1a\x13wafl/instance.proto\x1a\x0ewafl/log.proto\x1a\x13wafl/manifest.proto\x1a\x1ewafl/payday/tenant_svc.g.proto\"\xc2\x05\n" +
 	"\x12InstanceAddRequest\x12\x16\n" +
 	"\x02id\x18\x01 \x01(\fB\x06\xea\x82\x16\x02\x10@R\x02id\x12'\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x0f.wafl.TenantRefR\x06tenant\x12\x14\n" +
@@ -1055,7 +1071,8 @@ const file_wafl_instance_svc_g_proto_rawDesc = "" +
 	"\bdraining\x18\x14 \x01(\bB\x05\xaa\x01\x02\b\x02R\bdraining\x122\n" +
 	"\bendpoint\x18\x15 \x01(\v2\x0e.wafl.EndpointB\x06\xea\x82\x16\x02\x10BR\bendpoint\x12\x1d\n" +
 	"\x06direct\x18\x16 \x01(\bB\x05\xaa\x01\x02\b\x02R\x06direct\x12G\n" +
-	"\asecrets\x18\x17 \x03(\v2%.wafl.InstanceAddRequest.SecretsEntryB\x06\xea\x82\x16\x02\x10BR\asecrets\x1a:\n" +
+	"\asecrets\x18\x17 \x03(\v2%.wafl.InstanceAddRequest.SecretsEntryB\x06\xea\x82\x16\x02\x10BR\asecrets\x124\n" +
+	"\tendpoints\x18\x18 \x03(\v2\x0e.wafl.EndpointB\x06\xea\x82\x16\x02\x10BR\tendpoints\x1a:\n" +
 	"\fSecretsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"g\n" +
@@ -1065,7 +1082,7 @@ const file_wafl_instance_svc_g_proto_rawDesc = "" +
 	"\vInstanceRef\x12\x18\n" +
 	"\x02id\x18\x01 \x01(\fB\x06\xea\x82\x16\x02\x10@H\x00R\x02id\x12\x16\n" +
 	"\x05alias\x18\x04 \x01(\tH\x00R\x05aliasB\x05\n" +
-	"\x03key\"\x98\x03\n" +
+	"\x03key\"\xb6\x03\n" +
 	"\x0eInstanceSelect\x12\x10\n" +
 	"\x03all\x18\x01 \x01(\bR\x03all\x12*\n" +
 	"\x06tenant\x18\x02 \x01(\v2\x12.wafl.TenantSelectR\x06tenant\x12\x14\n" +
@@ -1084,7 +1101,8 @@ const file_wafl_instance_svc_g_proto_rawDesc = "" +
 	"\bdraining\x18\x14 \x01(\bR\bdraining\x12\x1a\n" +
 	"\bendpoint\x18\x15 \x01(\bR\bendpoint\x12\x16\n" +
 	"\x06direct\x18\x16 \x01(\bR\x06direct\x12\x18\n" +
-	"\asecrets\x18\x17 \x01(\bR\asecrets\"/\n" +
+	"\asecrets\x18\x17 \x01(\bR\asecrets\x12\x1c\n" +
+	"\tendpoints\x18\x18 \x01(\bR\tendpoints\"/\n" +
 	"\x15InstanceEraseResponse\x12\x16\n" +
 	"\x06erased\x18\x01 \x01(\bR\x06erased\"\x9e\x01\n" +
 	"\x13InstanceListRequest\x12.\n" +
@@ -1177,44 +1195,45 @@ var file_wafl_instance_svc_g_proto_depIdxs = []int32{
 	18, // 2: wafl.InstanceAddRequest.manifest:type_name -> wafl.Manifest
 	19, // 3: wafl.InstanceAddRequest.endpoint:type_name -> wafl.Endpoint
 	15, // 4: wafl.InstanceAddRequest.secrets:type_name -> wafl.InstanceAddRequest.SecretsEntry
-	2,  // 5: wafl.InstanceGetRequest.ref:type_name -> wafl.InstanceRef
-	3,  // 6: wafl.InstanceGetRequest.select:type_name -> wafl.InstanceSelect
-	20, // 7: wafl.InstanceSelect.tenant:type_name -> wafl.TenantSelect
-	7,  // 8: wafl.InstanceListRequest.filters:type_name -> wafl.InstanceFilter
-	21, // 9: wafl.InstanceListResponse.items:type_name -> wafl.Instance
-	2,  // 10: wafl.InstanceFilter.ref:type_name -> wafl.InstanceRef
-	2,  // 11: wafl.InstanceStartRequest.ref:type_name -> wafl.InstanceRef
-	2,  // 12: wafl.InstanceStopRequest.ref:type_name -> wafl.InstanceRef
-	2,  // 13: wafl.InstanceDrainRequest.ref:type_name -> wafl.InstanceRef
-	2,  // 14: wafl.InstanceReleaseRequest.ref:type_name -> wafl.InstanceRef
-	2,  // 15: wafl.InstanceTailRequest.ref:type_name -> wafl.InstanceRef
-	0,  // 16: wafl.InstanceService.Add:input_type -> wafl.InstanceAddRequest
-	1,  // 17: wafl.InstanceService.Get:input_type -> wafl.InstanceGetRequest
-	2,  // 18: wafl.InstanceService.Erase:input_type -> wafl.InstanceRef
-	5,  // 19: wafl.InstanceService.List:input_type -> wafl.InstanceListRequest
-	8,  // 20: wafl.InstanceService.Start:input_type -> wafl.InstanceStartRequest
-	9,  // 21: wafl.InstanceService.Stop:input_type -> wafl.InstanceStopRequest
-	9,  // 22: wafl.InstanceService.Halt:input_type -> wafl.InstanceStopRequest
-	10, // 23: wafl.InstanceService.Drain:input_type -> wafl.InstanceDrainRequest
-	11, // 24: wafl.InstanceService.Release:input_type -> wafl.InstanceReleaseRequest
-	12, // 25: wafl.InstanceService.Seal:input_type -> wafl.InstanceSealRequest
-	14, // 26: wafl.InstanceService.Tail:input_type -> wafl.InstanceTailRequest
-	21, // 27: wafl.InstanceService.Add:output_type -> wafl.Instance
-	21, // 28: wafl.InstanceService.Get:output_type -> wafl.Instance
-	4,  // 29: wafl.InstanceService.Erase:output_type -> wafl.InstanceEraseResponse
-	6,  // 30: wafl.InstanceService.List:output_type -> wafl.InstanceListResponse
-	21, // 31: wafl.InstanceService.Start:output_type -> wafl.Instance
-	21, // 32: wafl.InstanceService.Stop:output_type -> wafl.Instance
-	21, // 33: wafl.InstanceService.Halt:output_type -> wafl.Instance
-	21, // 34: wafl.InstanceService.Drain:output_type -> wafl.Instance
-	21, // 35: wafl.InstanceService.Release:output_type -> wafl.Instance
-	13, // 36: wafl.InstanceService.Seal:output_type -> wafl.InstanceSealResponse
-	22, // 37: wafl.InstanceService.Tail:output_type -> wafl.Log
-	27, // [27:38] is the sub-list for method output_type
-	16, // [16:27] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	19, // 5: wafl.InstanceAddRequest.endpoints:type_name -> wafl.Endpoint
+	2,  // 6: wafl.InstanceGetRequest.ref:type_name -> wafl.InstanceRef
+	3,  // 7: wafl.InstanceGetRequest.select:type_name -> wafl.InstanceSelect
+	20, // 8: wafl.InstanceSelect.tenant:type_name -> wafl.TenantSelect
+	7,  // 9: wafl.InstanceListRequest.filters:type_name -> wafl.InstanceFilter
+	21, // 10: wafl.InstanceListResponse.items:type_name -> wafl.Instance
+	2,  // 11: wafl.InstanceFilter.ref:type_name -> wafl.InstanceRef
+	2,  // 12: wafl.InstanceStartRequest.ref:type_name -> wafl.InstanceRef
+	2,  // 13: wafl.InstanceStopRequest.ref:type_name -> wafl.InstanceRef
+	2,  // 14: wafl.InstanceDrainRequest.ref:type_name -> wafl.InstanceRef
+	2,  // 15: wafl.InstanceReleaseRequest.ref:type_name -> wafl.InstanceRef
+	2,  // 16: wafl.InstanceTailRequest.ref:type_name -> wafl.InstanceRef
+	0,  // 17: wafl.InstanceService.Add:input_type -> wafl.InstanceAddRequest
+	1,  // 18: wafl.InstanceService.Get:input_type -> wafl.InstanceGetRequest
+	2,  // 19: wafl.InstanceService.Erase:input_type -> wafl.InstanceRef
+	5,  // 20: wafl.InstanceService.List:input_type -> wafl.InstanceListRequest
+	8,  // 21: wafl.InstanceService.Start:input_type -> wafl.InstanceStartRequest
+	9,  // 22: wafl.InstanceService.Stop:input_type -> wafl.InstanceStopRequest
+	9,  // 23: wafl.InstanceService.Halt:input_type -> wafl.InstanceStopRequest
+	10, // 24: wafl.InstanceService.Drain:input_type -> wafl.InstanceDrainRequest
+	11, // 25: wafl.InstanceService.Release:input_type -> wafl.InstanceReleaseRequest
+	12, // 26: wafl.InstanceService.Seal:input_type -> wafl.InstanceSealRequest
+	14, // 27: wafl.InstanceService.Tail:input_type -> wafl.InstanceTailRequest
+	21, // 28: wafl.InstanceService.Add:output_type -> wafl.Instance
+	21, // 29: wafl.InstanceService.Get:output_type -> wafl.Instance
+	4,  // 30: wafl.InstanceService.Erase:output_type -> wafl.InstanceEraseResponse
+	6,  // 31: wafl.InstanceService.List:output_type -> wafl.InstanceListResponse
+	21, // 32: wafl.InstanceService.Start:output_type -> wafl.Instance
+	21, // 33: wafl.InstanceService.Stop:output_type -> wafl.Instance
+	21, // 34: wafl.InstanceService.Halt:output_type -> wafl.Instance
+	21, // 35: wafl.InstanceService.Drain:output_type -> wafl.Instance
+	21, // 36: wafl.InstanceService.Release:output_type -> wafl.Instance
+	13, // 37: wafl.InstanceService.Seal:output_type -> wafl.InstanceSealResponse
+	22, // 38: wafl.InstanceService.Tail:output_type -> wafl.Log
+	28, // [28:39] is the sub-list for method output_type
+	17, // [17:28] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_wafl_instance_svc_g_proto_init() }

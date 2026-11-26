@@ -45,6 +45,11 @@ pub struct AppAddRequestView<'a> {
     pub status: ::buffa::MessageFieldView<
         super::super::__buffa::view::AppStatusView<'a>,
     >,
+    /// Field 25: `listeners`
+    pub listeners: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::ListenerView<'a>,
+    >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
@@ -299,6 +304,21 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                         )?,
                     );
             }
+            25u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                view.listeners
+                    .push(
+                        <super::super::__buffa::view::ListenerView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
             23u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -438,6 +458,11 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            listeners: self
+                .listeners
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -547,6 +572,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        for v in &self.listeners {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -633,6 +666,10 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
         if self.status.is_set() {
             ::buffa::types::put_len_delimited_header(24u32, __cache.consume_next(), buf);
             self.status.write_to(__cache, buf);
+        }
+        for v in &self.listeners {
+            ::buffa::types::put_len_delimited_header(25u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -741,6 +778,9 @@ impl<'__a> ::serde::Serialize for AppAddRequestView<'__a> {
             if let ::core::option::Option::Some(__v) = self.status.as_option() {
                 __map.serialize_entry("status", __v)?;
             }
+        }
+        if !self.listeners.is_empty() {
+            __map.serialize_entry("listeners", &*self.listeners)?;
         }
         __map.end()
     }
@@ -928,6 +968,13 @@ impl AppAddRequestOwnedView {
         &self,
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::AppStatusView<'_>> {
         &self.0.reborrow().status
+    }
+    /// Field 25: `listeners`
+    #[must_use]
+    pub fn listeners(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::ListenerView<'_>> {
+        &self.0.reborrow().listeners
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppAddRequestView<'static>>>
@@ -1632,6 +1679,8 @@ pub struct AppSelectView<'a> {
     pub secret_values: ::core::option::Option<bool>,
     /// Field 24: `status`
     pub status: ::core::option::Option<bool>,
+    /// Field 25: `listeners`
+    pub listeners: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
@@ -1801,6 +1850,13 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
                 )?;
                 view.status = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            25u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.listeners = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1853,6 +1909,7 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
             rollout: self.rollout,
             secret_values: self.secret_values,
             status: self.status,
+            listeners: self.listeners,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1922,6 +1979,9 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         if self.status.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.listeners.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1982,6 +2042,9 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         }
         if let Some(v) = self.status {
             ::buffa::types::put_bool_field(24u32, v, buf);
+        }
+        if let Some(v) = self.listeners {
+            ::buffa::types::put_bool_field(25u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2055,6 +2118,9 @@ impl<'__a> ::serde::Serialize for AppSelectView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.status {
             __map.serialize_entry("status", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.listeners {
+            __map.serialize_entry("listeners", &__v)?;
         }
         __map.end()
     }
@@ -2230,6 +2296,11 @@ impl AppSelectOwnedView {
     #[must_use]
     pub fn status(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().status
+    }
+    /// Field 25: `listeners`
+    #[must_use]
+    pub fn listeners(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().listeners
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppSelectView<'static>>>

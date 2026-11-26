@@ -1,5 +1,5 @@
 [workspace]
-members = ["examples/hello", "examples/redis", "tests/guests"]
+members = ["examples/hello", "examples/redis", "examples/tcp", "tests/guests"]
 default-members = ["."]
 resolver = "3"
 

@@ -14,7 +14,8 @@ pub struct AppView<'a> {
     pub alias: &'a str,
     /// Field 5: `name`
     pub name: &'a str,
-    /// One exact DNS hostname, lowercase ASCII. No wildcards, ports or rule syntax.
+    /// HTTP Apps: one exact lowercase ASCII DNS hostname. TCP Apps omit domain
+    /// and publish listeners instead. No wildcards, ports or rule syntax.
     ///
     /// Field 8: `domain`
     pub domain: &'a str,
@@ -26,7 +27,8 @@ pub struct AppView<'a> {
     pub manifest: ::buffa::MessageFieldView<
         super::super::__buffa::view::ManifestView<'a>,
     >,
-    /// Optional request-concurrency autoscaling; replicas is used only without it.
+    /// Optional concurrency autoscaling: HTTP requests or TCP connections.
+    /// replicas is used only without it.
     ///
     /// Field 17: `scaling`
     pub scaling: ::buffa::MessageFieldView<super::super::__buffa::view::ScalingView<'a>>,
@@ -58,6 +60,14 @@ pub struct AppView<'a> {
     /// Field 24: `status`
     pub status: ::buffa::MessageFieldView<
         super::super::__buffa::view::AppStatusView<'a>,
+    >,
+    /// TCP entrypoints on the platform's configured public port pool. Immutable
+    /// for an App's lifetime; backend socket manifests may change on rollout.
+    ///
+    /// Field 25: `listeners`
+    pub listeners: ::buffa::RepeatedView<
+        'a,
+        super::super::__buffa::view::ListenerView<'a>,
     >,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
@@ -313,6 +323,21 @@ impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
                         )?,
                     );
             }
+            25u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                view.listeners
+                    .push(
+                        <super::super::__buffa::view::ListenerView as ::buffa::MessageView>::decode_view_ctx(
+                            sub,
+                            __sub_ctx,
+                        )?,
+                    );
+            }
             23u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -452,6 +477,11 @@ impl<'a> ::buffa::MessageView<'a> for AppView<'a> {
                 }
                 None => ::buffa::MessageField::none(),
             },
+            listeners: self
+                .listeners
+                .iter()
+                .map(|v| v.to_owned_from_source(__buffa_src))
+                .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -561,6 +591,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        for v in &self.listeners {
+            let __slot = __cache.reserve();
+            let inner_size = v.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -647,6 +685,10 @@ impl<'a> ::buffa::ViewEncode<'a> for AppView<'a> {
         if self.status.is_set() {
             ::buffa::types::put_len_delimited_header(24u32, __cache.consume_next(), buf);
             self.status.write_to(__cache, buf);
+        }
+        for v in &self.listeners {
+            ::buffa::types::put_len_delimited_header(25u32, __cache.consume_next(), buf);
+            v.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -756,6 +798,9 @@ impl<'__a> ::serde::Serialize for AppView<'__a> {
                 __map.serialize_entry("status", __v)?;
             }
         }
+        if !self.listeners.is_empty() {
+            __map.serialize_entry("listeners", &*self.listeners)?;
+        }
         __map.end()
     }
 }
@@ -863,7 +908,8 @@ impl AppOwnedView {
     pub fn name(&self) -> &'_ str {
         self.0.reborrow().name
     }
-    /// One exact DNS hostname, lowercase ASCII. No wildcards, ports or rule syntax.
+    /// HTTP Apps: one exact lowercase ASCII DNS hostname. TCP Apps omit domain
+    /// and publish listeners instead. No wildcards, ports or rule syntax.
     ///
     /// Field 8: `domain`
     #[must_use]
@@ -887,7 +933,8 @@ impl AppOwnedView {
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ManifestView<'_>> {
         &self.0.reborrow().manifest
     }
-    /// Optional request-concurrency autoscaling; replicas is used only without it.
+    /// Optional concurrency autoscaling: HTTP requests or TCP connections.
+    /// replicas is used only without it.
     ///
     /// Field 17: `scaling`
     #[must_use]
@@ -952,6 +999,16 @@ impl AppOwnedView {
     ) -> &::buffa::MessageFieldView<super::super::__buffa::view::AppStatusView<'_>> {
         &self.0.reborrow().status
     }
+    /// TCP entrypoints on the platform's configured public port pool. Immutable
+    /// for an App's lifetime; backend socket manifests may change on rollout.
+    ///
+    /// Field 25: `listeners`
+    #[must_use]
+    pub fn listeners(
+        &self,
+    ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::ListenerView<'_>> {
+        &self.0.reborrow().listeners
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppView<'static>>> for AppOwnedView {
     fn from(inner: ::buffa::OwnedView<AppView<'static>>) -> Self {
@@ -973,6 +1030,273 @@ impl ::buffa::HasMessageView for super::super::App {
     type ViewHandle = AppOwnedView;
 }
 impl ::serde::Serialize for AppOwnedView {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        ::serde::Serialize::serialize(&self.0, __s)
+    }
+}
+#[derive(Clone, Debug, Default)]
+pub struct ListenerView<'a> {
+    /// Manifest socket name, or "app" for the legacy port/protocol declaration.
+    ///
+    /// Field 1: `socket`
+    pub socket: &'a str,
+    /// Field 2: `port`
+    pub port: u32,
+    pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
+}
+impl<'a> ::buffa::MessageView<'a> for ListenerView<'a> {
+    type Owned = super::super::Listener;
+    fn decode_view(buf: &'a [u8]) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        let __limit = ::core::cell::Cell::new(::buffa::DEFAULT_UNKNOWN_FIELD_LIMIT);
+        <Self as ::buffa::MessageView>::decode_view_ctx(
+            buf,
+            ::buffa::DecodeContext::new(::buffa::RECURSION_LIMIT, &__limit),
+        )
+    }
+    fn decode_view_with_ctx(
+        buf: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        <Self as ::buffa::MessageView>::decode_view_ctx(buf, ctx)
+    }
+    fn merge_view_field(
+        &mut self,
+        tag: ::buffa::encoding::Tag,
+        cur: &'a [u8],
+        before_tag: &'a [u8],
+        ctx: ::buffa::DecodeContext<'_>,
+    ) -> ::core::result::Result<&'a [u8], ::buffa::DecodeError> {
+        let _ = ctx;
+        #[allow(unused_variables)]
+        let view = self;
+        let mut cur = cur;
+        match tag.field_number() {
+            1u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                view.socket = ::buffa::types::borrow_str(&mut cur)?;
+            }
+            2u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.port = ::buffa::types::decode_uint32(&mut cur)?;
+            }
+            _ => {
+                ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
+                let span_len = before_tag.len() - cur.len();
+                view.__buffa_unknown_fields.push_record(before_tag, span_len, ctx)?;
+            }
+        }
+        ::core::result::Result::Ok(cur)
+    }
+    fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Listener, ::buffa::DecodeError> {
+        self.to_owned_from_source(None)
+    }
+    #[allow(clippy::useless_conversion, clippy::needless_update)]
+    fn to_owned_from_source(
+        &self,
+        __buffa_src: ::core::option::Option<&::buffa::bytes::Bytes>,
+    ) -> ::core::result::Result<super::super::Listener, ::buffa::DecodeError> {
+        #[allow(unused_imports)]
+        use ::buffa::alloc::string::ToString as _;
+        let _ = __buffa_src;
+        ::core::result::Result::Ok(super::super::Listener {
+            socket: self.socket.to_string(),
+            port: self.port,
+            __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
+            ..::core::default::Default::default()
+        })
+    }
+}
+impl<'a> ::buffa::ViewEncode<'a> for ListenerView<'a> {
+    #[allow(clippy::needless_borrow, clippy::let_and_return)]
+    fn compute_size(&self, _cache: &mut ::buffa::SizeCache) -> u32 {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        let mut size = 0u32;
+        if !self.socket.is_empty() {
+            size += 1u32 + ::buffa::types::string_encoded_len(&self.socket) as u32;
+        }
+        if self.port != 0u32 {
+            size += 1u32 + ::buffa::types::uint32_encoded_len(self.port) as u32;
+        }
+        size += self.__buffa_unknown_fields.encoded_len() as u32;
+        size
+    }
+    #[allow(clippy::needless_borrow)]
+    fn write_to(
+        &self,
+        _cache: &mut ::buffa::SizeCache,
+        buf: &mut impl ::buffa::bytes::BufMut,
+    ) {
+        #[allow(unused_imports)]
+        use ::buffa::Enumeration as _;
+        if !self.socket.is_empty() {
+            ::buffa::types::put_string_field(1u32, &self.socket, buf);
+        }
+        if self.port != 0u32 {
+            ::buffa::types::put_uint32_field(2u32, self.port, buf);
+        }
+        self.__buffa_unknown_fields.write_to(buf);
+    }
+}
+/// Serializes this view as protobuf JSON.
+///
+/// Implicit-presence fields with default values are omitted, `required`
+/// fields are always emitted, explicit-presence (`optional`) fields are
+/// emitted only when set, bytes fields are base64-encoded, and enum
+/// values are their proto name strings.
+///
+/// This impl uses `serialize_map(None)` because the number of emitted
+/// fields depends on default-omission rules; serializers that require
+/// known map lengths (e.g. `bincode`) will return a runtime error.
+/// Use the owned message type for those formats.
+impl<'__a> ::serde::Serialize for ListenerView<'__a> {
+    fn serialize<__S: ::serde::Serializer>(
+        &self,
+        __s: __S,
+    ) -> ::core::result::Result<__S::Ok, __S::Error> {
+        use ::serde::ser::SerializeMap as _;
+        let mut __map = __s.serialize_map(::core::option::Option::None)?;
+        if !::buffa::json_helpers::skip_if::is_empty_str(self.socket) {
+            __map.serialize_entry("socket", self.socket)?;
+        }
+        if !::buffa::json_helpers::skip_if::is_zero_u32(&self.port) {
+            __map
+                .serialize_entry("port", &::buffa::json_helpers::ProtoJson(&self.port))?;
+        }
+        __map.end()
+    }
+}
+impl<'a> ::buffa::MessageName for ListenerView<'a> {
+    const PACKAGE: &'static str = "wafl";
+    const NAME: &'static str = "Listener";
+    const FULL_NAME: &'static str = "wafl.Listener";
+    const TYPE_URL: &'static str = "type.googleapis.com/wafl.Listener";
+}
+::buffa::impl_default_view_instance!(ListenerView);
+::buffa::impl_view_reborrow!(ListenerView);
+/** Self-contained, `'static` owned view of a `Listener` message.
+
+ Wraps [`::buffa::OwnedView`]`<`[`ListenerView`]`<'static>>`: the decoded view and the [`::buffa::bytes::Bytes`] buffer it borrows from travel together, so the handle is `'static` and `Send + Sync` — suitable for async handlers, spawned tasks, and anywhere a `'static` bound is required.
+
+ Field accessors return borrows tied to `&self`. Use [`Self::view`] to get the full [`ListenerView`] when you need struct patterns, iteration helpers, or to pass the view to lifetime-parameterised code.*/
+#[derive(Clone, Debug)]
+pub struct ListenerOwnedView(::buffa::OwnedView<ListenerView<'static>>);
+impl ListenerOwnedView {
+    /// Decode an owned view from a [`::buffa::bytes::Bytes`] buffer.
+    ///
+    /// The view borrows directly from the buffer's data; the buffer is
+    /// retained inside the returned handle.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer contains invalid
+    /// protobuf data.
+    pub fn decode(
+        bytes: ::buffa::bytes::Bytes,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(ListenerOwnedView(::buffa::OwnedView::decode(bytes)?))
+    }
+    /// Decode with custom [`::buffa::DecodeOptions`] (recursion limit,
+    /// max message size).
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the buffer is invalid or
+    /// exceeds the configured limits.
+    pub fn decode_with_options(
+        bytes: ::buffa::bytes::Bytes,
+        opts: &::buffa::DecodeOptions,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ListenerOwnedView(::buffa::OwnedView::decode_with_options(bytes, opts)?),
+        )
+    }
+    /// Build from an owned message via an encode → decode round-trip.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`::buffa::DecodeError`] if the re-encoded bytes are
+    /// somehow invalid (should not happen for well-formed messages).
+    pub fn from_owned(
+        msg: &super::super::Listener,
+    ) -> ::core::result::Result<Self, ::buffa::DecodeError> {
+        ::core::result::Result::Ok(
+            ListenerOwnedView(::buffa::OwnedView::from_owned(msg)?),
+        )
+    }
+    /// Borrow the full [`ListenerView`] with its lifetime tied to `&self`.
+    #[must_use]
+    pub fn view(&self) -> &ListenerView<'_> {
+        self.0.reborrow()
+    }
+    /// Convert to the owned message type.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if re-materializing preserved unknown fields
+    /// fails (e.g. the unknown-field limit is exceeded).
+    pub fn to_owned_message(
+        &self,
+    ) -> ::core::result::Result<super::super::Listener, ::buffa::DecodeError> {
+        self.0.to_owned_message()
+    }
+    /// The underlying bytes buffer.
+    #[must_use]
+    pub fn bytes(&self) -> &::buffa::bytes::Bytes {
+        self.0.bytes()
+    }
+    /// Consume the handle, returning the underlying bytes buffer.
+    #[must_use]
+    pub fn into_bytes(self) -> ::buffa::bytes::Bytes {
+        self.0.into_bytes()
+    }
+    /// Manifest socket name, or "app" for the legacy port/protocol declaration.
+    ///
+    /// Field 1: `socket`
+    #[must_use]
+    pub fn socket(&self) -> &'_ str {
+        self.0.reborrow().socket
+    }
+    /// Field 2: `port`
+    #[must_use]
+    pub fn port(&self) -> u32 {
+        self.0.reborrow().port
+    }
+}
+impl ::core::convert::From<::buffa::OwnedView<ListenerView<'static>>>
+for ListenerOwnedView {
+    fn from(inner: ::buffa::OwnedView<ListenerView<'static>>) -> Self {
+        ListenerOwnedView(inner)
+    }
+}
+impl ::core::convert::From<ListenerOwnedView>
+for ::buffa::OwnedView<ListenerView<'static>> {
+    fn from(wrapper: ListenerOwnedView) -> Self {
+        wrapper.0
+    }
+}
+impl ::core::convert::AsRef<::buffa::OwnedView<ListenerView<'static>>>
+for ListenerOwnedView {
+    fn as_ref(&self) -> &::buffa::OwnedView<ListenerView<'static>> {
+        &self.0
+    }
+}
+impl ::buffa::HasMessageView for super::super::Listener {
+    type View<'a> = ListenerView<'a>;
+    type ViewHandle = ListenerOwnedView;
+}
+impl ::serde::Serialize for ListenerOwnedView {
     fn serialize<__S: ::serde::Serializer>(
         &self,
         __s: __S,

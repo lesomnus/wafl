@@ -22,12 +22,14 @@ message App {
   Tenant tenant = 2 [(orm.edge) = {immutable: true}];
   string alias = 4 [(orm.field) = {unique: true, default: ""}];
   string name = 5;
-  // One exact DNS hostname, lowercase ASCII. No wildcards, ports or rule syntax.
+  // HTTP Apps: one exact lowercase ASCII DNS hostname. TCP Apps omit domain
+  // and publish listeners instead. No wildcards, ports or rule syntax.
   string domain = 8 [(orm.field) = {unique: true, immutable: true}];
   uint32 replicas = 9;
   uint64 revision = 10 [(payday.field) = {stamped: true}];
   Manifest manifest = 16 [(orm.field) = {type: TYPE_JSON}];
-  // Optional request-concurrency autoscaling; replicas is used only without it.
+  // Optional concurrency autoscaling: HTTP requests or TCP connections.
+  // replicas is used only without it.
   Scaling scaling = 17 [(orm.field) = {type: TYPE_JSON, nullable: true}];
   ScaleState state = 18 [(orm.field) = {type: TYPE_JSON, nullable: true}, (payday.field) = {stamped: true}];
   // Legacy importer ownership; unused by the Kubernetes-native controller.
@@ -41,6 +43,15 @@ message App {
   // sources and returns references in secrets. Never stored in the App CRD.
   map<string, string> secret_values = 23 [(orm.field) = {type: TYPE_JSON, default: ""}, (payday.field) = {secret: true}];
   AppStatus status = 24 [(orm.field) = {type: TYPE_JSON, nullable: true}, (payday.field) = {stamped: true}];
+  // TCP entrypoints on the platform's configured public port pool. Immutable
+  // for an App's lifetime; backend socket manifests may change on rollout.
+  repeated Listener listeners = 25 [(orm.field) = {type: TYPE_JSON, immutable: true}];
+}
+
+message Listener {
+  // Manifest socket name, or "app" for the legacy port/protocol declaration.
+  string socket = 1;
+  uint32 port = 2;
 }
 
 message AppStatus {
