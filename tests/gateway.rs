@@ -59,8 +59,10 @@ async fn wake(State(s): State<Arc<Mock>>, Json(body): Json<Value>) -> Json<Value
         tokio::time::sleep(Duration::from_millis(200)).await;
         let mut snapshot = s.routes.lock().unwrap();
         for route in &mut snapshot.routes {
-            if route.app == app {
-                route.targets = vec![s.targets[&app].clone()];
+            if route.app == app
+                && let Some(target) = s.targets.get(&app)
+            {
+                route.targets = vec![target.clone()];
             }
         }
     });
@@ -126,7 +128,7 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
     let tcp = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let http_app = id(10, 1);
     let tcp_app = id(10, 2);
-    let initial = Routing {
+    let mut initial = Routing {
         version: 1,
         routes: vec![
             Route {
@@ -150,6 +152,15 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
         ],
         ..Default::default()
     };
+    initial.routes.push(Route {
+        app: id(10, 4),
+        tenant: "default".into(),
+        hosts: vec!["waiting.test".into()],
+        protocol: "h2c".into(),
+        wait_ms: 30_000,
+        waiting: 10,
+        ..Default::default()
+    });
     let s = Arc::new(Mock {
         routes: Mutex::new(initial),
         targets: HashMap::from([
@@ -409,6 +420,61 @@ async fn pingora_cold_http_pool_generations_tcp_drain_and_staleness() {
         })
     })
     .await;
+    let (mut h2, connection) = h2::client::handshake(TcpStream::connect(listen).await.unwrap())
+        .await
+        .unwrap();
+    let driver = tokio::spawn(connection);
+    let request = http::Request::builder()
+        .method("POST")
+        .uri("http://waiting.test/")
+        .header("content-type", "application/grpc")
+        .header("grpc-timeout", "100m")
+        .body(())
+        .unwrap();
+    let (deadline, _) = h2.send_request(request, true).unwrap();
+    let deadline = tokio::time::timeout(Duration::from_secs(5), deadline)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(deadline.status(), 200);
+    assert_eq!(deadline.headers()["grpc-status"], "4");
+    let waiting_app = STANDARD.encode(id(10, 4));
+    until(async || {
+        s.observations
+            .lock()
+            .unwrap()
+            .values()
+            .any(|v| v["app"]["id"] == waiting_app && v["closed"] == true && v["active"] == 0)
+    })
+    .await;
+    let request = http::Request::builder()
+        .method("POST")
+        .uri("http://waiting.test/")
+        .header("content-type", "application/grpc")
+        .body(())
+        .unwrap();
+    let (cancelled, mut cancel_stream) = h2.send_request(request, true).unwrap();
+    until(async || {
+        s.observations
+            .lock()
+            .unwrap()
+            .values()
+            .any(|v| v["app"]["id"] == waiting_app && v["active"] == 1 && v["closed"] == false)
+    })
+    .await;
+    cancel_stream.send_reset(h2::Reason::CANCEL);
+    drop(cancelled);
+    until(async || {
+        s.observations
+            .lock()
+            .unwrap()
+            .values()
+            .filter(|v| v["app"]["id"] == waiting_app)
+            .all(|v| v["closed"] == true && v["active"] == 0)
+    })
+    .await;
+    drop(h2);
+    driver.abort();
     let slow_client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
         .build()
