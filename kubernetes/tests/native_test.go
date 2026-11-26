@@ -542,6 +542,7 @@ func TestNativePlatform(t *testing.T) {
 		s.client("app", "erase", "@cli")
 		eventually(t, "API erased execution", 60*time.Second, func() bool { return len(s.pods(a)) == 0 })
 	})
+	s.lifecycle(t)
 }
 func (s *suite) openStream(name string) (*http.Response, *io.PipeWriter, error) {
 	r, w := io.Pipe()
