@@ -28,11 +28,11 @@ import (
 )
 
 type suite struct {
-	t                                             *testing.T
-	c                                             *platform.Clients
-	ctx                                           context.Context
-	ns, kubeconfig, gateway, cluster, assets, cli string
-	localBundles                                  map[string]string
+	t                                                      *testing.T
+	c                                                      *platform.Clients
+	ctx                                                    context.Context
+	ns, kubeconfig, gateway, control, cluster, assets, cli string
+	localBundles                                           map[string]string
 }
 
 func eventually(t *testing.T, label string, timeout time.Duration, f func() bool) {
@@ -52,6 +52,26 @@ func (s *suite) command(name string, args ...string) []byte {
 	data, e := cmd.CombinedOutput()
 	if e != nil {
 		s.t.Fatalf("%s failed: %v\n%s", name, e, data)
+	}
+	return data
+}
+func (s *suite) client(args ...string) []byte {
+	s.t.Helper()
+	cmd := exec.CommandContext(s.ctx, s.cli, append([]string{"--endpoint", s.control, "--tenant", s.ns}, args...)...)
+	// Only the test harness is an operator. The client has neither Kubernetes
+	// credentials nor kubectl/Docker/kind executables available.
+	for _, variable := range os.Environ() {
+		key, _, _ := strings.Cut(variable, "=")
+		switch key {
+		case "PATH", "KUBECONFIG", "KUBERNETES_SERVICE_HOST", "KUBERNETES_SERVICE_PORT":
+		default:
+			cmd.Env = append(cmd.Env, variable)
+		}
+	}
+	cmd.Env = append(cmd.Env, "PATH=/no-kubernetes-helpers", "KUBECONFIG=/unavailable/kubeconfig", "KUBERNETES_SERVICE_HOST=127.0.0.1", "KUBERNETES_SERVICE_PORT=1")
+	data, e := cmd.CombinedOutput()
+	if e != nil {
+		s.t.Fatalf("WAFL API client failed: %v\n%s", e, data)
 	}
 	return data
 }
@@ -459,12 +479,16 @@ func TestNativePlatform(t *testing.T) {
 		}
 		s.remove(a)
 	})
-	t.Run("cli_file_bundle_and_secret", func(t *testing.T) {
+	t.Run("cli_controller_api_without_kubernetes", func(t *testing.T) {
 		if s.cli == "" {
 			t.Skip("set WAFL_TEST_CLI to test native CLI")
 		}
 		s := *s
 		s.t = t
+		s.control = os.Getenv("WAFL_TEST_CONTROL")
+		if s.control == "" {
+			s.control = s.forward("svc/wafl-controller", 8082)
+		}
 		dir := t.TempDir()
 		secret := filepath.Join(dir, "value")
 		if e = os.WriteFile(secret, []byte("cli-secret"), 0600); e != nil {
@@ -476,9 +500,9 @@ func TestNativePlatform(t *testing.T) {
 		if e = os.WriteFile(file, b, 0600); e != nil {
 			t.Fatal(e)
 		}
-		s.command(s.cli, "--kubeconfig", kubeconfig, "--namespace", s.ns, "app", "add", file)
+		s.client("app", "add", file)
 		s.response("cli", "cli-secret:")
-		logs := s.command(s.cli, "--kubeconfig", kubeconfig, "--namespace", s.ns, "app", "logs", "cli")
+		logs := s.client("app", "logs", "@cli")
 		if !strings.Contains(string(logs), "guest boot") {
 			t.Fatalf("missing guest log: %s", logs)
 		}
@@ -490,7 +514,25 @@ func TestNativePlatform(t *testing.T) {
 		if strings.Contains(string(b), "cli-secret") {
 			t.Fatal("CLI leaked file contents")
 		}
-		s.remove(a)
+		old := s.ready(a)
+		for _, result := range [][]byte{s.client("app", "get", "@cli"), s.client("app", "list")} {
+			if !bytes.Contains(result, []byte(`"cli"`)) || bytes.Contains(result, []byte("cli-secret")) {
+				t.Fatal("App API response is missing App or exposes a secret")
+			}
+		}
+		if e = os.WriteFile(secret, []byte("rotated-secret"), 0600); e != nil {
+			t.Fatal(e)
+		}
+		patch := filepath.Join(dir, "patch.yaml")
+		if e = os.WriteFile(patch, []byte("secrets:\n- env: GREETING\n  file: value\n"), 0600); e != nil {
+			t.Fatal(e)
+		}
+		s.client("app", "patch", "@cli", "--file", patch)
+		s.response("cli", "rotated-secret:")
+		s.gone(old)
+		s.client("traffic", "list")
+		s.client("app", "erase", "@cli")
+		eventually(t, "API erased execution", 60*time.Second, func() bool { return len(s.pods(a)) == 0 })
 	})
 }
 func (s *suite) openStream(name string) (*http.Response, *io.PipeWriter, error) {

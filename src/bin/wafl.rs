@@ -38,13 +38,9 @@ struct Cli {
 }
 #[derive(Subcommand)]
 enum Command {
-    /// Install the Kubernetes platform (see `wafl install --help`).
-    Install,
-    /// Create or reuse a local kind platform (see `wafl dev --help`).
-    Dev,
     /// Inspect autoscaling observers and recover an explicitly stopped observer.
     Traffic,
-    /// Manage Kubernetes App resources (see `wafl app --help`).
+    /// Manage apps through the controller API (see `wafl app --help`).
     App,
     /// Inspect durable direct-port reservations and reclaim orphan allocations.
     Reservation {
@@ -305,9 +301,7 @@ async fn main() -> Result<()> {
             role: Serve::Controller | Serve::Node,
         }
         | Command::App
-        | Command::Traffic
-        | Command::Dev
-        | Command::Install => {
+        | Command::Traffic => {
             anyhow::bail!("platform commands require the wafl-kube companion executable");
         }
         Command::Reservation { action } => {

@@ -33,7 +33,7 @@ bind mount의 cache/예약 디렉터리는 UID 10001이 쓸 수 있어야 합니
 Kubernetes에 전체 플랫폼을 설치합니다. 동일 이미지에 Rust runner/CLI와 Go Virtual Kubelet/controller 실행파일이 들어 있습니다. `wafl`이 명령에 맞는 실행파일로 연결합니다.
 
 ```sh
-wafl install --image ghcr.io/lesomnus/wafl:sha-COMMIT \
+wafl-kube bootstrap install --image ghcr.io/lesomnus/wafl:sha-COMMIT \
   --gateway-image ghcr.io/lesomnus/wafl-traefik:sha-COMMIT
 ```
 

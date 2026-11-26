@@ -4,7 +4,7 @@
 
 플랫폼은 Kubernetes를 사용하며 `App → Deployment → ReplicaSet → Pod → runner Instance`로 실행합니다. 실제 runner Pod 하나가 가상 Node 하나를 제공하고, runner 프로세스 내부에서 여러 WASM Instance를 실행합니다. 앱은 표준 소켓으로 HTTP/gRPC 서버를 열며 별도 SDK가 필요 없습니다.
 
-**[Kubernetes native 시작하기](docs/kubernetes-native.md)**: `wafl dev`로 로컬 kind 플랫폼을 만들거나 `wafl install`로 기존 클러스터에 설치하고, `wafl app add app.yaml`로 앱을 올립니다. 준비 상태를 확인한 rolling update, Secret 교체, 첫 요청으로 0개에서 기동하기와 부하에 따른 증감을 지원합니다. 플랫폼 상태는 Kubernetes에 저장합니다.
+**[Kubernetes native 시작하기](docs/kubernetes-native.md)**: 운영자는 `wafl-kube bootstrap dev`로 로컬 kind 플랫폼을 만들거나 `wafl-kube bootstrap install`로 기존 클러스터에 설치합니다. 앱 사용자는 controller 주소만 지정해 `wafl app add app.yaml`로 앱을 올립니다. `wafl` 클라이언트는 Kubernetes API와 kubeconfig를 사용하지 않습니다. 준비 상태를 확인한 rolling update, Secret 교체, 첫 요청으로 0개에서 기동하기와 부하에 따른 증감을 지원합니다. 플랫폼 상태는 Kubernetes에 저장합니다.
 
 이미지는 `ghcr.io/lesomnus/wafl:latest`와 관측 플러그인을 포함한 `ghcr.io/lesomnus/wafl-traefik:latest`입니다. [자동 증감](docs/autoscaling.md) · [Secret](docs/secrets.md) · [Controller 구조](docs/controller.md) · [컨테이너](docs/container.md)
 

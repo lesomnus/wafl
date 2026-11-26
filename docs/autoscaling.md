@@ -1,6 +1,6 @@
 # 첫 요청 기동과 부하 증감
 
-먼저 [Kubernetes native 튜토리얼](kubernetes-native.md)로 플랫폼을 설치합니다. 로컬 전체 플랫폼은 `wafl dev`, 기존 클러스터는 `wafl install`을 사용합니다.
+먼저 [Kubernetes native 튜토리얼](kubernetes-native.md)로 플랫폼을 설치합니다. 로컬 전체 플랫폼은 `wafl-kube bootstrap dev`, 기존 클러스터는 `wafl-kube bootstrap install`을 사용합니다.
 
 ```yaml
 alias: hello

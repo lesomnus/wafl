@@ -21,8 +21,9 @@ if [ -z "${WAFL_TEST_KUBECONFIG:-}" ]; then
   cp kubernetes/tests/Dockerfile "$stage/Dockerfile"
   docker build -t "$image" "$stage"
   docker build -f Dockerfile.traefik -t "$gateway" .
-  "$WAFL_TEST_CLI" dev --name "$cluster" --image "$image" --gateway-image "$gateway" --load --port "${WAFL_TEST_PORT:-18080}"
+  "$target/debug/wafl-kube" bootstrap dev --name "$cluster" --image "$image" --gateway-image "$gateway" --load --port "${WAFL_TEST_PORT:-18080}" --control-port "${WAFL_TEST_CONTROL_PORT:-18082}"
   export WAFL_TEST_KUBECONFIG="${XDG_CACHE_HOME:-$HOME/.cache}/wafl/dev/$cluster/kubeconfig"
 fi
-# Tests use kubectl port-forward, so gateway requests work with remote Docker.
+# The operator test harness forwards ports; the tested WAFL client has no
+# kubeconfig or Kubernetes helper executables.
 (cd kubernetes && go test -race ./tests -count=1 -v -timeout=20m)

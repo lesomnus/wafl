@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -13,29 +11,27 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
+	"slices"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
-	"connectrpc.com/connect"
+	"github.com/lesomnus/protobuf-patch/patch"
 	wf "github.com/lesomnus/wafl/kubernetes/gen/wafl"
-	"github.com/lesomnus/wafl/kubernetes/internal/platform"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	core "k8s.io/api/core/v1"
-	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/yaml"
 )
 
 func readDocument(path string) (map[string]any, error) {
-	b, e := os.ReadFile(path)
+	file, e := os.Open(path)
+	if e != nil {
+		return nil, e
+	}
+	defer file.Close()
+	b, e := io.ReadAll(io.LimitReader(file, (1<<20)+1))
 	if e != nil {
 		return nil, e
 	}
@@ -44,444 +40,500 @@ func readDocument(path string) (map[string]any, error) {
 	}
 	b, e = yaml.YAMLToJSONStrict(b)
 	if e != nil {
-		return nil, e
+		return nil, errors.New("invalid App YAML")
 	}
 	var v map[string]any
 	e = json.Unmarshal(b, &v)
-	return v, e
-}
-func name(value string) string { return strings.TrimPrefix(value, "@") }
-func output(o *options, v any) error {
-	e := json.NewEncoder(os.Stdout)
-	if o.json {
-		e.SetIndent("", "  ")
+	if e != nil || v == nil {
+		return nil, errors.New("document must be a mapping")
 	}
-	return e.Encode(v)
+	return v, nil
 }
-func appObject(path, namespace string) (*unstructured.Unstructured, error) {
+func reference(value string) *wf.AppRef {
+	if id, e := parseID(value, 10); e == nil {
+		return &wf.AppRef{Key: &wf.AppRef_Id{Id: id}}
+	}
+	return &wf.AppRef{Key: &wf.AppRef_Alias{Alias: strings.TrimPrefix(value, "@")}}
+}
+func document(path string, o *options) (map[string]any, error) {
 	v, e := readDocument(path)
 	if e != nil {
 		return nil, e
 	}
 	if v["kind"] == "App" {
-		a := &unstructured.Unstructured{Object: v}
-		if a.GetAPIVersion() != platform.Group+"/v1alpha1" {
-			return nil, errors.New("unsupported App apiVersion")
+		// Reading an exported declaration does not need Kubernetes clients. The
+		// operator can still submit the original CRD with kubectl independently.
+		metadata, _ := v["metadata"].(map[string]any)
+		spec, ok := v["spec"].(map[string]any)
+		if !ok {
+			return nil, errors.New("App spec must be a mapping")
 		}
-		if a.GetNamespace() == "" {
-			a.SetNamespace(namespace)
+		if ns, _ := metadata["namespace"].(string); ns != "" && ns != strings.TrimPrefix(o.tenant, "@") {
+			return nil, errors.New("declaration namespace differs from --tenant")
 		}
-		return a, nil
+		spec["alias"] = metadata["name"]
+		return spec, nil
 	}
-	alias, _ := v["alias"].(string)
-	delete(v, "alias")
-	if _, ok := v["tenant"]; ok {
-		return nil, errors.New("Kubernetes namespaces replace controller tenant mappings")
-	}
-	if alias == "" {
-		domain, _ := v["domain"].(string)
-		alias = strings.ReplaceAll(domain, ".", "-")
-	}
-	if !regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`).MatchString(alias) || len(alias) > 63 {
-		return nil, errors.New("set a DNS-compatible alias or metadata.name")
-	}
-	return &unstructured.Unstructured{Object: map[string]any{"apiVersion": platform.Group + "/v1alpha1", "kind": "App", "metadata": map[string]any{"name": alias, "namespace": namespace}, "spec": v}}, nil
-}
-func normalize(a *unstructured.Unstructured) error {
-	source, ok := a.Object["spec"].(map[string]any)
-	if !ok {
-		return errors.New("spec must be a mapping")
-	}
-	allowed := map[string]bool{"name": true, "domain": true, "manifest": true, "replicas": true, "scaling": true, "secrets": true, "readiness": true, "rollout": true}
-	for name := range source {
-		if !allowed[name] {
-			return fmt.Errorf("unsupported App spec field %s", name)
-		}
-	}
-	b, e := json.Marshal(source)
-	if e != nil {
-		return e
-	}
-	var spec wf.App
-	if e = protojson.Unmarshal(b, &spec); e != nil {
-		return e
-	}
-	out, e := kubernetesJSON(spec.ProtoReflect(), source)
-	if e != nil {
-		return e
-	}
-	a.Object["spec"] = out
-	return nil
+	return v, nil
 }
 
-// Retain explicit zero values that override Kubernetes defaults and convert
-// only protobuf integer fields. Environment variable names are opaque strings.
-func kubernetesJSON(message protoreflect.Message, source map[string]any) (map[string]any, error) {
-	b, e := protojson.Marshal(message.Interface())
-	if e != nil {
-		return nil, e
-	}
-	var out map[string]any
-	if e = json.Unmarshal(b, &out); e != nil {
-		return nil, e
-	}
-	fields := message.Descriptor().Fields()
-	for i := 0; i < fields.Len(); i++ {
-		field := fields.Get(i)
-		name := field.JSONName()
-		raw, present := source[name]
-		if !present {
-			raw, present = source[field.TextName()]
+// Normalize protobuf field spelling without touching opaque map keys or
+// discarding explicit zero/null values from a merge document.
+func canonical(input map[string]any, descriptor protoreflect.MessageDescriptor) (map[string]any, error) {
+	out := map[string]any{}
+	for key, value := range input {
+		field := descriptor.Fields().ByJSONName(key)
+		if field == nil {
+			field = descriptor.Fields().ByName(protoreflect.Name(key))
 		}
-		value, exists := out[name]
-		if !exists && present {
-			out[name] = raw
-			value = raw
-			exists = true
+		if field == nil {
+			return nil, errors.New("unknown App field")
 		}
-		if !exists || value == nil {
-			continue
+		key = field.JSONName()
+		if _, exists := out[key]; exists {
+			return nil, errors.New("repeated App field")
 		}
-		if field.IsMap() {
-			continue
-		}
-		if field.IsList() {
-			if field.Kind() == protoreflect.MessageKind {
-				values := value.([]any)
-				original, _ := raw.([]any)
-				for j := range values {
-					input := map[string]any{}
-					if j < len(original) {
-						input, _ = original[j].(map[string]any)
-					}
-					values[j], e = kubernetesJSON(message.Get(field).List().Get(j).Message(), input)
-					if e != nil {
-						return nil, e
+		if field.Kind() == protoreflect.MessageKind && !field.IsMap() && value != nil {
+			if field.IsList() {
+				if list, ok := value.([]any); ok {
+					for i, entry := range list {
+						if m, ok := entry.(map[string]any); ok {
+							v, e := canonical(m, field.Message())
+							if e != nil {
+								return nil, e
+							}
+							list[i] = v
+						}
 					}
 				}
-			}
-			continue
-		}
-		switch field.Kind() {
-		case protoreflect.MessageKind:
-			input, _ := raw.(map[string]any)
-			out[name], e = kubernetesJSON(message.Get(field).Message(), input)
-			if e != nil {
-				return nil, e
-			}
-		case protoreflect.Uint64Kind, protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Fixed64Kind, protoreflect.Sfixed64Kind:
-			if text, ok := value.(string); ok {
-				number, e := strconv.ParseInt(text, 10, 64)
+			} else if m, ok := value.(map[string]any); ok {
+				v, e := canonical(m, field.Message())
 				if e != nil {
-					return nil, fmt.Errorf("%s exceeds Kubernetes integer range", name)
+					return nil, e
 				}
-				out[name] = number
+				value = v
 			}
 		}
+		out[key] = value
 	}
 	return out, nil
 }
-func pinBundle(ctx context.Context, c *platform.Clients, a *unstructured.Unstructured, base, system string) error {
-	spec := a.Object["spec"].(map[string]any)
-	manifest, ok := spec["manifest"].(map[string]any)
-	if !ok {
-		return errors.New("manifest is required")
-	}
-	bundle, ok := manifest["bundle"].(map[string]any)
-	if !ok {
-		return errors.New("bundle is required")
-	}
-	source, _ := bundle["url"].(string)
+func localFile(source, base string) (string, error) {
 	u, e := url.Parse(source)
 	if e != nil {
+		return "", e
+	}
+	if u.Scheme != "file" {
+		return "", nil
+	}
+	if u.Host != "" && u.Host != "localhost" {
+		return "", errors.New("file URL must name a local file")
+	}
+	path := u.Path
+	if path == "" {
+		path = u.Opaque
+	}
+	if path == "" {
+		return "", errors.New("empty file URL")
+	}
+	if !filepath.IsAbs(path) {
+		path = filepath.Join(base, path)
+	}
+	return path, nil
+}
+func uploadBundle(ctx context.Context, o *options, bundle map[string]any, base string) error {
+	source, _ := bundle["url"].(string)
+	path, e := localFile(source, base)
+	if e != nil || path == "" {
 		return e
 	}
-	if bundle["digest"] != "" && bundle["digest"] != nil && u.Scheme != "file" {
-		return nil
-	}
-	var reader io.ReadCloser
-	var local string
-	switch u.Scheme {
-	case "file":
-		local = u.Path
-		if local == "" {
-			local = u.Opaque
-		}
-		if !filepath.IsAbs(local) {
-			local = filepath.Join(base, local)
-		}
-		file, e := os.Open(local)
-		if e != nil {
-			return e
-		}
-		info, e := file.Stat()
-		if e != nil || !info.Mode().IsRegular() {
-			file.Close()
-			return errors.New("bundle must be a regular file")
-		}
-		reader = file
-	case "http", "https":
-		r, e := http.NewRequestWithContext(ctx, http.MethodGet, source, nil)
-		if e != nil {
-			return e
-		}
-		response, e := (&http.Client{Timeout: 2 * time.Minute}).Do(r)
-		if e != nil {
-			return e
-		}
-		if response.StatusCode != 200 {
-			response.Body.Close()
-			return errors.New("bundle download failed")
-		}
-		reader = response.Body
-	default:
-		return errors.New("supply bundle.digest for this URL scheme")
-	}
-	defer reader.Close()
-	hash := sha256.New()
-	size, e := io.Copy(hash, io.LimitReader(reader, (1<<30)+1))
+	file, e := os.Open(path)
 	if e != nil {
 		return e
 	}
-	if size > 1<<30 {
+	defer file.Close()
+	info, e := file.Stat()
+	if e != nil || !info.Mode().IsRegular() {
+		return errors.New("bundle must be a regular file")
+	}
+	h := sha256.New()
+	n, e := io.Copy(h, io.LimitReader(file, (1<<30)+1))
+	if e != nil {
+		return e
+	}
+	if n > 1<<30 {
 		return errors.New("bundle exceeds 1 GiB")
 	}
-	digest := "sha256:" + hex.EncodeToString(hash.Sum(nil))
-	if expected, ok := bundle["digest"].(string); ok && expected != "" && expected != digest {
+	digest := hex.EncodeToString(h.Sum(nil))
+	if expected, _ := bundle["digest"].(string); expected != "" && expected != "sha256:"+digest {
 		return errors.New("bundle digest mismatch")
 	}
-	bundle["digest"] = digest
-	if local != "" {
-		ns, e := c.Kube.CoreV1().Namespaces().Get(ctx, system, meta.GetOptions{})
-		if e != nil {
-			return e
-		}
-		cluster := ns.Annotations[platform.Group+"/dev"]
-		if cluster == "" {
-			return errors.New("file bundles require wafl dev; publish an HTTP(S) bundle for a remote cluster")
-		}
-		nodes, e := exec.CommandContext(ctx, "kind", "get", "nodes", "--name", cluster).Output()
-		if e != nil {
-			return e
-		}
-		filename := strings.TrimPrefix(digest, "sha256:") + ".tar.gz"
-		for _, node := range strings.Fields(string(nodes)) {
-			if e = run(ctx, "docker", "exec", node, "mkdir", "-p", "/wafl-assets"); e != nil {
-				return e
-			}
-			if e = run(ctx, "docker", "cp", local, node+":/wafl-assets/"+filename); e != nil {
-				return e
-			}
-			if e = run(ctx, "docker", "exec", node, "chmod", "0644", "/wafl-assets/"+filename); e != nil {
-				return e
-			}
-		}
-		bundle["url"] = "http://wafl-assets." + system + ".svc:8090/" + filename
+	if _, e = file.Seek(0, io.SeekStart); e != nil {
+		return e
 	}
+	r, e := http.NewRequestWithContext(ctx, http.MethodPut, strings.TrimRight(o.endpoint, "/")+"/bundles/"+digest, file)
+	if e != nil {
+		return e
+	}
+	r.Header.Set("Content-Type", "application/gzip")
+	r.Header.Set("wafl-tenant", o.tenant)
+	response, e := http.DefaultClient.Do(r)
+	if e != nil {
+		return e
+	}
+	defer response.Body.Close()
+	b, e := io.ReadAll(io.LimitReader(response.Body, 8193))
+	if e != nil {
+		return e
+	}
+	if response.StatusCode != http.StatusCreated {
+		return fmt.Errorf("controller rejected bundle upload (HTTP %d)", response.StatusCode)
+	}
+	var asset wf.Asset
+	if len(b) > 8192 || protojson.Unmarshal(b, &asset) != nil || asset.Digest != "sha256:"+digest || asset.GetUrl() == "" {
+		return errors.New("invalid controller bundle response")
+	}
+	bundle["url"] = asset.GetUrl()
+	bundle["digest"] = asset.Digest
 	return nil
 }
-func importSecrets(ctx context.Context, c *platform.Clients, a *unstructured.Unstructured, base string) ([]string, error) {
-	spec := a.Object["spec"].(map[string]any)
-	bindings, _ := spec["secrets"].([]any)
-	created := []string{}
-	for _, value := range bindings {
-		binding, ok := value.(map[string]any)
-		if !ok {
-			return created, errors.New("secret must be a mapping")
+func prepareFiles(ctx context.Context, o *options, v map[string]any, base string) error {
+	if m, ok := v["manifest"].(map[string]any); ok {
+		if bundle, ok := m["bundle"].(map[string]any); ok {
+			if e := uploadBundle(ctx, o, bundle, base); e != nil {
+				return e
+			}
 		}
+	}
+	raw, exists := v["secrets"]
+	if !exists || raw == nil {
+		return nil
+	}
+	bindings, ok := raw.([]any)
+	if !ok {
+		return errors.New("secrets must be a list")
+	}
+	values, _ := v["secretValues"].(map[string]any)
+	if values == nil {
+		values = map[string]any{}
+	}
+	kept := []any{}
+	seen := map[string]bool{}
+	for _, entry := range bindings {
+		binding, ok := entry.(map[string]any)
+		if !ok {
+			return errors.New("secret must be a mapping")
+		}
+		env, ok := binding["env"].(string)
+		if !ok || env == "" || seen[env] {
+			return errors.New("invalid or repeated Secret environment name")
+		}
+		seen[env] = true
 		path, ok := binding["file"].(string)
 		if !ok {
+			kept = append(kept, binding)
 			continue
+		}
+		if _, ok = binding["secretKeyRef"]; ok {
+			return errors.New("Secret must have exactly one source")
 		}
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(base, path)
 		}
 		file, e := os.Open(path)
 		if e != nil {
-			return created, errors.New("cannot open secret file")
+			return errors.New("cannot open secret file")
 		}
 		info, e := file.Stat()
 		if e != nil || !info.Mode().IsRegular() {
 			file.Close()
-			return created, errors.New("secret must be a regular file")
+			return errors.New("Secret must be a regular file")
 		}
-		data, e := io.ReadAll(io.LimitReader(file, 16385))
+		b, e := io.ReadAll(io.LimitReader(file, 16385))
 		file.Close()
-		if e != nil || len(data) > 16384 || !utf8.Valid(data) || bytes.ContainsRune(data, 0) {
-			return created, errors.New("invalid secret file contents")
+		if e != nil || len(b) > 16384 || !utf8.Valid(b) || strings.ContainsRune(string(b), 0) {
+			return errors.New("invalid secret file contents")
 		}
-		id := make([]byte, 12)
-		if _, e = rand.Read(id); e != nil {
-			return created, e
-		}
-		key := "wafl-file-" + hex.EncodeToString(id)
-		secret := &core.Secret{ObjectMeta: meta.ObjectMeta{Name: key, Namespace: a.GetNamespace(), Labels: map[string]string{platform.Managed: "true"}}, Immutable: platform.Ptr(true), Data: map[string][]byte{"value": data}}
-		if _, e = c.Kube.CoreV1().Secrets(a.GetNamespace()).Create(ctx, secret, meta.CreateOptions{}); e != nil {
-			return created, e
-		}
-		created = append(created, key)
-		delete(binding, "file")
-		binding["secretKeyRef"] = map[string]any{"name": key, "key": "value"}
+		values[env] = string(b)
 	}
-	return created, nil
+	v["secrets"] = kept
+	if len(values) > 0 {
+		v["secretValues"] = values
+	}
+	return nil
+}
+func merge(base, changes map[string]any) {
+	for key, value := range changes {
+		if value == nil {
+			delete(base, key)
+			continue
+		}
+		if m, ok := value.(map[string]any); ok {
+			old, _ := base[key].(map[string]any)
+			if old == nil {
+				old = map[string]any{}
+			}
+			merge(old, m)
+			base[key] = old
+		} else {
+			base[key] = value
+		}
+	}
+}
+func fieldValue(field protoreflect.FieldDescriptor, value protoreflect.Value) patch.Value {
+	if field.IsList() {
+		values := []patch.Value{}
+		list := value.List()
+		for i := 0; i < list.Len(); i++ {
+			values = append(values, singleValue(field.Kind(), list.Get(i)))
+		}
+		return patch.List(values...)
+	}
+	if field.IsMap() {
+		values := []patch.MapEntry{}
+		value.Map().Range(func(key protoreflect.MapKey, v protoreflect.Value) bool {
+			values = append(values, patch.E(patch.MapStr(key.String()), singleValue(field.MapValue().Kind(), v)))
+			return true
+		})
+		return patch.Map(values...)
+	}
+	return singleValue(field.Kind(), value)
+}
+func singleValue(kind protoreflect.Kind, value protoreflect.Value) patch.Value {
+	switch kind {
+	case protoreflect.BoolKind:
+		return patch.Bool(value.Bool())
+	case protoreflect.StringKind:
+		return patch.Str(value.String())
+	case protoreflect.BytesKind:
+		return patch.Bytes(value.Bytes())
+	case protoreflect.Uint32Kind, protoreflect.Fixed32Kind:
+		return patch.Uint32(uint32(value.Uint()))
+	case protoreflect.Uint64Kind, protoreflect.Fixed64Kind:
+		return patch.Uint64(value.Uint())
+	case protoreflect.Int32Kind, protoreflect.Sint32Kind, protoreflect.Sfixed32Kind:
+		return patch.Int32(int32(value.Int()))
+	case protoreflect.Int64Kind, protoreflect.Sint64Kind, protoreflect.Sfixed64Kind:
+		return patch.Int64(value.Int())
+	case protoreflect.FloatKind:
+		return patch.Float32(float32(value.Float()))
+	case protoreflect.DoubleKind:
+		return patch.Float64(value.Float())
+	case protoreflect.EnumKind:
+		return patch.Enum(int32(value.Enum()))
+	case protoreflect.MessageKind:
+		fields := []patch.FieldValue{}
+		m := value.Message()
+		descriptors := m.Descriptor().Fields()
+		for i := 0; i < descriptors.Len(); i++ {
+			f := descriptors.Get(i)
+			if m.Has(f) {
+				fields = append(fields, patch.F(patch.Num(uint32(f.Number())), fieldValue(f, m.Get(f))))
+			}
+		}
+		return patch.Msg(fields...)
+	default:
+		panic("unsupported App field kind")
+	}
 }
 func appCommand(o *options) *cobra.Command {
-	app := &cobra.Command{Use: "app", Short: "Manage Kubernetes App resources"}
+	root := &cobra.Command{Use: "app", Short: "Manage apps through the controller API"}
 	add := &cobra.Command{Use: "add app.yaml", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		c, e := o.clients()
+		v, e := document(args[0], o)
 		if e != nil {
 			return e
 		}
-		a, e := appObject(args[0], o.namespace)
+		v, e = canonical(v, (&wf.AppAddRequest{}).ProtoReflect().Descriptor())
 		if e != nil {
 			return e
 		}
-		base := filepath.Dir(args[0])
-		if e = pinBundle(cmd.Context(), c, a, base, o.system); e != nil {
-			return e
+		if _, exists := v["replicas"]; !exists && v["scaling"] == nil {
+			v["replicas"] = 1
 		}
-		secrets, e := importSecrets(cmd.Context(), c, a, base)
-		committed := false
-		defer func() {
-			if !committed {
-				for _, s := range secrets {
-					_ = c.Kube.CoreV1().Secrets(a.GetNamespace()).Delete(context.Background(), s, meta.DeleteOptions{})
-				}
-			}
-		}()
-		if e != nil {
-			return e
-		}
-		if e = normalize(a); e != nil {
-			return e
-		}
-		created, e := c.Dynamic.Resource(platform.Apps).Namespace(a.GetNamespace()).Create(cmd.Context(), a, meta.CreateOptions{})
-		if e != nil {
-			return e
-		}
-		committed = true
-		for _, key := range secrets {
-			s, e := c.Kube.CoreV1().Secrets(a.GetNamespace()).Get(cmd.Context(), key, meta.GetOptions{})
-			if e != nil {
-				return e
-			}
-			s.OwnerReferences = []meta.OwnerReference{{APIVersion: platform.Group + "/v1alpha1", Kind: "App", Name: created.GetName(), UID: created.GetUID()}}
-			if _, e = c.Kube.CoreV1().Secrets(a.GetNamespace()).Update(cmd.Context(), s, meta.UpdateOptions{}); e != nil {
-				return e
+		if rollout, ok := v["rollout"].(map[string]any); ok {
+			if _, exists := rollout["surge"]; !exists {
+				rollout["surge"] = 1
 			}
 		}
-		if o.json {
-			return output(o, created.Object)
-		}
-		fmt.Printf("%s\t@%s\t%s\n", created.GetUID(), created.GetName(), created.GetNamespace())
-		return nil
-	}}
-	get := &cobra.Command{Use: "get NAME", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		c, e := o.clients()
-		if e != nil {
+		if e = prepareFiles(cmd.Context(), o, v, filepath.Dir(args[0])); e != nil {
 			return e
-		}
-		v, e := c.Dynamic.Resource(platform.Apps).Namespace(o.namespace).Get(cmd.Context(), name(args[0]), meta.GetOptions{})
-		if e != nil {
-			return e
-		}
-		return output(o, v.UnstructuredContent())
-	}}
-	list := &cobra.Command{Use: "list", RunE: func(cmd *cobra.Command, _ []string) error {
-		c, e := o.clients()
-		if e != nil {
-			return e
-		}
-		v, e := c.Dynamic.Resource(platform.Apps).Namespace(o.namespace).List(cmd.Context(), meta.ListOptions{})
-		if e != nil {
-			return e
-		}
-		return output(o, v.UnstructuredContent())
-	}}
-	erase := &cobra.Command{Use: "erase NAME", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		c, e := o.clients()
-		if e != nil {
-			return e
-		}
-		return c.Dynamic.Resource(platform.Apps).Namespace(o.namespace).Delete(cmd.Context(), name(args[0]), meta.DeleteOptions{PropagationPolicy: platform.Ptr(meta.DeletePropagationForeground)})
-	}}
-	var patchFile string
-	patch := &cobra.Command{Use: "patch NAME --file patch.yaml", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		v, e := readDocument(patchFile)
-		if e != nil {
-			return e
-		}
-		if _, ok := v["spec"]; !ok {
-			v = map[string]any{"spec": v}
 		}
 		b, e := json.Marshal(v)
 		if e != nil {
-			return e
+			return errors.New("invalid App declaration")
 		}
-		c, e := o.clients()
+		q := &wf.AppAddRequest{}
+		if e = protojson.Unmarshal(b, q); e != nil {
+			return errors.New("invalid App declaration or unknown field")
+		}
+		r, e := o.apps().Add(cmd.Context(), request(o, q))
 		if e != nil {
 			return e
 		}
-		out, e := c.Dynamic.Resource(platform.Apps).Namespace(o.namespace).Patch(cmd.Context(), name(args[0]), types.MergePatchType, b, meta.PatchOptions{})
-		if e != nil {
-			return e
+		if o.json {
+			return output(r.Msg)
 		}
-		return output(o, out.Object)
+		_, e = fmt.Fprintf(os.Stdout, "%s\t@%s\t%s\n", uuid(r.Msg.Id), r.Msg.Alias, r.Msg.GetTenant().GetAlias())
+		return e
 	}}
-	patch.Flags().StringVar(&patchFile, "file", "", "App spec merge patch (null removes a field)")
-	_ = patch.MarkFlagRequired("file")
-	var follow bool
-	logs := &cobra.Command{Use: "logs NAME", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		c, e := o.clients()
+	get := &cobra.Command{Use: "get ID|@ALIAS", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		r, e := o.apps().Get(cmd.Context(), request(o, &wf.AppGetRequest{Ref: reference(args[0])}))
 		if e != nil {
 			return e
 		}
-		a, e := c.Dynamic.Resource(platform.Apps).Namespace(o.namespace).Get(cmd.Context(), name(args[0]), meta.GetOptions{})
-		if e != nil {
-			return e
-		}
-		pods, e := c.Kube.CoreV1().Pods(o.namespace).List(cmd.Context(), meta.ListOptions{LabelSelector: platform.AppUID + "=" + string(a.GetUID())})
-		if e != nil {
-			return e
-		}
-		for _, p := range pods.Items {
-			endpoint := p.Annotations[platform.Runner]
-			id := platform.ID(7, string(p.UID))
-			if endpoint == "" {
-				continue
-			}
-			if physical := p.Annotations[platform.RunnerPod]; physical != "" {
-				local, stop, e := forward(cmd.Context(), c, physical, 8081)
-				if e != nil {
-					return e
-				}
-				defer stop()
-				endpoint = local
-			}
-			client := platform.NewRunner(endpoint)
-			stream, e := client.Instances.Tail(cmd.Context(), connect.NewRequest(&wf.InstanceTailRequest{Ref: &wf.InstanceRef{Key: &wf.InstanceRef_Id{Id: id}}, Follow: follow}))
+		return output(r.Msg)
+	}}
+	list := &cobra.Command{Use: "list", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
+		q := &wf.AppListRequest{}
+		for {
+			r, e := o.apps().List(cmd.Context(), request(o, q))
 			if e != nil {
 				return e
 			}
-			for stream.Receive() {
-				entry := stream.Msg()
-				if o.json {
-					data, e := protojson.Marshal(entry)
-					if e != nil {
-						return e
-					}
-					fmt.Println(string(data))
-				} else {
-					if _, e := os.Stdout.Write(entry.Data); e != nil {
-						return e
-					}
+			for _, v := range r.Msg.Items {
+				if e = output(v); e != nil {
+					return e
 				}
 			}
-			return stream.Err()
+			if r.Msg.Next == "" {
+				return nil
+			}
+			q.After = r.Msg.Next
 		}
-		return errors.New("App has no running execution")
+	}}
+	erase := &cobra.Command{Use: "erase ID|@ALIAS", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		r, e := o.apps().Erase(cmd.Context(), request(o, reference(args[0])))
+		if e != nil {
+			return e
+		}
+		if o.json {
+			return output(r.Msg)
+		}
+		return nil
+	}}
+	var patchFile string
+	update := &cobra.Command{Use: "patch ID|@ALIAS --file patch.yaml", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		changes, e := readDocument(patchFile)
+		if e != nil {
+			return e
+		}
+		if wrapped, ok := changes["spec"].(map[string]any); ok {
+			changes = wrapped
+		}
+		changes, e = canonical(changes, (&wf.App{}).ProtoReflect().Descriptor())
+		if e != nil {
+			return e
+		}
+		for key := range changes {
+			switch key {
+			case "name", "replicas", "manifest", "scaling", "secrets", "readiness", "rollout", "secretValues", "secret_values":
+			default:
+				return errors.New("patch contains an unknown or read-only field")
+			}
+		}
+		ref := reference(args[0])
+		current, e := o.apps().Get(cmd.Context(), request(o, &wf.AppGetRequest{Ref: ref}))
+		if e != nil {
+			return e
+		}
+		// An alias may be erased and recreated with the same generation. Bind the
+		// update to the identity that Get actually returned as well as its revision.
+		ref = &wf.AppRef{Key: &wf.AppRef_Id{Id: current.Msg.Id}}
+		// Convert merge-style YAML into the shared protobuf patch format. Fence the
+		// Get/merge/Apply sequence, so a simultaneous edit cannot be overwritten.
+		raw, _ := protojson.Marshal(current.Msg)
+		var base map[string]any
+		_ = json.Unmarshal(raw, &base)
+		merge(base, changes)
+		if e = prepareFiles(cmd.Context(), o, base, filepath.Dir(patchFile)); e != nil {
+			return e
+		}
+		data, _ := json.Marshal(base)
+		next := &wf.App{}
+		if e = protojson.Unmarshal(data, next); e != nil {
+			return errors.New("invalid App patch")
+		}
+		if len(next.SecretValues) > 0 {
+			changes["secretValues"] = base["secretValues"]
+		}
+		keys := []string{}
+		for key := range changes {
+			keys = append(keys, key)
+		}
+		slices.Sort(keys)
+		ops := []patch.Op{}
+		m := next.ProtoReflect()
+		for _, key := range keys {
+			field := m.Descriptor().Fields().ByJSONName(key)
+			if field == nil {
+				field = m.Descriptor().Fields().ByName(protoreflect.Name(key))
+			}
+			if field == nil {
+				return errors.New("invalid App patch field")
+			}
+			target := patch.Target(patch.Num(uint32(field.Number())))
+			if changes[key] == nil {
+				ops = append(ops, target.Skip().Remove())
+			} else {
+				ops = append(ops, target.Assign(fieldValue(field, m.Get(field))))
+			}
+		}
+		if len(ops) == 0 {
+			return errors.New("empty App patch")
+		}
+		p, e := patch.New("wafl.App", ops[0], ops[1:]...)
+		if e != nil {
+			return errors.New("invalid App patch")
+		}
+		q := request(o, &wf.AppApplyRequest{Ref: ref, Patch: p})
+		q.Header().Set("wafl-revision", strconv.FormatUint(current.Msg.Revision, 10))
+		r, e := o.apps().Apply(cmd.Context(), q)
+		if e != nil {
+			return e
+		}
+		return output(r.Msg)
+	}}
+	update.Flags().StringVar(&patchFile, "file", "", "App fields to merge; null removes a field")
+	_ = update.MarkFlagRequired("file")
+	var follow bool
+	var instance string
+	var cursor uint64
+	var limit uint32
+	logs := &cobra.Command{Use: "logs ID|@ALIAS", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
+		q := &wf.AppTailRequest{Ref: reference(args[0]), Follow: follow, Cursor: cursor, Limit: limit}
+		if instance != "" {
+			id, e := parseID(instance, 7)
+			if e != nil {
+				return e
+			}
+			q.Instance = &wf.InstanceRef{Key: &wf.InstanceRef_Id{Id: id}}
+		}
+		stream, e := o.apps().Tail(cmd.Context(), request(o, q))
+		if e != nil {
+			return e
+		}
+		defer stream.Close()
+		for stream.Receive() {
+			if o.json {
+				b, e := protojson.Marshal(stream.Msg())
+				if e != nil {
+					return e
+				}
+				if _, e = fmt.Fprintln(os.Stdout, string(b)); e != nil {
+					return e
+				}
+			} else {
+				if _, e = os.Stdout.Write(stream.Msg().Data); e != nil {
+					return e
+				}
+			}
+		}
+		return stream.Err()
 	}}
 	logs.Flags().BoolVarP(&follow, "follow", "f", false, "Follow the selected execution")
-	app.AddCommand(add, get, list, erase, patch, logs)
-	return app
+	logs.Flags().StringVar(&instance, "instance", "", "Select an execution by ID")
+	logs.Flags().Uint64Var(&cursor, "cursor", 0, "Resume beyond a sequence; requires --instance")
+	logs.Flags().Uint32Var(&limit, "limit", 0, "Initial history records; zero returns retained history")
+	root.AddCommand(add, get, list, erase, update, logs)
+	return root
 }

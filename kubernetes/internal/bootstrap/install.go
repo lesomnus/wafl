@@ -1,4 +1,4 @@
-package cli
+package bootstrap
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/lesomnus/wafl/kubernetes/install"
+	"github.com/lesomnus/wafl/kubernetes/internal/cli"
 	"github.com/lesomnus/wafl/kubernetes/internal/platform"
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -88,6 +89,7 @@ func installPlatform(ctx context.Context, o *options, image, gateway string, dev
 	manifest = strings.ReplaceAll(manifest, "ghcr.io/lesomnus/wafl-traefik:latest", gateway)
 	manifest = strings.ReplaceAll(manifest, "wafl-system", o.system)
 	if dev {
+		manifest = strings.ReplaceAll(manifest, "args: [serve, controller, --system-namespace, "+o.system+"]", "args: [serve, controller, --system-namespace, "+o.system+", --assets, http://wafl-assets."+o.system+".svc:8090]")
 		manifest = strings.ReplaceAll(manifest, "          image:", "          imagePullPolicy: IfNotPresent\n          image:")
 	}
 	if e = apply(ctx, c, []byte(manifest)); e != nil {
@@ -114,7 +116,7 @@ func installCommand(o *options) *cobra.Command {
 }
 func devCommand(o *options) *cobra.Command {
 	var cluster, image, gateway string
-	var port int
+	var port, controlPort int
 	var load bool
 	cmd := &cobra.Command{Use: "dev [app.yaml]", Short: "Create/reuse a local kind cluster and install the complete WAFL platform", Args: cobra.MaximumNArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := cmd.Context()
@@ -124,7 +126,7 @@ func devCommand(o *options) *cobra.Command {
 			bindHost = "0.0.0.0"
 		}
 		if _, e := exec.LookPath("kind"); e != nil {
-			return fmt.Errorf("wafl dev requires kind and Docker: %w", e)
+			return fmt.Errorf("local bootstrap requires kind and Docker: %w", e)
 		}
 		if _, e := exec.LookPath("docker"); e != nil {
 			return e
@@ -150,7 +152,7 @@ func devCommand(o *options) *cobra.Command {
 			}
 		}
 		if !found {
-			data := fmt.Sprintf("kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnetworking:\n  apiServerAddress: %s\nnodes:\n- role: control-plane\n  extraPortMappings:\n  - containerPort: 30080\n    hostPort: %d\n    listenAddress: %s\n    protocol: TCP\n", bindHost, port, bindHost)
+			data := fmt.Sprintf("kind: Cluster\napiVersion: kind.x-k8s.io/v1alpha4\nnetworking:\n  apiServerAddress: %s\nnodes:\n- role: control-plane\n  extraPortMappings:\n  - containerPort: 30080\n    hostPort: %d\n    listenAddress: %s\n    protocol: TCP\n  - containerPort: 30082\n    hostPort: %d\n    listenAddress: %s\n    protocol: TCP\n", bindHost, port, bindHost, controlPort, bindHost)
 			if e = os.WriteFile(config, []byte(data), 0600); e != nil {
 				return e
 			}
@@ -274,17 +276,18 @@ func devCommand(o *options) *cobra.Command {
 			}
 		}
 		if len(args) > 0 {
-			add := appCommand(o)
-			add.SetArgs(append([]string{"add"}, args...))
+			add := cli.Command()
+			add.SetArgs(append([]string{"--endpoint", "http://" + net.JoinHostPort(gatewayHost, fmt.Sprint(controlPort)), "--tenant", o.tenant, "app", "add"}, args...))
 			if e = add.ExecuteContext(ctx); e != nil {
 				return e
 			}
 		}
-		fmt.Printf("WAFL ready at http://%s\nKubeconfig: %s\nUse wafl --kubeconfig %s app add app.yaml\n", net.JoinHostPort(gatewayHost, fmt.Sprint(port)), kubeconfig, kubeconfig)
+		fmt.Printf("WAFL ready at http://%s\nController: http://%s\nOperator kubeconfig: %s\nUse wafl --endpoint http://%s app add app.yaml\n", net.JoinHostPort(gatewayHost, fmt.Sprint(port)), net.JoinHostPort(gatewayHost, fmt.Sprint(controlPort)), kubeconfig, net.JoinHostPort(gatewayHost, fmt.Sprint(controlPort)))
 		return nil
 	}}
 	f := cmd.Flags()
 	f.StringVar(&cluster, "name", "wafl", "Dedicated kind cluster name")
+	f.IntVar(&controlPort, "control-port", 8082, "Local controller API port (chosen when creating the cluster)")
 	f.IntVar(&port, "port", 8080, "Local gateway port (chosen when creating the cluster)")
 	f.StringVar(&image, "image", "ghcr.io/lesomnus/wafl:latest", "WAFL image")
 	f.StringVar(&gateway, "gateway-image", "ghcr.io/lesomnus/wafl-traefik:latest", "Gateway image")
