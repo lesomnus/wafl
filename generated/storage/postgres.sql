@@ -25,7 +25,9 @@ CREATE TABLE "pd_wafl__App" (
   "f17" TEXT,
   "f18" TEXT,
   "f19" BYTEA,
-  "f20" TEXT NOT NULL
+  "f20" TEXT NOT NULL,
+  "f21" TEXT,
+  "f22" TEXT
 );
 CREATE TABLE "pd_wafl__AppSource" (
   "f1" BYTEA NOT NULL PRIMARY KEY,

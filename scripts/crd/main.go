@@ -72,7 +72,7 @@ func definition() object {
 	fields := object{}
 	for _, f := range messages[".wafl.App"].GetField() {
 		switch f.GetName() {
-		case "name", "domain", "manifest", "replicas", "scaling", "secrets":
+		case "name", "domain", "manifest", "replicas", "scaling", "secrets", "readiness", "rollout":
 			fields[f.GetJsonName()] = field(f)
 		}
 	}
@@ -83,12 +83,23 @@ func definition() object {
 	domain["pattern"] = `^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$`
 	domain["x-kubernetes-validations"] = []any{object{"rule": "self == oldSelf", "message": "domain is immutable; create a new App"}}
 	at(spec, "name")["maxLength"] = 256
+	probe := at(spec, "readiness")
+	probe["x-kubernetes-validations"] = []any{object{"rule": "has(self.http) != has(self.grpc)", "message": "choose http path or grpc service"}}
+	at(probe, "http")["pattern"] = `^/`
+	for _, key := range []string{"periodSeconds", "timeoutSeconds", "failures", "successes"} {
+		at(probe, key)["minimum"], at(probe, key)["maximum"] = 1, 60
+	}
+	rollout := at(spec, "rollout")
+	at(rollout, "surge")["default"], at(rollout, "surge")["maximum"] = 1, 100
+	at(rollout, "unavailable")["maximum"] = 100
+	at(rollout, "drainMs")["default"], at(rollout, "drainMs")["minimum"], at(rollout, "drainMs")["maximum"] = 30000, 1000, 600000
+	rollout["x-kubernetes-validations"] = []any{object{"rule": "!has(self.surge) || self.surge > 0 || (has(self.unavailable) && self.unavailable > 0)", "message": "surge and unavailable cannot both be zero"}}
 	secrets := at(spec, "secrets")
 	secrets["maxItems"] = 64
 	secrets["x-kubernetes-list-type"] = "map"
 	secrets["x-kubernetes-list-map-keys"] = []string{"env"}
 	secret := secrets["items"].(object)
-	delete(props(secret), "file") // Files belong to the non-Kubernetes provider.
+	delete(props(secret), "file") // CLI imports files as Kubernetes Secrets.
 	secret["required"] = []string{"env", "secretKeyRef"}
 	at(secret, "env")["pattern"] = `^[A-Za-z_][A-Za-z0-9_]*$`
 	at(secret, "env")["maxLength"] = 128
@@ -106,9 +117,9 @@ func definition() object {
 	at(m, "protocol")["enum"] = []string{"", "http", "h2c"}
 	at(m, "port")["minimum"], at(m, "port")["maximum"], at(m, "port")["default"] = 1, 65535, 8080
 	at(m, "idleMs")["maximum"], at(m, "maxActive")["maximum"] = 0, 0
-	at(m, "bundle")["required"] = []string{"url"}
+	at(m, "bundle")["required"] = []string{"url", "digest"}
 	at(m, "bundle", "url")["minLength"], at(m, "bundle", "url")["maxLength"] = 1, 8192
-	at(m, "bundle", "digest")["pattern"] = `^$|^sha256:[0-9a-f]{64}$`
+	at(m, "bundle", "digest")["pattern"] = `^sha256:[0-9a-f]{64}$`
 	binding := at(m, "bindings")["items"].(object)
 	binding["required"] = []string{"port", "target"}
 	at(binding, "port")["minimum"], at(binding, "port")["maximum"] = 1, 65535
@@ -119,7 +130,7 @@ func definition() object {
 		"observedGeneration": object{"type": "integer", "format": "int64", "minimum": 0},
 	}}
 	status := object{"type": "object", "properties": object{
-		"app": object{"type": "string"}, "alias": object{"type": "string"},
+		"deployment": object{"type": "string"}, "service": object{"type": "string"},
 		"observedGeneration": object{"type": "integer", "format": "int64", "minimum": 0},
 		"revision":           object{"type": "integer", "format": "int64", "minimum": 0},
 		"desired":            object{"type": "integer", "format": "int64", "minimum": 0},
@@ -158,11 +169,23 @@ func main() {
 			register("."+f.GetPackage(), m)
 		}
 	}
+	if err := generateGo(root, &descriptors, len(os.Args) > 1 && os.Args[1] == "--check"); err != nil {
+		panic(err)
+	}
 	data, err = json.MarshalIndent(definition(), "", "  ")
 	if err != nil {
 		panic(err)
 	}
 	data = append(data, '\n')
+	copyPath := filepath.Join(root, "kubernetes/install/apps.json")
+	if len(os.Args) > 1 && os.Args[1] == "--check" {
+		old, err := os.ReadFile(copyPath)
+		if err != nil || !bytes.Equal(old, data) {
+			panic("embedded App CRD is stale")
+		}
+	} else if err := os.WriteFile(copyPath, data, 0644); err != nil {
+		panic(err)
+	}
 	path := filepath.Join(root, "deploy/kubernetes/apps.json")
 	if len(os.Args) > 1 && os.Args[1] == "--check" {
 		old, err := os.ReadFile(path)

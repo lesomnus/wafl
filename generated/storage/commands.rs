@@ -481,6 +481,22 @@ async fn dispatch(
                 .await?;
             emit(serde_json::to_value(res.into_owned())?)?;
         }
+        ("wafl.Instance", "Halt") => {
+            let res = call_unary::<
+                _,
+                proto::r#wafl::r#InstanceStopRequest,
+                <proto::r#wafl::r#Instance as buffa::HasMessageView>::View<'static>,
+            >(
+                    client,
+                    config,
+                    "wafl.InstanceService",
+                    "Halt",
+                    serde_json::from_value(request)?,
+                    Default::default(),
+                )
+                .await?;
+            emit(serde_json::to_value(res.into_owned())?)?;
+        }
         ("wafl.Instance", "List") => {
             let res = call_unary::<
                 _,

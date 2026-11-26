@@ -35,6 +35,10 @@ pub struct AppAddRequestView<'a> {
     >,
     /// Field 20: `secrets`
     pub secrets: ::buffa::RepeatedView<'a, super::super::__buffa::view::SecretView<'a>>,
+    /// Field 21: `readiness`
+    pub readiness: ::buffa::MessageFieldView<super::super::__buffa::view::ProbeView<'a>>,
+    /// Field 22: `rollout`
+    pub rollout: ::buffa::MessageFieldView<super::super::__buffa::view::RolloutView<'a>>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
@@ -211,6 +215,48 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                     }
                 }
             }
+            21u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.readiness.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.readiness = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ProbeView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            22u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.rollout.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.rollout = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::RolloutView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
             20u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -299,6 +345,22 @@ impl<'a> ::buffa::MessageView<'a> for AppAddRequestView<'a> {
                 .iter()
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            readiness: match self.readiness.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Probe,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            rollout: match self.rollout.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Rollout,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -376,6 +438,22 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.readiness.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.readiness.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.rollout.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.rollout.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -428,6 +506,14 @@ impl<'a> ::buffa::ViewEncode<'a> for AppAddRequestView<'a> {
         for v in &self.secrets {
             ::buffa::types::put_len_delimited_header(20u32, __cache.consume_next(), buf);
             v.write_to(__cache, buf);
+        }
+        if self.readiness.is_set() {
+            ::buffa::types::put_len_delimited_header(21u32, __cache.consume_next(), buf);
+            self.readiness.write_to(__cache, buf);
+        }
+        if self.rollout.is_set() {
+            ::buffa::types::put_len_delimited_header(22u32, __cache.consume_next(), buf);
+            self.rollout.write_to(__cache, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -503,6 +589,16 @@ impl<'__a> ::serde::Serialize for AppAddRequestView<'__a> {
         }
         if !self.secrets.is_empty() {
             __map.serialize_entry("secrets", &*self.secrets)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.readiness.as_option() {
+                __map.serialize_entry("readiness", __v)?;
+            }
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.rollout.as_option() {
+                __map.serialize_entry("rollout", __v)?;
+            }
         }
         __map.end()
     }
@@ -664,6 +760,20 @@ impl AppAddRequestOwnedView {
         &self,
     ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::SecretView<'_>> {
         &self.0.reborrow().secrets
+    }
+    /// Field 21: `readiness`
+    #[must_use]
+    pub fn readiness(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ProbeView<'_>> {
+        &self.0.reborrow().readiness
+    }
+    /// Field 22: `rollout`
+    #[must_use]
+    pub fn rollout(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::RolloutView<'_>> {
+        &self.0.reborrow().rollout
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppAddRequestView<'static>>>
@@ -1360,6 +1470,10 @@ pub struct AppSelectView<'a> {
     >,
     /// Field 20: `secrets`
     pub secrets: ::core::option::Option<bool>,
+    /// Field 21: `readiness`
+    pub readiness: ::core::option::Option<bool>,
+    /// Field 22: `rollout`
+    pub rollout: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
@@ -1501,6 +1615,20 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
                 )?;
                 view.secrets = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            21u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.readiness = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
+            22u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.rollout = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             _ => {
                 ::buffa::encoding::skip_field_depth(tag, &mut cur, ctx.depth())?;
                 let span_len = before_tag.len() - cur.len();
@@ -1549,6 +1677,8 @@ impl<'a> ::buffa::MessageView<'a> for AppSelectView<'a> {
                 None => ::buffa::MessageField::none(),
             },
             secrets: self.secrets,
+            readiness: self.readiness,
+            rollout: self.rollout,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -1606,6 +1736,12 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         if self.secrets.is_some() {
             size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
         }
+        if self.readiness.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.rollout.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -1654,6 +1790,12 @@ impl<'a> ::buffa::ViewEncode<'a> for AppSelectView<'a> {
         }
         if let Some(v) = self.secrets {
             ::buffa::types::put_bool_field(20u32, v, buf);
+        }
+        if let Some(v) = self.readiness {
+            ::buffa::types::put_bool_field(21u32, v, buf);
+        }
+        if let Some(v) = self.rollout {
+            ::buffa::types::put_bool_field(22u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -1715,6 +1857,12 @@ impl<'__a> ::serde::Serialize for AppSelectView<'__a> {
         }
         if let ::core::option::Option::Some(__v) = self.secrets {
             __map.serialize_entry("secrets", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.readiness {
+            __map.serialize_entry("readiness", &__v)?;
+        }
+        if let ::core::option::Option::Some(__v) = self.rollout {
+            __map.serialize_entry("rollout", &__v)?;
         }
         __map.end()
     }
@@ -1871,6 +2019,16 @@ impl AppSelectOwnedView {
     pub fn secrets(&self) -> ::core::option::Option<bool> {
         self.0.reborrow().secrets
     }
+    /// Field 21: `readiness`
+    #[must_use]
+    pub fn readiness(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().readiness
+    }
+    /// Field 22: `rollout`
+    #[must_use]
+    pub fn rollout(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().rollout
+    }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppSelectView<'static>>>
 for AppSelectOwnedView {
@@ -1947,6 +2105,24 @@ pub struct AppPatchRequestView<'a> {
     pub state_null: ::core::option::Option<bool>,
     /// Field 40: `secrets`
     pub secrets: ::buffa::RepeatedView<'a, super::super::__buffa::view::SecretView<'a>>,
+    /// Field 42: `readiness`
+    pub readiness: ::buffa::MessageFieldView<super::super::__buffa::view::ProbeView<'a>>,
+    /// Clear readiness instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and readiness clears.
+    ///
+    /// Field 43: `readiness_null`
+    pub readiness_null: ::core::option::Option<bool>,
+    /// Field 44: `rollout`
+    pub rollout: ::buffa::MessageFieldView<super::super::__buffa::view::RolloutView<'a>>,
+    /// Clear rollout instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and rollout clears.
+    ///
+    /// Field 45: `rollout_null`
+    pub rollout_null: ::core::option::Option<bool>,
     pub __buffa_unknown_fields: ::buffa::UnknownFieldsView<'a>,
 }
 impl<'a> ::buffa::MessageView<'a> for AppPatchRequestView<'a> {
@@ -2109,6 +2285,62 @@ impl<'a> ::buffa::MessageView<'a> for AppPatchRequestView<'a> {
                 )?;
                 view.state_null = Some(::buffa::types::decode_bool(&mut cur)?);
             }
+            42u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.readiness.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.readiness = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::ProbeView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            43u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.readiness_null = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
+            44u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::LengthDelimited,
+                )?;
+                let __sub_ctx = ctx.descend()?;
+                let sub = ::buffa::types::borrow_bytes(&mut cur)?;
+                match view.rollout.as_mut() {
+                    Some(existing) => {
+                        ::buffa::MessageView::merge_into_view(existing, sub, __sub_ctx)?
+                    }
+                    None => {
+                        view.rollout = ::buffa::MessageFieldView::set(
+                            <super::super::__buffa::view::RolloutView as ::buffa::MessageView>::decode_view_ctx(
+                                sub,
+                                __sub_ctx,
+                            )?,
+                        );
+                    }
+                }
+            }
+            45u32 => {
+                ::buffa::encoding::check_wire_type(
+                    tag,
+                    ::buffa::encoding::WireType::Varint,
+                )?;
+                view.rollout_null = Some(::buffa::types::decode_bool(&mut cur)?);
+            }
             40u32 => {
                 ::buffa::encoding::check_wire_type(
                     tag,
@@ -2190,6 +2422,24 @@ impl<'a> ::buffa::MessageView<'a> for AppPatchRequestView<'a> {
                 .iter()
                 .map(|v| v.to_owned_from_source(__buffa_src))
                 .collect::<::core::result::Result<_, ::buffa::DecodeError>>()?,
+            readiness: match self.readiness.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Probe,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            readiness_null: self.readiness_null,
+            rollout: match self.rollout.as_option() {
+                Some(v) => {
+                    ::buffa::MessageField::<
+                        super::super::Rollout,
+                    >::some(v.to_owned_from_source(__buffa_src)?)
+                }
+                None => ::buffa::MessageField::none(),
+            },
+            rollout_null: self.rollout_null,
             __buffa_unknown_fields: self.__buffa_unknown_fields.to_owned()?.into(),
             ..::core::default::Default::default()
         })
@@ -2262,6 +2512,28 @@ impl<'a> ::buffa::ViewEncode<'a> for AppPatchRequestView<'a> {
                 += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
                     + inner_size;
         }
+        if self.readiness.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.readiness.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.readiness_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
+        if self.rollout.is_set() {
+            let __slot = __cache.reserve();
+            let inner_size = self.rollout.compute_size(__cache);
+            __cache.set(__slot, inner_size);
+            size
+                += 2u32 + ::buffa::encoding::varint_len(inner_size as u64) as u32
+                    + inner_size;
+        }
+        if self.rollout_null.is_some() {
+            size += 2u32 + ::buffa::types::BOOL_ENCODED_LEN as u32;
+        }
         size += self.__buffa_unknown_fields.encoded_len() as u32;
         size
     }
@@ -2313,6 +2585,20 @@ impl<'a> ::buffa::ViewEncode<'a> for AppPatchRequestView<'a> {
         for v in &self.secrets {
             ::buffa::types::put_len_delimited_header(40u32, __cache.consume_next(), buf);
             v.write_to(__cache, buf);
+        }
+        if self.readiness.is_set() {
+            ::buffa::types::put_len_delimited_header(42u32, __cache.consume_next(), buf);
+            self.readiness.write_to(__cache, buf);
+        }
+        if let Some(v) = self.readiness_null {
+            ::buffa::types::put_bool_field(43u32, v, buf);
+        }
+        if self.rollout.is_set() {
+            ::buffa::types::put_len_delimited_header(44u32, __cache.consume_next(), buf);
+            self.rollout.write_to(__cache, buf);
+        }
+        if let Some(v) = self.rollout_null {
+            ::buffa::types::put_bool_field(45u32, v, buf);
         }
         self.__buffa_unknown_fields.write_to(buf);
     }
@@ -2378,6 +2664,22 @@ impl<'__a> ::serde::Serialize for AppPatchRequestView<'__a> {
         }
         if !self.secrets.is_empty() {
             __map.serialize_entry("secrets", &*self.secrets)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.readiness.as_option() {
+                __map.serialize_entry("readiness", __v)?;
+            }
+        }
+        if let ::core::option::Option::Some(__v) = self.readiness_null {
+            __map.serialize_entry("readinessNull", &__v)?;
+        }
+        {
+            if let ::core::option::Option::Some(__v) = self.rollout.as_option() {
+                __map.serialize_entry("rollout", __v)?;
+            }
+        }
+        if let ::core::option::Option::Some(__v) = self.rollout_null {
+            __map.serialize_entry("rolloutNull", &__v)?;
         }
         __map.end()
     }
@@ -2554,6 +2856,40 @@ impl AppPatchRequestOwnedView {
         &self,
     ) -> &::buffa::RepeatedView<'_, super::super::__buffa::view::SecretView<'_>> {
         &self.0.reborrow().secrets
+    }
+    /// Field 42: `readiness`
+    #[must_use]
+    pub fn readiness(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::ProbeView<'_>> {
+        &self.0.reborrow().readiness
+    }
+    /// Clear readiness instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and readiness clears.
+    ///
+    /// Field 43: `readiness_null`
+    #[must_use]
+    pub fn readiness_null(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().readiness_null
+    }
+    /// Field 44: `rollout`
+    #[must_use]
+    pub fn rollout(
+        &self,
+    ) -> &::buffa::MessageFieldView<super::super::__buffa::view::RolloutView<'_>> {
+        &self.0.reborrow().rollout
+    }
+    /// Clear rollout instead of writing it.
+    /// It takes a field of its own because an unset value already means
+    /// "leave it alone", so no value could have meant NULL. It wins
+    /// outright: setting both this and rollout clears.
+    ///
+    /// Field 45: `rollout_null`
+    #[must_use]
+    pub fn rollout_null(&self) -> ::core::option::Option<bool> {
+        self.0.reborrow().rollout_null
     }
 }
 impl ::core::convert::From<::buffa::OwnedView<AppPatchRequestView<'static>>>

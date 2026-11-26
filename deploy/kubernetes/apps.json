@@ -104,7 +104,7 @@
                       "bundle": {
                         "properties": {
                           "digest": {
-                            "pattern": "^$|^sha256:[0-9a-f]{64}$",
+                            "pattern": "^sha256:[0-9a-f]{64}$",
                             "type": "string"
                           },
                           "url": {
@@ -114,7 +114,8 @@
                           }
                         },
                         "required": [
-                          "url"
+                          "url",
+                          "digest"
                         ],
                         "type": "object"
                       },
@@ -178,10 +179,83 @@
                     "maxLength": 256,
                     "type": "string"
                   },
+                  "readiness": {
+                    "properties": {
+                      "failures": {
+                        "format": "int64",
+                        "maximum": 60,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "grpc": {
+                        "type": "string"
+                      },
+                      "http": {
+                        "pattern": "^/",
+                        "type": "string"
+                      },
+                      "periodSeconds": {
+                        "format": "int64",
+                        "maximum": 60,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "successes": {
+                        "format": "int64",
+                        "maximum": 60,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "timeoutSeconds": {
+                        "format": "int64",
+                        "maximum": 60,
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object",
+                    "x-kubernetes-validations": [
+                      {
+                        "message": "choose http path or grpc service",
+                        "rule": "has(self.http) != has(self.grpc)"
+                      }
+                    ]
+                  },
                   "replicas": {
                     "format": "int64",
                     "minimum": 0,
                     "type": "integer"
+                  },
+                  "rollout": {
+                    "properties": {
+                      "drainMs": {
+                        "default": 30000,
+                        "format": "int64",
+                        "maximum": 600000,
+                        "minimum": 1000,
+                        "type": "integer"
+                      },
+                      "surge": {
+                        "default": 1,
+                        "format": "int64",
+                        "maximum": 100,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "unavailable": {
+                        "format": "int64",
+                        "maximum": 100,
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object",
+                    "x-kubernetes-validations": [
+                      {
+                        "message": "surge and unavailable cannot both be zero",
+                        "rule": "!has(self.surge) || self.surge \u003e 0 || (has(self.unavailable) \u0026\u0026 self.unavailable \u003e 0)"
+                      }
+                    ]
                   },
                   "scaling": {
                     "properties": {
@@ -295,12 +369,6 @@
               },
               "status": {
                 "properties": {
-                  "alias": {
-                    "type": "string"
-                  },
-                  "app": {
-                    "type": "string"
-                  },
                   "conditions": {
                     "items": {
                       "properties": {
@@ -347,6 +415,9 @@
                     ],
                     "x-kubernetes-list-type": "map"
                   },
+                  "deployment": {
+                    "type": "string"
+                  },
                   "desired": {
                     "format": "int64",
                     "minimum": 0,
@@ -366,6 +437,9 @@
                     "format": "int64",
                     "minimum": 0,
                     "type": "integer"
+                  },
+                  "service": {
+                    "type": "string"
                   }
                 },
                 "type": "object"
