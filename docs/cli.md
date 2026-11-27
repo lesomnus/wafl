@@ -83,22 +83,20 @@ wafl --endpoint http://127.0.0.1:9081 instance add \
 
 ```sh
 wafl serve runner --config examples/runner.json
-# 이전 실행파일도 유지
-cargo run --locked --bin wafl-runner -- examples/runner.json
 ```
 
 OTLP 전송은 JSON의 `metrics.endpoint`로 켭니다. `wafl serve runner --config examples/runner-metrics.json`과 수집기를 함께 실행하는 방법은 [메트릭 튜토리얼](metrics.md)을 참고하세요.
 
 ## Add 옵션
 
-CLI는 생성된 `InstanceServiceClient`로 `InstanceAddRequest`를 제출합니다. 별도 등록·Deploy RPC는 없습니다.
+CLI는 생성된 `InstanceServiceClient`로 `InstanceAddRequest`를 제출합니다.
 
 | 옵션 | 의미 |
 | --- | --- |
 | `<URL>` | 필수 번들 위치. `file:/path`와 `file:///path` 모두 가능 |
 | `--alias`, `--name` | 유일한 참조 이름과 선택적인 표시 이름 |
 | `--tenant` / `WAFL_TENANT` | domain 1 Tenant UUID. 기본은 로컬 개발용 `00000000-0000-8000-8001-000000000001` |
-| `--port`, `--protocol` | 게스트 포트와 `http` 또는 `h2c` |
+| `--port`, `--protocol` | 게스트 포트와 `http`, `h2c`, 직결 모드의 `tcp` |
 | `--env KEY=VALUE` | 반복 가능. `PORT`는 runner가 설정 |
 | `--binding PORT=IP:PORT` | 반복 가능. 선택적인 IPv4 loopback 포트 매핑 |
 | `--idle-ms`, `--startup-ms` | 유휴 회수·시작 제한 |
@@ -109,6 +107,8 @@ CLI는 생성된 `InstanceServiceClient`로 `InstanceAddRequest`를 제출합니
 기본 tenant는 DB의 tenant를 생성하는 동작이 아닙니다. 현재 runner에서 보관하는 소속 메타데이터 값입니다. 플랫폼에서는 `--tenant`로 실제 소속을 전달합니다.
 
 `--manifest`를 사용하면 URL과 명시적인 CLI 옵션만 해당 필드를 덮어씁니다. env는 key별로 병합하고 bindings는 추가합니다. `examples/instance.json`은 AddRequest 전체이므로, 이 옵션에는 그 안의 `manifest` 객체만 저장한 파일을 사용합니다.
+
+이름 있는 소켓은 Manifest의 `sockets`에 작성합니다. 복수 소켓을 사용하는 `--manifest` 예제는 [TCP 튜토리얼](tcp.md#단독-runner)을 따릅니다.
 
 ```sh
 wafl instance add https://files.example.com/jobs-v2.tar.gz \

@@ -1,6 +1,6 @@
 # Runner 수명·용량 운영 튜토리얼
 
-이 문서는 단독 runner 운영과 이후 제어평면이 사용할 계약을 설명합니다. 앱 등록·domain 라우팅·배치 결정을 구현하는 제어평면은 아직 없습니다. runner는 생성된 `InstanceService.Add`로 제출받은 Manifest를 실행합니다.
+이 문서는 단독 runner의 수명·용량·명령 조건을 설명합니다. runner는 생성된 `InstanceService.Add`로 제출받은 Manifest를 실행합니다. App 배포·도메인 라우팅·자동 배치는 [Kubernetes controller와 Pingora proxy](controller.md)가 담당합니다.
 
 아래 트래픽·Drain·자동 재기동 설명은 기본 proxy 모드 기준입니다. [직결 모드](direct.md)에서는 `Instance.endpoint`로 연결하며 HTTP 요청·유휴 상태는 외부에서 판단합니다. `Drain`은 표시만 바꾸고 실행을 유지하며, gateway 철회·연결 정리 후 `Release`로 포트를 반환합니다. 실행·메모리·준비 한도는 동일하게 적용합니다.
 
@@ -89,13 +89,13 @@ revision=$(wafl --json instance get @hello | python3 -c 'import json,sys; print(
 wafl --session "$session" --revision "$revision" instance drain @hello
 ```
 
-관리 RPC metadata의 `wafl-session`은 domain-8 UUID 문자열이고 `wafl-revision`은 십진 uint64 문자열입니다. revision을 지정하려면 session도 필요합니다. Add는 session만 받고 Start/Stop/Drain/Erase는 둘 다 받습니다. 기존 generated Add/Erase 요청 모양을 유지하기 위해 metadata를 사용합니다. 생략한 호출은 기존대로 현재 상태를 대상으로 실행합니다.
+관리 RPC metadata의 `wafl-session`은 domain-8 UUID 문자열이고 `wafl-revision`은 십진 uint64 문자열입니다. revision을 지정하려면 session도 필요합니다. Add는 session만 받고 Start/Stop/Drain/Erase는 둘 다 받습니다. 이 명령들에서 조건을 생략하면 현재 상태를 대상으로 실행합니다. 직결 `Halt`·`Release`에는 session과 revision이 필수이며 `Seal`에는 session만 필수입니다.
 
 Runner·Instance·Reservation의 Get/List와 Instance.Tail도 선택적인 `wafl-session`을 검사합니다. controller가 조회한 후 runner가 재시작되더라도 이전 세션으로 다른 실행의 결과나 로그를 반환하지 않습니다.
 
 다른 세션은 `FAILED_PRECONDITION`, 다른 revision은 `ABORTED`입니다. revision 검사와 변경은 같은 잠금 안에서 처리합니다. revision은 프로세스 전체에서 단조 증가하므로 같은 ID를 Erase 후 다시 Add해도 옛 명령이 새 Instance에 적용되지 않습니다. Get/List의 조회 값과 후속 명령 사이에 상태가 바뀌면 다시 조회하고 판단합니다. 요청 수의 변화마다 revision을 올리지는 않습니다.
 
-이 조건은 runner의 현재 상태에 대한 낙관적 동시성 검사입니다. 제어평면 replica의 소유권·리더 임대·fencing token을 구현한 것은 아닙니다. 그 계약은 제어평면 단계에서 별도로 정합니다. 인증도 추가하지 않았습니다.
+이 조건은 runner의 현재 상태에 대한 낙관적 동시성 검사입니다. 플랫폼 controller의 조정 leader는 별도의 Kubernetes Lease로 선출합니다. 관리 API에는 인증이 없으므로 신뢰된 운영 경로로 접근을 제한합니다.
 
 ## 오류와 재전송
 
@@ -114,7 +114,7 @@ Runner·Instance·Reservation의 Get/List와 Instance.Tail도 선택적인 `wafl
 
 위 거절은 HTTP 레벨이며 관리 RPC는 대응하는 Connect/gRPC 오류 code를 사용합니다. readiness는 TCP listen이고 요청별 upstream 연결 제한은 5초입니다. 첫 전달 전에 거절된 요청과 이미 전달이 시작된 요청을 구분해야 합니다. runner는 요청 본문을 자동 재전송하지 않습니다. HTTP body·gRPC stream의 정상 종료/취소/실패가 lease를 반환하며, response 시작 뒤 오류는 스트림 실패로 나타날 수 있습니다. 게스트가 보낸 `wafl-error`는 제거해 runner 진단과 섞이지 않게 합니다.
 
-Gateway는 Host로 runner 내부 라우트를 결정하지 않습니다. `wafl-instance: <Instance UUID>`를 주입하고 선택적으로 `wafl-session: <Runner UUID>`를 지정합니다. 둘은 게스트 전달 전에 제거하며 원래 Host/authority는 보존합니다. 제어평면이나 gateway 재시도 정책은 여기서 구현하지 않습니다.
+단독 runner의 proxy 모드에서는 `wafl-instance: <Instance UUID>`로 실행을 선택하고, 선택적으로 `wafl-session: <Runner UUID>`를 지정합니다. runner는 Host로 실행을 선택하지 않습니다. 두 헤더는 게스트 전달 전에 제거하며 원래 Host/authority는 보존합니다. 플랫폼의 Host 라우팅과 첫 요청 대기는 [Pingora proxy](proxy.md)가 담당하며 직결 runner를 사용합니다.
 
 ## 검증 시나리오
 

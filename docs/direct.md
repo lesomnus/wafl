@@ -1,6 +1,6 @@
 # WASM 소켓에 직접 연결하기
 
-`direct` 설정을 켜면 앞단 L7 proxy가 각 WASM의 실제 TCP 소켓에 연결합니다. runner는 WASI 소켓의 bind 주소를 바꾸고 수명을 관리하며 HTTP 요청을 중계하지 않습니다. 앱은 기존처럼 `0.0.0.0:8080`을 listen하고 `InstanceService.Add`로 실행합니다. SDK나 앱 수정은 필요하지 않습니다.
+`direct` 설정을 켜면 앞단 proxy가 각 WASM의 실제 TCP 소켓에 연결합니다. runner는 WASI 소켓의 bind 주소를 바꾸고 수명을 관리하며 앱 트래픽을 중계하지 않습니다. 이 문서는 단독 runner에 외부 proxy를 연결하는 계약과 예제입니다. 앱은 `0.0.0.0:8080`을 listen하고 `InstanceService.Add`로 실행합니다. SDK나 앱 수정은 필요하지 않습니다.
 
 ```text
 클라이언트 → Traefik/Envoy → runner Pod IP:배정 포트 → WASM 서버
@@ -34,7 +34,7 @@ wafl instance logs -f @one
 
 포트는 예시입니다. 실제 반환값을 사용합니다. 두 게스트는 모두 가상 포트 8080을 사용하지만 실제 주소는 다릅니다. Host/authority나 `wafl-instance` 헤더로 runner가 대상을 다시 선택하지 않습니다. 도메인 선택·TLS 종료는 앞단 L7의 역할입니다.
 
-`Instance.endpoints`는 `{name, address, transport, protocol}` 목록이며 `protocol`은 `http`, `h2c` 또는 일반 스트림인 `tcp`입니다. 기존 `Instance.endpoint`는 첫 소켓을 가리킵니다. 모든 선언 소켓이 listen해야 준비 완료로 처리합니다. `direct: true`, `phase: PHASE_RUNNING`, `draining: false`, endpoint 존재를 모두 확인한 뒤 경로에 추가합니다. 준비 중에는 endpoint를 공개하지 않습니다. 실패·draining 상태에는 **철회할 주소를 알 수 있도록 endpoint가 남으므로**, 필드 존재만 보고 트래픽을 보내면 안 됩니다. 준비 완료는 TCP listen 기준이며 앱 health check는 별도로 수행합니다.
+`Instance.endpoints`는 `{name, address, transport, protocol}` 목록이며 `protocol`은 `http`, `h2c` 또는 일반 스트림인 `tcp`입니다. `Instance.endpoint`는 첫 소켓을 가리킵니다. 모든 선언 소켓이 listen해야 준비 완료로 처리합니다. `direct: true`, `phase: PHASE_RUNNING`, `draining: false`, endpoint 존재를 모두 확인한 뒤 경로에 추가합니다. 준비 중에는 endpoint를 공개하지 않습니다. 실패·draining 상태에는 **철회할 주소를 알 수 있도록 endpoint가 남으므로**, 필드 존재만 보고 트래픽을 보내면 안 됩니다. 준비 완료는 TCP listen 기준이며 앱 health check는 별도로 수행합니다.
 
 endpoint의 식별자는 `(session, id, generation)`입니다. IP:port는 안정적인 인스턴스 ID가 아니며 Release 뒤 다른 실행에 재사용할 수 있습니다.
 
@@ -130,7 +130,7 @@ wafl instance erase @one
 }
 ```
 
-`advertise`에는 gateway가 접근할 실제 runner Pod IPv4를 넣습니다. `listen`은 그 IP 또는 `0.0.0.0`만 허용하며 wildcard 주소를 endpoint로 반환하지 않습니다. Pod IP 주입은 배포 구성이 생성한 JSON으로 처리합니다. runner 설정에 환경변수 문자열을 넣어 자동 치환하는 기능은 없습니다. 현재 직결 수신은 IPv4이고 기존 발신 IPv4·IPv6 TCP/DNS는 유지합니다.
+`advertise`에는 gateway가 접근할 실제 runner Pod IPv4를 넣습니다. `listen`은 그 IP 또는 `0.0.0.0`만 허용하며 wildcard 주소를 endpoint로 반환하지 않습니다. CLI의 `--direct-ip` 또는 `WAFL_DIRECT_IP`와 `--reservations`로도 직결 주소와 상태 디렉터리를 지정할 수 있습니다. Kubernetes 설치는 Pod IP를 `WAFL_DIRECT_IP`에 주입합니다. JSON 문자열 안의 환경변수는 자동 치환하지 않습니다. 직결 수신은 IPv4이고 발신은 IPv4·IPv6 TCP/DNS를 지원합니다.
 
 gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합니다. 임의 runner로 분산하는 단일 Service IP:port를 넣으면 다른 Pod로 갈 수 있습니다. `containerPort`를 하나씩 생성하는 방식으로 포워딩하지 않습니다. 실제 소켓과 Pod 네트워크가 수신하며 배포의 네트워크 정책에서 해당 범위를 접근 가능하게 합니다.
 
@@ -140,7 +140,7 @@ gateway는 **개별 runner Pod IP:배정 포트**를 backend로 사용해야 합
 
 공개된 예약은 시간 경과, 죽은 PID, runner 재시작, bundle GC로 회수하지 않습니다. IP가 재사용될 수 있는 Pod 교체도 이전 IP의 예약 상태를 잃으면 안 됩니다. Kubernetes에서는 IP 재사용과 gateway 철회를 제어평면이 조정하고 상태 볼륨의 수명을 그에 맞춰야 합니다. 단순 `emptyDir`만으로 재생성된 Pod까지 보호하지 못합니다.
 
-충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 이전 저널의 업그레이드 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. Kubernetes가 관리하는 실행은 provider가 gateway 관측 확인 후 회수합니다. 관측이 유실된 경우 [플랫폼 복구 절차](kubernetes-native.md)를 따릅니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
+충돌 후 Instance 목록은 복원되지 않습니다. `ReservationService.Get/List`로 이전 예약을 조회하고, 모든 경로·연결을 철회한 뒤 `ReservationService.Release`에 관측한 token과 `withdrawn:true`를 제출합니다. 살아 있는 세션이나 새 소유자로 바뀐 예약의 회수는 거절합니다. CLI 명령은 `wafl reservation list/get/release`이며 [장애 복구 튜토리얼](reservations.md)에 정상·장애·동시 회수와 손상 복구 절차가 있습니다. 재시작마다 상태 디렉터리를 비우지 않습니다. Kubernetes가 관리하는 실행은 provider가 gateway 관측 확인 후 회수합니다. 관측이 유실된 경우 [플랫폼 복구 절차](kubernetes-native.md)를 따릅니다. 풀이 소진되면 Add/Start가 실패하고 다른 앱의 주소를 임의로 재사용하지 않습니다.
 
 ## 제한과 메트릭
 

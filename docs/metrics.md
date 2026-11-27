@@ -2,7 +2,7 @@
 
 runner는 프로세스 설정의 `metrics.endpoint`로 OTLP/HTTP protobuf 메트릭을 주기적으로 전송합니다. 앱의 Manifest나 게스트 SDK 설정은 필요하지 않습니다. endpoint가 있는 `metrics` 객체를 생략하거나 `null`로 지정하면 exporter·수집 스레드를 만들지 않습니다.
 
-이 기능은 runner에서 수집기로 보내는 경로를 제공합니다. 제어평면의 메트릭 소비 방식, 스케줄링 정책과 상태 보고 RPC는 후속 계약입니다.
+이 기능은 runner에서 수집기로 보내는 관측 경로입니다. 플랫폼의 [자동 증감](autoscaling.md)은 Pingora proxy의 `Traffic` 보고를 사용하며 OTLP를 읽지 않습니다. runner의 상태·용량은 [Runner API](operations.md#시작과-관측)로 조회합니다.
 
 ## 설정
 
@@ -26,7 +26,7 @@ runner는 프로세스 설정의 `metrics.endpoint`로 OTLP/HTTP protobuf 메트
 
 전송 형식은 OTLP/HTTP protobuf로 고정하며 `POST`와 `application/x-protobuf`를 사용합니다. HTTPS는 시스템 신뢰 인증서를 사용하고, HTTP redirect는 따라가지 않습니다. OTLP/gRPC 전송은 아직 제공하지 않습니다.
 
-설정 파일의 endpoint·전송 주기·타임아웃은 명시적으로 적용합니다. `OTEL_EXPORTER_OTLP_ENDPOINT` 등의 환경변수만으로 export를 켜지는 않습니다. 내부 OpenTelemetry SDK가 지원하는 기타 환경변수 설정은 SDK 규칙을 따르지만, WAFL의 인증·credential 설정 계약은 이번 범위에 포함하지 않습니다. URL userinfo와 fragment는 거절합니다.
+설정 파일의 endpoint·전송 주기·타임아웃은 명시적으로 적용합니다. `OTEL_EXPORTER_OTLP_ENDPOINT` 등의 환경변수만으로 export를 켜지는 않습니다. 내부 OpenTelemetry SDK가 지원하는 기타 환경변수 설정은 SDK 규칙을 따릅니다. WAFL JSON 설정에는 별도의 인증 헤더·credential 옵션이 없으며 URL userinfo와 fragment는 거절합니다.
 
 ```sh
 wafl serve runner /srv/wafl-cache --config runner.json
@@ -79,7 +79,7 @@ wafl instance erase @hello
 
 위 요청 계측은 기본 proxy 모드 기준입니다. [직결 모드](direct.md)의 HTTP/gRPC 트래픽은 runner 계측을 지나지 않습니다. 이 모드에서는 `wafl.instance.active`를 생략하며, `Instance.active`와 `wafl.runner.requests`는 Add/Start 관리 대기만 나타냅니다. 실행 수·선언 메모리 예약·프로세스 CPU/RSS는 계속 전송합니다. 앱 요청의 부하와 유휴 여부는 앞단 L7에서 관측해야 합니다.
 
-CPU와 RSS는 `/proc/self/stat`에서 읽습니다. CPU 시간은 백분율이나 할당량이 아니며, 모든 WASM·컴파일·프록시·메트릭 전송 비용을 포함합니다. RSS도 게스트별 linear memory나 Pod/cgroup 메모리 사용량과 다릅니다. 다른 OS이거나 해당 통계를 읽지 못하면 두 process 메트릭을 생략합니다. 0으로 대체하지 않습니다. 인스턴스별 CPU 계측, cgroup 용량·제한, 게스트 실제 메모리 사용량과 요청 지연 histogram은 후속 범위입니다. 선언된 메모리 예약 합계는 아래 새 gauge로 제공합니다.
+CPU와 RSS는 `/proc/self/stat`에서 읽습니다. CPU 시간은 백분율이나 할당량이 아니며, 모든 WASM·컴파일·프록시·메트릭 전송 비용을 포함합니다. RSS도 게스트별 linear memory나 Pod/cgroup 메모리 사용량과 다릅니다. 다른 OS이거나 해당 통계를 읽지 못하면 두 process 메트릭을 생략합니다. 0으로 대체하지 않습니다. 인스턴스별 CPU, cgroup 용량·제한, 게스트 실제 메모리와 요청 지연 histogram은 수집하지 않습니다. 선언된 메모리 예약 합계는 `wafl.runner.memory.reserved`로 제공합니다.
 
 각 export의 resource에는 `service.name=wafl-runner`, 빌드의 `service.version`, 서버 시작마다 새로 생성하는 `service.instance.id`가 있습니다. 이 ID는 메트릭 세션 식별자이며 Instance entity ID나 영속 runner ID가 아닙니다. runner 재시작 후의 시계열을 이전 실행과 구분할 수 있습니다. 계측 scope는 `wafl.runner`입니다.
 
@@ -122,4 +122,4 @@ bash scripts/test.sh --test cli metrics::
 | `wafl.runner.compilation.requests` | Counter, `{operation}` | `result=compiled/reused`로 실제 컴파일·공유 횟수. 실패한 컴파일도 포함 |
 | `wafl.runner.accepting` | Gauge, `1` | 새 실행 수락 가능 시 1, 프로세스 종료 시 0 |
 
-설정 한도와 현재 usage는 `RunnerService.Get`으로도 조회합니다. 이 API는 배치 제어평면이나 metric 수집기를 구현하지 않으며, 제어평면의 메트릭 소비 방식은 후속으로 정합니다.
+설정 한도와 현재 usage는 `RunnerService.Get`으로도 조회합니다. controller 주소로 호출하면 감독하는 runner의 상태를 집계합니다. [집계 API](controller-api.md)에 조회 범위와 부분 장애 처리가 있습니다.

@@ -1,12 +1,12 @@
 # Kubernetes native WAFL
 
-WAFL 플랫폼은 Kubernetes를 필수로 사용합니다. 앱은 일반 HTTP/gRPC·TCP 서버이며 별도 SDK가 필요 없습니다. 단독 `wafl serve runner`와 `wafl instance` 명령은 Kubernetes와 `wafl-kube` 없이 계속 사용할 수 있습니다.
+WAFL 플랫폼은 Kubernetes를 필수로 사용합니다. 앱은 일반 HTTP/gRPC·TCP 서버이며 별도 SDK가 필요 없습니다. 단독 `wafl serve runner`와 `wafl instance` 명령은 Kubernetes와 `wafl-kube` 없이 사용할 수 있습니다.
 
 ## 책임과 실행 단위
 
 App CRD → Deployment → ReplicaSet → Pod → Virtual Kubelet provider → runner Instance 순서로 실행합니다. runner 프로세스 하나가 여러 WASM Instance를 실행합니다. 앱 Pod는 컨테이너 프로세스가 추가되는 Pod가 아니라 실행 상태를 나타내는 Kubernetes 리소스입니다. 실제 runner Pod 하나마다 가상 Node 하나가 등록됩니다.
 
-Kubernetes가 복제본 유지와 rolling update를 담당하고, WAFL이 WASM 실행·readiness·도메인 라우팅·첫 요청 대기·요청 관측과 drain을 담당합니다. controller replicas의 조정 작업은 Kubernetes Lease로 leader를 선출하며, 모든 replica가 요청과 관측 API를 처리할 수 있습니다. PostgreSQL은 플랫폼 상태 저장소로 사용하지 않습니다. 앱이 사용하는 DB는 별개입니다.
+Kubernetes가 복제본 유지와 rolling update를 담당하고, WAFL이 WASM 실행·readiness·도메인 라우팅·첫 요청 대기·요청 관측과 drain을 담당합니다. controller replicas의 조정 작업은 Kubernetes Lease로 leader를 선출하며, 모든 replica가 요청과 관측 API를 처리할 수 있습니다. 플랫폼 상태는 Kubernetes에 저장하며 앱의 DB는 별도로 연결합니다.
 
 ## 로컬 개발과 설치
 
@@ -116,12 +116,6 @@ runner 이미지 교체는 앱 복제본이 2개 이상이어도 모든 실행�
 
 `wafl-kube bootstrap dev --load --image LOCAL_TAG`는 모든 역할이 포함된 로컬 Docker 이미지 하나를 kind에 적재합니다. 같은 태그를 다시 빌드한 경우 image ID가 바뀌면 새 Pod template으로 갱신합니다. 로컬 클러스터 삭제는 `kind delete cluster --name wafl`입니다. 원격 Docker daemon을 사용하는 개발 환경은 `DOCKER_HOST` 주소로 접속하며 kubeconfig의 TLS 검증을 유지합니다.
 
-## 이전 버전에서 전환
-
-기존 PostgreSQL controller와 새 Kubernetes controller가 같은 runner를 동시에 관리하지 않도록 분리합니다. 기존 플랫폼에서 App YAML·secret 참조를 내보내고 새 클러스터에 등록하여 검증한 뒤 도메인의 게이트웨이를 전환합니다. 기존 요청을 drain한 뒤 이전 controller와 runner를 종료합니다. 기존 App/Placement UUID를 새 Pod의 UID로 재사용하지 않습니다.
-
-기존 controller JSON·`--configure`·PlacementService 관리 API는 새 제어평면에서 제공하지 않습니다. `AppService`는 Kubernetes 저장소를 사용하는 controller API로 제공하며 `wafl app`은 endpoint/tenant만 사용합니다. kubeconfig와 namespace 기반 CLI 명령은 제거했고 설치 명령은 운영자 도구 `wafl-kube bootstrap install/dev`로 분리했습니다. `wafl instance`, `wafl runner`, `wafl reservation`은 같은 RPC로 controller의 집계 범위 또는 개별 runner 범위를 선택합니다. App 수정은 `kubectl apply` 또는 `wafl app patch NAME --file patch.yaml`로 수행합니다. 자동 migration이나 기존 PostgreSQL 데이터 삭제는 하지 않습니다.
-
 ## 실행 수명 통합 검증
 
 Docker·kind·Rust·Go·kubectl이 있는 환경에서 다음 명령으로 전용 테스트 클러스터를 만듭니다.
@@ -142,7 +136,7 @@ provider 재시작과 controller 리더 교체를 검사합니다.
 | 배정 전 취소 | runner 용량을 초과해 Pending인 Pod를 0개로 축소했을 때 provider 없이도 finalizer와 Pod가 정리되는지 확인합니다 |
 | WASM A → B → A | 컴파일 시 버전이 다른 실행 파일과 tar.gz digest를 사용합니다. 새 요청의 응답에서 바이너리를 식별하고 기존 gRPC 스트림이 정상 종료된 뒤 이전 실행과 receipt가 제거되는지 확인합니다 |
 | runner 2 → 3 → 2 | 실제 Deployment의 replicas를 바꿉니다. 가상 Node가 늘고 새 runner에 WASM이 배정되며, 축소할 때 기존 스트림을 완료하고 실행·가상 Node를 회수하는지 확인합니다 |
-| runner/provider 이미지 교체 | 게시된 `2e463666` 이미지의 고정 digest에서 현재 소스로 빌드한 이미지로 두 컨테이너를 교체합니다. 실제 image ID 변경·앱 재배정·기존 스트림 완료·이전 실행 회수를 확인합니다 |
+| runner/provider 이미지 교체 | 테스트 스크립트에 고정된 기준 이미지에서 현재 소스로 빌드한 이미지로 두 컨테이너를 교체합니다. 실제 image ID 변경·앱 재배정·기존 스트림 완료·이전 실행 회수를 확인합니다 |
 
 각 전환 동안 별도의 클라이언트가 요청을 계속 보내고 응답 본문과 gRPC trailer를 검사합니다. 오류를 재시도로 감추지 않으며,
 요청 수·오류 수·최대 응답 시간을 테스트 로그에 남깁니다. 요청의 gRPC deadline은 기본 기동 대기 한도에 맞춘 30초입니다.

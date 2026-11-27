@@ -43,7 +43,7 @@ cargo run --locked -- serve runner --config examples/runner.json
 }
 ```
 
-이 파일은 프로세스 설정입니다. `listen`은 HTTP/1.1·HTTP/2 cleartext 앱 트래픽, `control`은 Connect/gRPC 관리 RPC 주소입니다. 선택적인 `directory`로 공유 번들 저장소를 지정할 수 있습니다. 아직 인스턴스는 없습니다. 기존 `apps`, `artifact`, `domain` 설정은 사용하지 않습니다.
+이 파일은 프로세스 설정입니다. `listen`은 HTTP/1.1·HTTP/2 cleartext 앱 트래픽, `control`은 Connect/gRPC 관리 RPC 주소입니다. 선택적인 `directory`로 공유 번들 저장소를 지정할 수 있습니다. 실행할 인스턴스는 Add RPC로 제출합니다.
 
 선택적인 `metrics`로 runner의 OTLP/HTTP 전송을 설정할 수 있습니다. 목적지와 주기를 지정하는 방법, 각 지표의 의미는 [메트릭 계약과 튜토리얼](metrics.md)에 있습니다.
 
@@ -74,7 +74,7 @@ curl --fail-with-body -H 'Content-Type: application/json' \
   http://127.0.0.1:8081/wafl.InstanceService/Add
 ```
 
-`Add`는 다운로드·컴파일 후 선언된 포트의 listen 완료까지 기다리고 `Instance`를 반환합니다. 응답의 `manifest`에는 기본값이 채워집니다. tenant는 domain 1 Payday ID, instance는 domain 7 Payday ID입니다. protobuf의 bytes ID는 JSON에서 base64입니다. `tenant.id`는 필수이며 alias 조회는 제공하지 않습니다.
+`Add`는 다운로드·컴파일 후 선언된 포트의 listen 완료까지 기다리고 `Instance`를 반환합니다. 응답의 `manifest`에는 기본값이 채워집니다. tenant는 domain 1 Payday ID, instance는 domain 7 Payday ID입니다. protobuf의 bytes ID는 JSON에서 base64입니다. `tenant.id`는 필수이며 Tenant의 alias 참조는 지원하지 않습니다.
 
 예제는 호출할 ID를 쉽게 알 수 있도록 지정했습니다. `id`를 생략하면 runner가 발급합니다. 같은 ID가 존재하거나 생성 중이면 `ALREADY_EXISTS`이며 기존 인스턴스를 변경하지 않습니다. `name`은 선택적인 표시 이름으로, 중복을 허용합니다. `phase`, `generation`, `active`, `error`는 서버 상태이므로 Add 입력에서 생략합니다. 생성된 메시지에 필드가 있더라도 기본값 이외의 값을 제출하면 거절합니다.
 
@@ -107,8 +107,9 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | `runtime`, `abi` | 현재 `wasmtime`, `wasip2`. 생략하면 이 기본값 사용 |
 | `bundle.url` | runner가 읽을 HTTP(S) 또는 로컬 file tar.gz URL. 필수 |
 | `bundle.digest` | 선택적인 `sha256:<hex>`. 압축된 번들 내용을 고정·검증 |
-| `port` | 게스트 IPv4 TCP listen 포트, 1–65535. `PORT` 환경 변수로도 전달 |
-| `protocol` | `http`(기본) 또는 HTTP/2 prior knowledge용 `h2c` |
+| `port` | 단일 소켓의 게스트 IPv4 TCP listen 포트, 1–65535. `PORT` 환경 변수로도 전달 |
+| `protocol` | `http`(기본), HTTP/2 prior knowledge용 `h2c`, 직결 모드의 일반 스트림 `tcp` |
+| `sockets` | 이름·포트·transport·protocol을 지정하는 소켓 목록. 일반 TCP와 복수 소켓은 직결 모드에서 지원 |
 | `idle_ms` | 활성 요청이 0이 된 뒤 회수까지의 시간. 기본 60초, 최대 7일 |
 | `startup_ms` | 실행 시작부터 포트 listen까지 제한. 기본 10초, 최대 10분. 다운로드·컴파일 시간 제외 |
 | `memory_bytes` | 인스턴스의 단일 linear memory 상한. 기본 64 MiB, 최소 1 MiB |
@@ -117,6 +118,8 @@ gateway는 외부 도메인을 해석해 runner와 Instance ID를 선택하고 �
 | `bindings` | 선택적인 IPv4 loopback TCP 포트 매핑. 일반 발신 연결에는 필요 없음 |
 
 Manifest 수치 필드의 0은 기본값을 선택합니다. runner의 `capacity`로 전체 등록·준비·기동·실행·요청·메모리 예약을 제한합니다. 기본값과 대기 계약은 [운영 튜토리얼](operations.md)에 있습니다.
+
+직결 모드의 `idle_ms`·`max_active`는 생략 또는 0만 허용하며, 트래픽 관측과 실행 회수는 외부 proxy가 담당합니다. `sockets`와 `port`/`protocol`을 함께 쓰면 첫 소켓과 일치해야 합니다. 소켓 선언·준비·공개 포트의 전체 계약은 [TCP 튜토리얼](tcp.md)에 있습니다.
 
 ## 관리 API와 수명
 
@@ -129,7 +132,9 @@ Manifest 수치 필드의 0은 기본값을 선택합니다. runner의 `capacity
 | `Start` | `InstanceStartRequest` → `Instance` | 보관한 인스턴스 실행 시작 또는 재사용 |
 | `Stop` | `InstanceStopRequest` → `Instance` | 실행 종료. 인스턴스 ID·alias·manifest·번들은 보관 |
 | `Drain` | `InstanceDrainRequest` → `Instance` | 새 수락/자동 재기동 차단, 기존 요청 대기 후 Stop. Start로 재개 |
+| `Halt` | `InstanceStopRequest` → `Instance` | 직결 전용. Drain된 실행을 종료하고 포트 예약은 보존. session과 revision 필수 |
 | `Release` | `InstanceReleaseRequest` → `Instance` | 직결 전용. Drain 후 외부 경로·연결 정리 확인을 받아 실행 종료와 포트 반환 |
+| `Seal` | `InstanceSealRequest` → `InstanceSealResponse` | 현재 runner 세션에서 해당 ID의 후속 Add 차단. session 필수. 이미 공개된 실행의 종료는 별도 |
 | `Tail` | `InstanceTailRequest` → `stream Log` | 보관한 stdout/stderr 조회. `follow: true`이면 계속 구독 |
 
 HTTP 경로는 `/wafl.InstanceService/<동사>`입니다. 모두 인증 없이 호출하며 tenant에 따른 접근 범위를 제한하지 않습니다. `tenant`는 entity 소속 정보입니다. 관리 RPC와 앱 트래픽 모두 별도의 토큰 설정이 없습니다.
@@ -173,7 +178,7 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 ### HTML과 WASM을 함께 배포
 
-앱은 `/data/index.html`을 일반 파일 API로 읽습니다. 로컬 개발에서는 예제처럼 `DATA`로 파일 위치를 지정하고, 번들에서는 `/data` 기본값을 사용합니다. 읽기 전용 파일과 실행 코드는 Instance 수명 동안 동일하게 유지됩니다. 새 번들로 새 Instance를 만들고 준비가 완료되면 gateway 대상을 바꾼 뒤 이전 Instance를 Erase합니다. 현재 runner가 이 배포 전환을 자동 수행하지는 않습니다.
+앱은 `/data/index.html`을 일반 파일 API로 읽습니다. 로컬 개발에서는 예제처럼 `DATA`로 파일 위치를 지정하고, 번들에서는 `/data` 기본값을 사용합니다. 읽기 전용 파일과 실행 코드는 Instance 수명 동안 동일하게 유지됩니다. 단독 runner에서는 새 번들로 새 Instance를 만들고 준비가 완료되면 gateway 대상을 바꾼 뒤 이전 Instance를 Drain·Erase합니다. 플랫폼의 App은 [controller의 rolling update](kubernetes-native.md#배포와-종료)로 교체합니다.
 
 ### Robot과 Job의 gRPC 스트림
 
@@ -183,7 +188,7 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 플랫폼이 DB를 준비하고 [App secret](secrets.md)으로 `DATABASE_URL` 환경 변수에 connection string을 넣으면 앱이 일반 DB 클라이언트로 직접 연결합니다. runner는 DNS 조회와 IPv4·IPv6 발신 TCP를 제공하므로 `bindings`가 필요하지 않습니다. DB 계정·스키마·백업은 플랫폼, DB 프로토콜·TLS·연결 풀은 앱의 클라이언트가 담당합니다. 현재 runner는 DB를 생성하지 않습니다.
 
-고정된 localhost 포트가 필요한 앱은 기존 `"bindings": [{"port": 5432, "target": "10.0.0.20:5432"}]`를 계속 사용할 수 있습니다. 해당 IPv4 loopback 연결만 매핑하고 나머지 TCP 연결은 원래 목적지로 연결합니다. 이 매핑은 목적지의 접근 권한을 제한하는 allowlist가 아닙니다. 실제 Redis 클라이언트 예제와 네트워크 범위는 [외부 연결과 DB 튜토리얼](network.md)을 참고합니다.
+고정된 localhost 포트가 필요한 앱은 `"bindings": [{"port": 5432, "target": "10.0.0.20:5432"}]`를 사용할 수 있습니다. 해당 IPv4 loopback 연결만 매핑하고 나머지 TCP 연결은 원래 목적지로 연결합니다. 이 매핑은 목적지의 접근 권한을 제한하는 allowlist가 아닙니다. 실제 Redis 클라이언트 예제와 네트워크 범위는 [외부 연결과 DB 튜토리얼](network.md)을 참고합니다.
 
 ### Kubernetes gateway와 연동
 
@@ -195,7 +200,7 @@ InstanceRef는 `{"id":"<base64>"}` 또는 `{"alias":"hello"}`입니다. CLI의 `
 
 WASI resource table은 인스턴스당 1,024개입니다. 공통 epoch clock이 CPU 루프를 주기적으로 yield하여 취소·시작 제한을 처리하지만 CPU quota는 아닙니다. stdout/stderr를 최대 1 MiB·4,096개 레코드로 보관하고 `Tail`로 조회합니다. 최근 stderr 최대 16 KiB는 게스트 실패 진단에도 사용합니다. 로그 구독은 유휴 회수를 막지 않으며 Stop/Start를 가로질러 유지됩니다. 자세한 cursor·보존 계약은 [로그 사용법](cli.md#로그)에 있습니다. 요청별 upstream TCP 연결을 사용하며 WebSocket/Upgrade·CONNECT는 501입니다. 프로세스 종료 시 ingress 연결을 `capacity.drain_ms` 동안 drain한 뒤 나머지 실행을 종료합니다. 기본값은 30초입니다.
 
-`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`이며 이전 `domain = 12`, `port = 16`은 예약했습니다. 게스트 포트는 `manifest.port`, 직결 호스트 주소는 읽기 전용 `endpoint = 21`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Drain/Release/Tail을 확장 proto에 선언합니다. custom Deploy RPC는 없습니다.
+`Instance`는 `(orm.message)`·`(payday.entity)`가 선언된 일반 entity입니다. `tenant = 2`, `alias = 4`, `manifest = 17`입니다. 게스트 포트는 `manifest.port` 또는 `manifest.sockets`, 직결 호스트 주소는 읽기 전용 `endpoint`·`endpoints`에 있습니다. **Add/Get/List/Erase와 요청 메시지는 codegen이 생성**하고, Start/Stop/Halt/Drain/Release/Seal/Tail을 확장 proto에 선언합니다.
 
 서버는 생성된 `Unimplemented → Instances` 레이어를 조합합니다. 메모리 구현을 선택하고 DB Sink를 넣지 않으므로 DB 연결·마이그레이션은 실행하지 않습니다. runner 재시작 후에는 플랫폼이 Instance를 다시 제출해야 합니다.
 

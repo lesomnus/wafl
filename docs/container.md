@@ -11,8 +11,6 @@ docker run --rm ghcr.io/lesomnus/wafl:latest --help
 
 main 변경은 이미지 빌드와 실행 검증을 통과한 뒤 `latest`와 `sha-<전체 Git commit SHA>` 태그로 발행됩니다. 재현 가능한 배포에는 SHA 태그 또는 registry digest를 사용합니다. 소스에서 빌드하려면 저장소 루트에서 `docker build -t wafl .`을 실행합니다.
 
-GitHub Container Registry의 새 패키지는 기본적으로 private입니다. 패키지가 private이면 `read:packages` 권한으로 GHCR에 로그인한 뒤 pull합니다. 공개 배포는 GitHub 패키지 설정에서 visibility를 Public으로 변경한 뒤 anonymous pull로 확인합니다. public repository의 visibility만으로 container package까지 공개되지는 않습니다.
-
 ## Runner
 
 ```sh
