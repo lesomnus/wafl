@@ -12,7 +12,7 @@ hello.tar.gz
 
 ## 전달
 
-`Asset`은 `oneof kind { string url = 1; }`과 선택적인 `string digest = 2`를 가집니다. HTTP(S) URL과 로컬 `file:/path`·`file:///path`를 지원합니다. URL은 **runner에서 접근 가능한 주소**여야 합니다. file URL은 runner 호스트의 파일이며 CLI가 파일을 업로드하지는 않습니다. HTTP 예제의 `127.0.0.1`은 runner와 파일 서버가 같은 호스트에서 실행될 때 사용합니다. Pod에서는 해당 Pod가 접근할 수 있는 서비스 주소, object storage 또는 마운트한 파일 경로를 사용합니다.
+`Asset`은 `oneof kind { string url = 1; }`과 선택적인 `string digest = 2`를 가집니다. HTTP(S) URL과 로컬 `file:/path`·`file:///path`를 지원합니다. URL은 **runner에서 접근 가능한 주소**여야 합니다. `wafl instance add`의 file URL은 runner 호스트의 파일이며 CLI가 파일을 업로드하지는 않습니다. `wafl app add`의 로컬 번들은 [controller 업로드 API](controller-api.md#파일과-secret)를 사용합니다. HTTP 예제의 `127.0.0.1`은 runner와 파일 서버가 같은 호스트에서 실행될 때 사용합니다. Pod에서는 해당 Pod가 접근할 수 있는 서비스 주소, object storage 또는 마운트한 파일 경로를 사용합니다.
 
 query를 포함한 서명 URL과 사내 HTTP 저장소를 사용할 수 있습니다. URL userinfo와 fragment는 받지 않으며, 별도의 다운로드 인증 헤더 설정은 없습니다. URL은 `Instance.manifest`에 유지됩니다. HTTP redirect는 최대 5번, 연결 제한은 5초, 다운로드 전체 제한은 30초입니다. HTTP 2xx 응답의 본문 자체가 gzip 압축된 tar여야 합니다.
 
@@ -41,7 +41,7 @@ tar -tzf /tmp/wafl-example/hello.tar.gz
 
 추출된 파일은 [공유 저장소](store.md)에 내용 hash로 보관하고, 컴파일 결과는 동일 코드끼리 프로세스 안에서 공유합니다. [컴파일 보관 한도](operations.md#수락-제한)를 적용합니다. `/data`는 읽기 전용이며 앱의 변경 가능한 상태는 [외부 DB에 직접 연결](network.md)해 저장합니다. 호스트의 다른 디렉터리는 게스트에 제공하지 않습니다.
 
-`Stop`과 유휴 회수는 WASM 실행·메모리·소켓만 종료합니다. 다음 요청이나 `Start`는 보관한 번들로 다시 실행하므로 URL이 만료되어도 재시작할 수 있습니다. 같은 URL을 다시 다운로드하거나 실행 중 변경을 감지하지 않습니다. 새 코드는 새 Instance로 `Add`하고 gateway의 대상을 변경합니다.
+기본 proxy 모드에서 `Stop`과 유휴 회수는 WASM 실행·메모리·소켓만 종료합니다. 다음 요청이나 `Start`는 보관한 번들로 다시 실행하므로 URL이 만료되어도 재시작할 수 있습니다. 같은 URL을 다시 다운로드하거나 실행 중 변경을 감지하지 않습니다. 새 코드는 새 Instance로 `Add`하고 gateway의 대상을 변경합니다. [직결 모드](direct.md)는 외부 proxy가 트래픽과 유휴 상태를 관측하며 포트 반환에 별도의 `Drain/Release` 절차를 사용합니다.
 
 `Erase`는 인스턴스·alias·로그와 실행 메모리를 제거합니다. 다른 runner도 사용할 수 있는 공유 파일 캐시는 삭제하지 않습니다. runner 종료 후에도 캐시는 남지만 인스턴스 목록은 사라지므로 플랫폼이 필요 시 다시 제출해야 합니다.
 

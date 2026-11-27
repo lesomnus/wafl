@@ -72,12 +72,13 @@ controller는 Instance 명령의 대상을 한 번 정한 뒤 그 ID와 runner �
 
 ## 생성 RPC
 
-App의 CRUD는 entity 선언에서 생성한 `AppService.Add/Get/List/Patch/Apply/Erase`를 사용합니다. 로그용 `Tail`만 확장 RPC입니다. Go controller와 Rust runner의 계약은 같은 protobuf에서 생성합니다.
+App의 CRUD는 entity 선언에서 생성한 `AppService.Add/Get/List/Patch/Apply/Erase`를 사용합니다. 기동용 `Wake`와 로그용 `Tail`은 확장 RPC입니다. Go controller와 Rust runner의 계약은 같은 protobuf에서 생성합니다.
 
 - `Add(AppAddRequest) App`: 선언과 쓰기 전용 `secret_values`를 받습니다. 이 저장소에서는 ID를 서버가 부여하므로 `id`는 생략합니다. 고정 `replicas=0`은 실행 중지 상태이며 CLI YAML에서 replicas/scaling을 모두 생략하면 CLI가 1을 지정합니다.
 - `Get`과 `List`: App protobuf를 반환합니다. `status`는 준비된 실행 수와 적용 상태, `revision`은 선언의 버전입니다. Secret 값과 Kubernetes 리소스를 반환하지 않습니다. `List`는 생성 계약의 필터·커서·역순 조회를 지원합니다.
 - `Patch`: 생성된 필드 setter 계약입니다. `Apply`는 기존 protobuf patch 문서를 적용하며, read-only 필드 변경을 거절합니다. 한 요청은 Kubernetes resourceVersion CAS로 반영합니다.
 - `Erase`: 해당 App과 종속 배포를 삭제합니다. 실행의 drain과 포트 회수는 기존 계약대로 완료합니다.
+- `Wake`: App ID로 자동 증감 App의 0→1 기동을 요청합니다. 동시에 호출해도 기동을 합치며 고정 `replicas: 0` App은 기동하지 않습니다. 준비 완료를 기다리거나 앱 데이터를 받지 않으며 프록시가 요청을 보유합니다.
 - `Tail`: controller가 선택한 runner의 `InstanceService.Tail`을 중계합니다. 응답 metadata의 `wafl-instance`가 선택된 실행입니다. cursor로 재개할 때는 `--instance ID`를 함께 지정합니다. 스트림은 선택한 실행에 고정되며 replica나 배포 버전을 자동으로 넘나들지 않습니다.
 
 `wafl-tenant` RPC metadata는 tenant alias 또는 ID를 선택합니다. 기본값은 `default`이고 Kubernetes 저장소가 namespace에 대응시킵니다. 요청의 `tenant`가 있으면 이 범위와 일치해야 합니다. 기존 Kubernetes App도 같은 API로 조회할 수 있으며 App ID는 Kubernetes UID에서 파생한 domain-10 UUID입니다. alias와 domain은 기존 선언을 가리키는 불변 식별자입니다.

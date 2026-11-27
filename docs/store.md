@@ -1,4 +1,4 @@
-# 공유 번들 저장소 v2
+# 공유 번들 저장소
 
 [직결 모드](direct.md)의 `direct.directory`는 이 캐시와 분리한 영속 포트 예약 저장소입니다. 서로 포함되는 경로는 거절하며 bundle GC가 endpoint 예약을 지우지 않습니다.
 
@@ -23,7 +23,7 @@
 
 표시한 값이 기본값입니다. 모든 한도는 양수입니다. `expanded_bytes`는 `u64::MAX`보다 작아야 합니다. `/data`는 읽기 전용이며 게스트가 쓸 수 있는 임시 FS는 제공하지 않습니다. `expanded_bytes`가 개별 번들의 FS 입력 상한이고 `cache.capacity_bytes`가 **공개된 v2 번들의 일반 파일 논리 크기 합계** 상한입니다. 같은 digest는 한 번만 셉니다.
 
-파일시스템의 실제 블록·메타데이터, 압축 다운로드/추출 중 staging, v1 파일, 컴파일·실행 메모리는 캐시 상한에 포함하지 않습니다. 따라서 디스크 전체 hard quota는 아닙니다. staging은 Add마다 최대 `download_bytes + expanded_bytes`가 필요할 수 있고, 여러 프로세스의 동시 Add 수만큼 여유 공간을 확보해야 합니다. 실행 memory는 별도의 `Manifest.memory_bytes`로 제한하며 CPU/fuel 제한은 하지 않습니다.
+파일시스템의 실제 블록·메타데이터, 압축 다운로드/추출 중 staging, 관리 경로 밖의 파일, 컴파일·실행 메모리는 캐시 상한에 포함하지 않습니다. 따라서 디스크 전체 hard quota는 아닙니다. staging은 Add마다 최대 `download_bytes + expanded_bytes`가 필요할 수 있고, 여러 프로세스의 동시 Add 수만큼 여유 공간을 확보해야 합니다. 실행 memory는 별도의 `Manifest.memory_bytes`로 제한하며 CPU/fuel 제한은 하지 않습니다.
 
 공유 디렉터리의 살아 있는 runner는 같은 `cache.capacity_bytes`를 써야 합니다. 다르면 시작을 거절합니다. 번들별 한도는 runner마다 달라도 됩니다. cache hit에서도 기록한 실제 크기·항목 수를 검사합니다. 용량을 변경하려면 모든 관련 runner를 종료하고 새 값으로 시작합니다. 줄어든 상한을 맞추기 위한 시작 시 GC는 아래 Add 시 GC의 유일한 예외입니다.
 
@@ -51,7 +51,7 @@ Bundle hash는 원본 tar.gz 전체의 SHA-256입니다. URL hash는 정규화�
 {"version":2,"digest":"sha256:<64 lowercase hex>","download_bytes":123,"expanded_bytes":2048,"entries":2,"payload_bytes":12}
 ```
 
-Receipt는 검증·추출 완료를 나타내며 컴파일/실행 준비 상태를 뜻하지 않습니다. 파일은 immutable이고 매 cache hit에서 전체 내용을 다시 hash하지 않습니다. v1 reader에는 pin 계약이 없으므로 v2가 v1 파일을 사용하거나 회수하지 않습니다. v1은 예전 runner를 모두 종료한 뒤 운영자가 지워야 하며 v2 용량에 포함되지 않습니다. tar.gz 번들 규격은 그대로 v1입니다.
+Receipt는 검증·추출 완료를 나타내며 컴파일/실행 준비 상태를 뜻하지 않습니다. 파일은 immutable이고 매 cache hit에서 전체 내용을 다시 hash하지 않습니다. 캐시의 저장 형식은 v2이며 내려받는 tar.gz의 형식은 [실행 번들 v1](bundle.md)입니다.
 
 ## 수명과 GC
 
@@ -76,14 +76,4 @@ URL reference는 cache-first입니다. 원본 서버나 로컬 파일이 없어�
 - **프로세스 강제 종료:** pin은 OS가 해제합니다. 다음 miss는 버려진 staging을 청소하고 해당 object를 GC 후보로 사용할 수 있습니다.
 - **용량 변경:** 공유 runner를 전부 종료한 다음 같은 새 용량으로 다시 실행합니다. 살아 있는 runner 하나만 다른 용량으로 바꾸면 시작에 실패합니다.
 
-## 원격 data를 필요할 때 읽는 확장
-
-현재 실행기는 완전히 추출된 로컬 `/data`를 WASI에 preopen합니다. 아직 원격 지연 읽기를 수행하지 않습니다. 코드상 소스 fetch, bundle 검증/저장(`store.rs`, `bundle.rs`), WASI 실행/파일 노출(`runtime.rs`)을 분리했으므로 아래 세 부분을 각자 확장할 수 있습니다.
-
-1. **파일 인덱스:** 경로, 파일 크기, 파일 또는 chunk별 digest, 원격 위치/offset을 담는 immutable manifest. 전체 tar를 순회하지 않고 파일을 찾을 수 있어야 합니다.
-2. **부분 fetch와 캐시:** 먼저 main.wasm 및 인덱스를 받고, data는 open/read 시 필요한 파일·chunk만 가져옵니다. 검증된 chunk를 내용 hash로 공유하며, v2와 별도 레이아웃/버전을 사용합니다.
-3. **게스트 파일 API 연결:** 앱은 계속 `std::fs` 같은 WASI 파일 API를 씁니다. Wasmtime의 파일 호스트 구현 또는 FUSE 같은 mount 계층에서 읽기를 가로채 fetch·검증·캐시에 연결해야 합니다. 현재의 로컬 디렉터리 preopen만으로 자동 해결되지는 않습니다.
-
-구현 후보는 파일별 object와 인덱스, 또는 seek 가능한 압축 이미지입니다. [eStargz 규격](https://github.com/containerd/stargz-snapshotter/blob/main/docs/estargz.md)은 tar.gz 호환 형식에 색인·chunk 검증을 추가해 필요한 파일 부분만 가져옵니다. 따라서 파일 확장자를 반드시 바꿀 필요는 없지만, 일반 gzip tar에 없는 인덱스와 부분 검증 계약은 필요합니다. OCI registry에 일반 tar.gz blob을 올리는 것만으로 지연 읽기가 생기지는 않습니다.
-
-WAFL의 원격 파일 형식, Wasmtime 파일 계층 구현, ORAS fetch adapter는 후속 범위이며 이번 계약에 지원된 것으로 포함하지 않습니다. Credential 작업도 보류 상태입니다.
+원격 URL도 전체 번들을 내려받아 검증·추출한 뒤 로컬 `/data`를 WASI에 preopen합니다. 파일별 지연 다운로드는 지원하지 않습니다.

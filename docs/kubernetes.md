@@ -1,6 +1,6 @@
 # Kubernetes App
 
-Kubernetes는 WAFL 플랫폼의 필수 제어평면입니다. 이전 선택적 App importer와 PostgreSQL 상태 저장소를 대체했습니다. 설치와 전체 예제는 [Kubernetes native 튜토리얼](kubernetes-native.md)을 참고하세요.
+App은 Kubernetes에 저장하는 WAFL 앱 선언입니다. 이 문서는 CRD를 직접 관리하는 운영자를 위한 참조이며, 설치와 controller API를 사용하는 앱 배포 예제는 [Kubernetes native 튜토리얼](kubernetes-native.md)을 참고하세요.
 
 ```sh
 wafl-kube bootstrap install

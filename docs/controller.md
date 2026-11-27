@@ -1,6 +1,6 @@
 # Controller와 Virtual Kubelet
 
-플랫폼의 설치·로컬 개발은 [Kubernetes native 튜토리얼](kubernetes-native.md)을 따릅니다. PostgreSQL 기반 controller와 별도 runner 목록 설정은 제거했습니다.
+controller는 Kubernetes의 App 선언과 실행 상태를 조정합니다. 플랫폼의 설치·로컬 개발은 [Kubernetes native 튜토리얼](kubernetes-native.md)을 따릅니다.
 
 ```mermaid
 flowchart LR

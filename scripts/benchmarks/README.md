@@ -1,8 +1,8 @@
 # Runner proxy와 직결 성능 측정
 
-같은 WASIp2 HTTP 서버 두 개를 Wasmtime CLI 두 프로세스, WAFL proxy 한 프로세스,
-WAFL direct 한 프로세스로 실행한다. 앱마다 독립적인 memory와 TCP listener를 갖는다.
-`guest.rs`는 이전 리소스 비교에 사용한 연결 종료 방식의 게스트다.
+같은 WASIp2 HTTP 서버 두 개를 Wasmtime CLI 두 프로세스, 단독 runner의 proxy 모드 한 프로세스,
+direct 모드 한 프로세스로 실행한다. 앱마다 독립적인 memory와 TCP listener를 갖는다.
+`guest.rs`는 응답마다 연결을 종료하는 게스트다.
 Keep-alive 비교에는 아래 `http-guest.rs`를 양쪽 설정 모두에 사용한다.
 
 ## 빌드와 실행
@@ -93,7 +93,7 @@ gateway의 backend 주소에 대한 TCP tuple을 관찰한다. `connections.new_
 
 ## Wasmtime 직접 실행과 runner 직결: Keep-alive 비교
 
-새 fixture는 WASI `poll`로 idle connection과 listener를 함께 기다린다.
+`http-guest.rs`는 WASI `poll`로 idle connection과 listener를 함께 기다린다.
 스레드·주기적 sleep·busy loop 없이 여러 연결을 처리하고, 응답마다 연결을 닫을지
 재사용할지만 `BENCH_KEEPALIVE` 환경 변수로 정한다. 두 모드의 **바이너리는 동일**하다.
 이 fixture는 body 없는 HTTP/1.1 GET과 작은 응답을 위한 측정용 서버다.
@@ -158,10 +158,8 @@ python3 scripts/benchmarks/summarize.py \
 대체한다. `select.py`는 선택 목록에 따라 완전한 반복 묶음, 동일 바이너리·측정 조건,
 오류 없음과 부하 품질을 검사한다. CPU나 응답 latency가 높다는 이유로 제외하지 않는다.
 
-이번 Keep-alive 보고서는 최초 마지막 반복에서 요청 생성 지연 p95 164.500 ms를 발견해
-8개 조건 전체를 다시 실행했다. 재측정 전 채택 기준을 요청 생성 지연 p95 ≤ 5 ms,
-목표 처리율의 99% 이상, 오류 없음으로 정했다. 최초·재측정 원본은 각각 보존하고,
-선택 목록에 제외한 반복과 이유를 기록했다. 다음 명령으로 최종 집계를 재현한다.
+보관된 [Keep-alive 측정 기록](../../docs/benchmarks/2026-11-25-keepalive.md)은 원본 결과와
+선택 목록으로 집계를 재현할 수 있다. 채택 기준과 재측정 근거는 그 기록에 명시한다.
 
 ```sh
 python3 scripts/benchmarks/select.py \

@@ -14,7 +14,7 @@
 
 **L7 proxy에서 WASM 소켓에 직접 연결**하려면 [직결 튜토리얼](docs/direct.md)의 `direct` 설정을 사용합니다. `Instance.endpoint`로 반환한 IP:port를 Traefik/Envoy backend로 지정하며 runner HTTP 중계는 없습니다. 포트 공유·재시작 예약과 `Drain → 외부 연결 정리 → Release` 계약을 포함합니다. 아래 빠른 시작은 기본 proxy 모드입니다.
 
-프로세스 장애로 남은 직결 예약은 `wafl reservation list/get`으로 조회하고, 외부 경로 정리 후 관측한 token으로 `release`합니다. [예약 복구 튜토리얼](docs/reservations.md)은 OS 잠금에 의한 소유자 확인, 재배정 보호와 업그레이드 절차를 설명합니다.
+프로세스 장애로 남은 직결 예약은 `wafl reservation list/get`으로 조회하고, 외부 경로 정리 후 관측한 token으로 `release`합니다. [예약 복구 튜토리얼](docs/reservations.md)은 OS 잠금에 의한 소유자 확인, 재배정 보호와 손상된 상태의 복구를 설명합니다.
 
 ```sh
 cargo install --path . --locked --bin wafl
